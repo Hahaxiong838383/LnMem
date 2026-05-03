@@ -3,14 +3,14 @@ version: v0.1
 audience: cc / codex / 工程师 / 文档贡献者
 purpose: LnMem 项目所有 .md 文件的统一写作规范——4 级体裁分层 + L1 frontmatter + L2 万能公式 v1
 status: 试运行 v0.1（2026-05-04 起）
-parent: mycc/docs/rules/SCHEMA.md（万能公式 v1 源规范）
+parent: docs/rules/SCHEMA.md（vendored from mycc/docs/rules/SCHEMA.md @91b6008，万能公式 v1 源规范）
 ---
 
 # LnMem 文档写作规范（STYLE）
 
 > **核心命题**：用万能公式 v1 做"持续工程化文档生产"，但**分级而非一刀切**——LnMem 50% 是叙述/教学/研究文档（产品定义 / 数学手册 / 研究底稿），强行套 RULE-ID 反而损害可读性。
 >
-> 本规范在 [mycc/docs/rules/SCHEMA.md](https://github.com/Hahaxiong838383/mycc) 的 4 维矩阵 + RULE-ID 命名规范之上，按 LnMem 文档体裁加一层 L1-L4 分级。
+> 本规范在 [`docs/rules/SCHEMA.md`](rules/SCHEMA.md)（vendored from mycc，详见文件顶部注解）的 4 维矩阵 + RULE-ID 命名规范之上，按 LnMem 文档体裁加一层 L1-L4 分级。
 
 ---
 
@@ -57,12 +57,12 @@ last_updated: 2026-05-XX # 仅大改时更新（小修不动）
 
 ## 3. L2 万能公式 v1（规则集专用）
 
-完整规范见 [mycc/docs/rules/SCHEMA.md](https://github.com/Hahaxiong838383/mycc)。LnMem 直接复用：
+完整规范见本仓库 [`docs/rules/SCHEMA.md`](rules/SCHEMA.md)（vendored from mycc @91b6008，AI 工具读 LnMem 时本地可直接 Read/grep）。LnMem 直接复用：
 
 - **4 维评分**：是否常用 / 是否必选 / P 级（P0-P3）/ 权重（0.35-1.00）
 - **P 分级**：P0 = 全文必读 / P1 = 速览表 / P2/P3 = 索引下沉
 - **RULE-ID 命名**：大写 + 连字符，3-15 字符，全局唯一（如 `M0-W2-CONTRACT` / `CODEX-PARALLEL`）
-- **P0/P1/P2/P3 标准格式**：见 SCHEMA.md §"单条规则的标准格式"
+- **P0/P1/P2/P3 标准格式**：见 [`rules/SCHEMA.md`](rules/SCHEMA.md) §"单条规则的标准格式"
 
 **LnMem 特有的 RULE-ID 领域前缀**：
 - `M0-` / `M1-` / ...：里程碑相关规则
