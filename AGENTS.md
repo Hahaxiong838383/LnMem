@@ -39,6 +39,15 @@
 - **不要内嵌大代码块到 prompt 回复**：直接 Write 文件，简洁说明改了什么
 - **不依赖未建模块**：你的代码只能 import `contracts` + 自己模块；不要 import 其他 codex 的模块
 
+## 文档写作规范（强制）
+
+**写或改任何 `.md` 文档前必读 [`docs/STYLE.md`](docs/STYLE.md)**——LnMem 文档分 L1-L4 4 级体裁。codex 主要写**模块 README（L2 级）**：必须含 L1 frontmatter（version/audience/purpose）+ RULE-ID 索引表（如有派生规则）+ 章节末 Why。不允许散文式写法。
+
+具体到你的模块：
+- `<module>/README.md` 顶部加 YAML frontmatter（最少 3 字段：`version` / `audience: cc / 工程师` / `purpose: <一句话定位>`）
+- 接口契约表必须用 RULE-ID 标注（领域前缀 `CONTRACT-` 或 `<MODULE>-`）
+- 关键决策点结尾加 `**Why**：<一句话>`
+
 ## 单文件硬约束
 
 - ≤ 200 行

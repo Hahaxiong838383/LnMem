@@ -20,21 +20,26 @@
 
 ## 给 AI 同事的 30 秒入口
 
+> **本仓库对所有 AI coding 工具开放协作（Claude Code / Codex / Gemini CLI / Cursor / Copilot / 等）**——但任何 AI 工具读取本项目时**必须先遵循 [`docs/STYLE.md`](docs/STYLE.md) 的写作规范**，否则产出会被拒收。详见各 AI 工具的入口文件：[`CLAUDE.md`](CLAUDE.md) / [`AGENTS.md`](AGENTS.md) / [`GEMINI.md`](GEMINI.md) / [`.cursorrules`](.cursorrules) / [`.github/copilot-instructions.md`](.github/copilot-instructions.md)。
+
 文档读取顺序（**按这个顺序读，不要跳序**）：
 
-1. [`docs/product-definition.md`](docs/product-definition.md) §0–§1（30 秒愿景）
-2. [`docs/memory-architecture.md`](docs/memory-architecture.md) §0–§2（30 秒技术骨架）
-3. [`CLAUDE.md`](CLAUDE.md)（vibecoding 工作纪律，**必读**）
-4. [`roadmap/milestones.md`](roadmap/milestones.md) §当前月份段（你现在该做什么）
+1. [`docs/STYLE.md`](docs/STYLE.md) — **所有 .md 写作规范，强制**（4 级体裁分层 + L1 frontmatter + L2 万能公式 v1）
+2. [`docs/product-definition.md`](docs/product-definition.md) §0–§1（30 秒愿景）
+3. [`docs/memory-architecture.md`](docs/memory-architecture.md) §0–§2（30 秒技术骨架）
+4. [`CLAUDE.md`](CLAUDE.md)（vibecoding 工作纪律，**必读**）
+5. [`roadmap/milestones.md`](roadmap/milestones.md) §当前月份段（你现在该做什么）
 
 **红线规则**：
 - 任何对 [§10 不可妥协 6 项](docs/product-definition.md) 的妥协建议——**先停下问老板**
 - 三色判定（[`roadmap/milestones.md`](roadmap/milestones.md)）连续两次进入红区——**先停下问老板**
 - 类型 3 数据（团队真实交互）使用边界灰色地带——**先停下问老板**
+- **任何 .md 文档不带 L1 frontmatter 直接 commit**——CI 应当拒绝（M0 W3 加 pre-commit hook）
 
 **提交规则**：
 - 所有 PR 必须经过 cc 实现 + codex 对抗审查 + 人类工程师签名
 - AI 不是责任主体（[`CLAUDE.md`](CLAUDE.md) §AI 同事责任边界）
+- 文档改动必须遵循 [`docs/STYLE.md`](docs/STYLE.md) 分级规范
 
 ---
 

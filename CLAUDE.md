@@ -8,9 +8,10 @@
 ## 0. 三秒钟告诉你怎么开始
 
 1. 第一次到这个仓库：先读 [`README.md`](README.md) 的"30 秒入口"段
-2. 准备开始一个工程任务：先读 [`roadmap/milestones.md`](roadmap/milestones.md) 当前月份段
-3. 准备写代码：执行下面 §3 的"三道门"
-4. 任何对不可妥协 6 项的妥协建议：**先停下问老板**
+2. **写或改任何 `.md` 文档前**：必读 [`docs/STYLE.md`](docs/STYLE.md)（4 级体裁分层 + L1 frontmatter + L2 万能公式 v1）—— **这是强制规范，不是建议**
+3. 准备开始一个工程任务：先读 [`roadmap/milestones.md`](roadmap/milestones.md) 当前月份段
+4. 准备写代码：执行下面 §3 的"三道门"
+5. 任何对不可妥协 6 项的妥协建议：**先停下问老板**
 
 ---
 

@@ -1,0 +1,42 @@
+# Cursor Rules · LnMem Project
+
+# Cursor 自动读取本文件作为项目级 system prompt。
+# 同等级别还有 .cursor/rules/ 目录支持，本仓库目前用单文件方案。
+
+## Mandatory Reads (in order)
+
+1. **docs/STYLE.md** — LnMem 文档写作规范，**强制遵循**（4 级体裁分层 + L1 frontmatter + L2 万能公式 v1）
+2. README.md "30 秒入口" — 项目概览
+3. CLAUDE.md — vibecoding 工作流（PR 三道门）
+4. AGENTS.md — 4 路 codex 模块边界（Cursor 用户参考实现风格）
+5. docs/product-definition.md §0–§1 — 产品愿景
+
+## Hard Rules
+
+- 任何 `.md` 创建/修改必须含 L1 YAML frontmatter（最少 `version` / `audience` / `purpose` 三字段）
+- 不可妥协 6 项（docs/product-definition.md §10.1）的妥协建议——**先停下问老板**
+- 单文件 ≤ 200 行（详见 AGENTS.md）
+- 接口先行：写新 class 前查 contracts/protocols.py 对应 Protocol
+- 所有 PR 经过 cc 实现 + codex 对抗审查 + 人类工程师签字（三道门）
+
+## Project Context
+
+LnMem 是基于 Liquid Neural Network (LNN) + 万能语法 20 槽 schema + Graphiti bi-temporal KG 的伴侣型 AI 记忆系统。当前阶段 M0 W2，单人 + AI 协作模式（老板 + cc 主线 + codex 对抗审查）。
+
+Cursor 在本项目中的定位：内联代码补全工具。设计决策 / 架构判断 deferto cc/codex 主线。
+
+## Anti-patterns (forbidden)
+
+- 把 L4 叙述类文档（产品定义/研究/数学教学）硬套 L2 RULE-ID — 损害可读性
+- 任何新 .md 缺 L1 frontmatter — M0 W3 起 pre-commit hook 会拒绝
+- 引用父仓 ~/.claude/rules/ 路径 — LnMem 自包含
+
+## Commit & PR
+
+- commit message 格式：`<type>: <description>`（types: feat / fix / docs / refactor / test / chore）
+- PR 描述模板见 CLAUDE.md §4
+- 不允许 force push main，不允许跳过 hooks（--no-verify）
+
+---
+
+# v0.1 · 2026-05-04 · 对齐 docs/STYLE.md v0.1
