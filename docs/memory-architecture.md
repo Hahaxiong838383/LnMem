@@ -333,35 +333,99 @@ def nightly_consolidation(user_id: str, day: datetime):
 
 ---
 
-## 7. 个性化栈接入点
+## 7. 个性化栈接入点（v0.3.x · LNN 原生三件套）
+
+> **变更轨迹**：v0.1 否决 State-offset Tuning（直接加在连续时间状态 x 上，破坏 ODE）→ v0.3 改 LoRA rank=8 + 偏好向量 + BitFit（规模化路径有空白：单卡 24GB / 10 用户排队）→ **v0.3.x 改本节方案**：在 LTC 数学结构内做个性化，3KB/用户，CPU 可推理，10K 用户同服务器无压力。
+>
+> 关键区分：τ 偏置作用在**衰减常数**、FiLM 作用在**输入侧**，都不动 ODE 内部状态演化方程——这是它们与 v0.1 否决的 State-offset Tuning 的本质差异。
+
+### 7.1 三件套设计
 
 ```python
 class PersonalizationStack:
-    """LoRA on LLM + Slot Preference Vector + BitFit on LTC"""
+    """
+    LNN 原生三件套，total ≈ 3KB / user：
+    1. Per-user τ-Bias       (< 1KB)   —— 改变信息保留时长
+    2. Input-side FiLM       (~2KB)    —— 用户特化的输入透镜
+    3. Slot Preference Vector (80 B)   —— 万能语法核心 IP 的真正接入
+    """
 
     def apply_to_inference(self, user_id: str, llm_input):
-        # Layer 1: per-user 槽位偏好向量注入 LNN 输入侧 embedding
-        pref_vec = self.l3.get_slot_preference_vector(user_id)  # [20]
-        # 调制 EventTensor 的槽位权重
+        # === Layer 1: 槽位偏好向量（万能语法核心 IP）===
+        # 20 维 P0/P1/P2/P3 槽位优先级权重，per-user 学习
+        pref_vec = self.l3.get_slot_preference_vector(user_id)  # [20], 80 B
         modulated_input = llm_input * (1 + 0.1 * pref_vec.softmax())
 
-        # Layer 2: per-user LoRA adapter 加载到 LLM
-        adapter = self.l3.get_user_adapter(user_id)
-        llm.load_adapter(adapter)
+        # === Layer 2: 输入侧 FiLM 调制 ===
+        # γ, β 同维度于 LNN input dim (e.g. 256)；冷启 γ=1, β=0 等于无个性化
+        gamma_user, beta_user = self.l3.get_film_params(user_id)  # [256] each, ~2KB
+        modulated_input = gamma_user * modulated_input + beta_user
 
-        # Layer 3: BitFit on LTC（仅 cell bias 可学，per-user 独立 bias）
-        ltc_bias = self.l3.get_ltc_bias(user_id)
-        l2_lnn.cell.bias = ltc_bias
+        # === Layer 3: per-user τ 偏置 ===
+        # 加在 LTC time constant 上（每个 neuron 一个标量偏置）
+        # L1 64 neurons + L2 32 neurons = 96 floats, < 1KB
+        delta_tau_l1 = self.l3.get_tau_bias(user_id, layer="L1")  # [64]
+        delta_tau_l2 = self.l3.get_tau_bias(user_id, layer="L2")  # [32]
+        l1_lnn.cell.tau_offset = delta_tau_l1
+        l2_lnn.cell.tau_offset = delta_tau_l2
+        # 内部 ODE 自动变成: dx/dt = -x / (tau_base + tau_offset) + f(...)
 
-        return llm.generate(modulated_input)
+        # === LLM 语言风格（路径 1: system prompt）===
+        # MVP α 走这条；M7+ 评估后可选切到路径 2 (LoRA rank=2)
+        sys_prompt = self.l3.serialize_preferences_to_prompt(pref_vec, user_id)
+        return llm.generate(modulated_input, system=sys_prompt)
 ```
 
-**Why 三件套并行而非选一**：
-- 偏好向量低维（20）—— 快速启动、易冷启
-- LoRA on LLM（rank=8）—— 中等容量、最显著效果
-- BitFit on LTC —— 极轻量、研究探索（不在关键路径）
+### 7.2 数学合规性证明（为什么不破坏 ODE）
 
-详细论证见研究文档 §3.3——为什么 State-offset Tuning 已确认不可行。
+| 模块 | 作用位置 | ODE 影响 | 与 v0.1 State-offset 区别 |
+|------|---------|---------|--------------------------|
+| τ 偏置 | 时间常数 τ | `dx/dt = -x/(τ+Δτ) + f(...)` 仅改变衰减速率系数，方程形式不变 | State-offset 是 `x_new = x + offset`，直接改变状态值，破坏 ODE 求解器假设 |
+| FiLM | 输入 f 的入参 | `f(γx+β, state)` 等价于"用户特化的输入"，不动状态演化方程 | 同上 |
+| 槽位偏好向量 | EventTensor 输入嵌入层 | 在 ODE 之前完成，连 LNN 都没进 | 同上 |
+
+**理论依据来源**：
+- LTC τ 可学：Hasani et al. 2021《Liquid Time-Constant Networks》Eq. 5
+- FiLM 调制：Perez et al. 2018《FiLM: Visual Reasoning with a General Conditioning Layer》
+
+### 7.3 资源对比
+
+| 维度 | 原 LoRA 方案（v0.3） | 新方案（v0.3.x） | 倍数 |
+|------|--------------------|----------------|------|
+| 单用户存储 | 50 MB | 3 KB | **17000×** ↓ |
+| 训练硬件 | 单卡 24 GB GPU | CPU 可跑 | — |
+| 同服务器并发用户 | ~10（排队） | ~10000 | **1000×** ↑ |
+| 冷启动时间 | 数小时（LoRA 微调） | 秒级（更新参数） | — |
+
+### 7.4 LLM 语言风格的双路径
+
+| 路径 | 启用阶段 | 实现 | 成本 | 备注 |
+|------|---------|------|------|------|
+| **路径 1：system prompt 注入**（默认） | MVP α 起 | 偏好向量序列化为 200-500 token 的 system prompt | 推理时多付 token | 零训练成本，秒级生效 |
+| **路径 2：LoRA rank=2**（评估后启动） | M7+ | 极轻量 LoRA，per-user 训练 | 单用户训练 < 10min | 仅当路径 1 token 成本 > 训练成本时切换 |
+
+**M7 切换决策**：算盈亏点——若每月推理 token 节省 > LoRA 训练摊销，切路径 2。
+
+### 7.5 待校验项（M2-M3 必须做）
+
+| 项 | 实验 | 红区门槛 | 黄区 | 绿区 |
+|---|------|---------|------|------|
+| τ 偏置容量曲线 | 1KB / 4KB / 16KB 偏置下，50 虚拟主人行为区分度 | 1KB 区分度 < 60% 4KB | 60-80% | ≥ 80% |
+| FiLM × LTC 训练稳定 | 50 用户联合训练 100 epoch，监控 loss 发散率 | > 30% 用户发散 | 10-30% | < 10% |
+| system prompt token 预算 | MVP α 真实推理 1000 次，统计平均 prompt 长度 | > 1000 token | 500-1000 | < 500 token |
+
+不达标的回退路径：
+- τ 容量不够 → 升到 4KB/用户（仍 < 原 LoRA 1/10000）
+- FiLM 训练不稳 → 加 spectral normalization 或 γ 限幅 [0.5, 1.5]
+- system prompt 太长 → 提前启动路径 2 LoRA rank=2
+
+### 7.6 学术贡献潜力（M6+ 评估后启动）
+
+`Per-user τ-Bias` 在 LNN 学术界几乎空白。若 7.5 容量曲线呈对数收敛（小预算大收益），M6 启动论文准备：
+
+> 《Per-user τ-Bias: Lightweight Personalization for Liquid Time-Constant Networks》
+
+不强求，但保留埋点；产品稳定后副产出。详见 [`../roadmap/milestones.md`](../roadmap/milestones.md) M6 段。
 
 ---
 

@@ -27,7 +27,7 @@
 |------|------|------|
 | **L1 工作记忆** | 秒-分钟，活在 LNN 隐状态里，承载"正在发生什么" | [`product-definition.md`](product-definition.md) §5.2 |
 | **L2 情景记忆** | 小时-天，Graphiti KG bi-temporal，承载"何时何地与谁做了什么" | [`product-definition.md`](product-definition.md) §5.2 |
-| **L3 语义/人格记忆** | 周-年，LoRA + 偏好向量，承载"主人是怎样的人" | [`product-definition.md`](product-definition.md) §5.2 |
+| **L3 语义/人格记忆** | 周-年，LNN 原生三件套（τ 偏置 + FiLM + 槽位偏好向量），承载"主人是怎样的人" | [`product-definition.md`](product-definition.md) §5.2 |
 | **CLS** | Complementary Learning Systems，海马-皮层双系统，对应"夜间巩固" | [`source-research.md`](source-research.md) §1.6 |
 | **Consolidation** | CLS 离线巩固——L2 → L3 的"夜间学习"，用户可见仪式感 | [`product-definition.md`](product-definition.md) §5.4 |
 | **bi-temporal** | KG 双时间索引：t_valid（事件何时发生）/ t_invalid（何时失效） | [`source-research.md`](source-research.md) §3.2 |
@@ -41,14 +41,18 @@
 | 主人画像微调 | **「我对你的新理解」** | 本周新增/减弱的偏好 + 证据来源 |
 | 记忆变更日志 | **「记忆账本」** | 新增了什么、合并了什么、降权了什么 |
 
-## 个性化栈
+## 个性化栈（v0.3.x · LNN 原生三件套）
 
 | 术语 | 解释 | 详细 |
 |------|------|------|
-| **LoRA** | Low-Rank Adaptation，rank=8，per-user adapter on LLM | [`memory-architecture.md`](memory-architecture.md) §7 |
-| **偏好向量** | per-user 20 维槽位偏好，注入 LNN 输入侧 embedding | [`memory-architecture.md`](memory-architecture.md) §7 |
-| **BitFit** | 仅训练 LTC cell bias 的极轻量个性化（研究探索路径） | [`memory-architecture.md`](memory-architecture.md) §7 |
-| **State-offset Tuning** | ❌ 已确认在 LTC/CfC 上不可行，已替换为 LoRA + 偏好向量 + BitFit | [`source-research.md`](source-research.md) §1.4 |
+| **τ 偏置（Per-user τ-Bias）** | < 1KB/用户。Δτ_user 加在 LTC 时间常数上，决定"什么信息留多久"。LTC 数学结构内生延伸：`dx/dt = -x/(τ+Δτ_user) + f(input, state)`，不破坏 ODE | [`memory-architecture.md`](memory-architecture.md) §7 |
+| **FiLM 调制** | ~2KB/用户。`f(γ_user · x + β_user, state)`，输入侧"用户特化透镜"。冷启 γ=1, β=0 等于"无个性化"，渐进展开。Perez et al. 2018 在 ResNet/Transformer 验证 7 年 | [`memory-architecture.md`](memory-architecture.md) §7 |
+| **槽位偏好向量** | 80 字节/用户。20 维 per-user 槽位偏好，直接注入 LNN 输入维度。和 v0.3 §1.4 万能语法核心 IP 完美契合 | [`memory-architecture.md`](memory-architecture.md) §7 |
+| **LLM 语言风格** | 路径 1（MVP α）：偏好向量序列化为 system prompt 注入 / 路径 2（M7+ 评估后）：极轻量 LoRA rank=2 | [`memory-architecture.md`](memory-architecture.md) §7 |
+| **三件套总开销** | **3KB/用户**，CPU 可推理，10K 用户同服务器无压力（vs 原 LoRA 方案 50MB/用户 + 单卡 24GB 排队） | [`memory-architecture.md`](memory-architecture.md) §7 |
+| **LoRA**（已替代） | ⚠️ v0.3 原方案 rank=8，v0.3.x 替换为 LNN 原生三件套；保留 LoRA rank=2 作为 M7+ LLM 语言风格评估路径 | 历史方案 |
+| **BitFit**（合并） | ⚠️ 原 v0.3 探索路径，已被 τ 偏置 + FiLM 取代——后者在 LTC 数学层更内生 | 历史方案 |
+| **State-offset Tuning** | ❌ v0.1 否决：state offset 直接加在连续时间状态 x 上，破坏 ODE 求解。**注意区分**：v0.3.x 的 τ 偏置作用在衰减常数、FiLM 作用在输入，都不破坏 ODE，是 v0.1 否决的延续修正而非推翻 | [`source-research.md`](source-research.md) §1.4 |
 
 ## 工程方法论
 

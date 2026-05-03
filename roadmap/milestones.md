@@ -51,9 +51,11 @@
 
 ### M3 · 个性化 v0 + 记忆界面 v0
 
-- **核心交付**：`personalization/v0/`（偏好向量）、`memory_ui/`（**读/删 v0** — 不可妥协 §10.1#6）、多设备同步基础
+- **核心交付**：`personalization/v0/`（**LNN 原生三件套：τ 偏置 + FiLM + 槽位偏好向量**，3KB/用户，CPU 推理）、`memory_ui/`（**读/删 v0** — 不可妥协 §10.1#6）、多设备同步基础
 - **用户感知**：（内测）"提醒风格开始像我习惯的方式" + 用户首次能看到 AI 记了什么、并删除任意一条
 - **三色检查项（M3 末第三次评估）**
+- **关键校验**（[`../docs/memory-architecture.md`](../docs/memory-architecture.md) §7.5）：① τ 偏置容量曲线（1KB/4KB/16KB 行为区分度）② FiLM × LTC 联合训练稳定率 ③ system prompt 平均长度
+- **学术埋点**：若 τ 容量曲线对数收敛（小预算大收益），M6 启动论文准备《Per-user τ-Bias for LTC Networks》
 
 ### M4 · 🎯 MVP α 上线
 
@@ -76,7 +78,7 @@
 
 ### M7-M8 · 🎯 MVP β 上线
 
-- **核心交付**：`personalization/v1/`（LoRA + BitFit + 偏好向量三件套）、`active_inference/v0/`
+- **核心交付**：`personalization/v1/`（**v0.3.x 三件套全量**：τ 偏置生产化 + FiLM 调制稳定性优化 + 偏好向量在线学习）、`active_inference/v0/`、**LLM 语言风格路径决策点**（评估 system prompt token 成本 vs LoRA rank=2，按盈亏点切换）
 - **用户感知**：扩到 25–50 用户，付费/邀请制；长期习惯被稳定继承
 
 ### M9 · 主动建议接受
@@ -155,7 +157,7 @@
 1. 万能语法 20 槽作为全系统共享 schema
 2. 多时间尺度 LNN 心智核心（哪怕只有两层）
 3. CLS 双系统离线 consolidation 流程
-4. per-user 槽位偏好向量 + LoRA 个性化栈
+4. per-user 个性化栈（**v0.3.x 更新**：LNN 原生三件套 = τ 偏置 + FiLM + 槽位偏好向量，3KB/用户）
 5. 居家+车载双场景统一架构
 6. 用户可见、可编辑、可治理的记忆界面
 
