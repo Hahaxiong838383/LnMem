@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lnmem"
+version = "0.3.1"
+description = "LnMem · 伴侣型 AI 智能体记忆系统（v0.3.1 LNN-centric, M0 W1）"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "LnMem · 老板 + cc + codex" }]
+license = { text = "Proprietary (private repo)" }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["contracts*", "synthetic_data_generator*", "universal_grammar_parser*", "graphiti_zh_adapter*", "evals*"]
+exclude = ["spikes*", "tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["contracts", "synthetic_data_generator", "universal_grammar_parser", "graphiti_zh_adapter", "evals", "spikes"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-ra --strict-markers"
+markers = [
+    "smoke: M0 W1 烟雾测试，必须永远绿",
+    "integration: 跨模块集成测试，M0 末跑",
+    "slow: 真 LLM 调用 / 真 KG 写入，CI 默认 skip",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]

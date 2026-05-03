@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# venv
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# data / outputs
+data/
+outputs/
+*.log
+day*_results.txt
+day*_results.json
+*.jsonl
+
+# spikes intermediate
+spikes/*/.cache/
+spikes/*/checkpoints/
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# AI session artifacts
+HANDOFF*.md
+/tmp/codex-*
