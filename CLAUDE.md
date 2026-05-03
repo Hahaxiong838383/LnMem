@@ -66,6 +66,19 @@
 - 测试事后补
 - cc 自己 review 自己
 
+### 3.1 cc / codex 意见冲突诊断流程（v1.1 新增）
+
+> 真正的风险不是"AI 写错代码"，是"老板懒得读 AI 的对抗意见"。
+
+当 cc 主线 和 codex 对抗审查给出**相反建议**时：
+
+1. **默认采纳 codex 的对抗审查意见**（保守优先）
+2. **cc 不同意必须明确分歧点**——不许"我觉得 ok"，必须列出：codex 担心什么 / cc 凭什么不同意 / 实测证据是什么
+3. **老板作为最终决策者**，但**必须留下决策记录**到 [`docs/decisions/`](docs/decisions/)（ADR 风格，每个冲突一份 markdown）
+4. **每周 retro 回看**所有冲突案例：3 个月后能复盘"我们和 codex 谁更准"，迭代协作 SOP
+
+ADR 文件命名：`docs/decisions/NNN-brief-title.md`（NNN 三位数顺序号）。模板见 [`docs/decisions/000-template.md`](docs/decisions/000-template.md)。
+
 ---
 
 ## 4. PR 描述模板
