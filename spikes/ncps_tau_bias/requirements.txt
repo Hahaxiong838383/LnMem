@@ -1,0 +1,11 @@
+# ncps τ 偏置 spike 依赖
+# 在 Studio M2 Max 上 CPU/MPS 都可，spike 规模小
+
+torch>=2.0           # PyTorch backend (MPS 支持)
+ncps>=2.0            # mlech26l/ncps，LTC/CfC PyTorch 实现
+numpy>=1.24
+matplotlib>=3.7      # loss 曲线可视化
+scikit-learn>=1.3    # Day 4-5 行为区分度评估（cluster/classifier）
+
+# 可选（M0 W1 不强求，便于结果整理）:
+# wandb>=0.16        # 自部署 W&B 实时仪表盘（M0 W2-W4 evals/ 模块再装）
