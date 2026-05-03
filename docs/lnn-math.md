@@ -6,6 +6,37 @@
 
 ---
 
+## 0. 术语速查表（先定义再用）
+
+正文出现的所有简写都集中在这里。第一次读时遇到看不懂的回到这表查，正文不再每处重复展开。
+
+| 简写 | 全称 | 中文释义 / 一句话说明 |
+|------|------|---------------------|
+| **LNN** | Liquid Neural Network | 液态神经网络（本项目记忆系统心脏，包含 LTC 和 CfC 两种形态） |
+| **LTC** | Liquid Time-Constant | 液态时间常数（连续时间 ODE 形式，训练用） |
+| **CfC** | Closed-form Continuous-time | 闭式连续时间（LTC 的等价闭式解，推理用，无需 ODE solver） |
+| **NCP** | Neural Circuit Policy | 神经回路策略（Lechner & Hasani 2020，19 神经元 LTC 端到端控制） |
+| **FiLM** | Feature-wise Linear Modulation | 特征级线性调制（per-user 在 NN 内部做 affine 仿射变换 `γ⊙x+β`） |
+| **ODE** | Ordinary Differential Equation | 常微分方程 |
+| **BPTT** | Backpropagation Through Time | 时间反向传播（LTC 用 adjoint 法替代 BPTT，省内存） |
+| **RK4 / Dopri5** | Runge-Kutta 4 / Dormand-Prince 5 | 两种 ODE 数值求解器（LTC 训练时用） |
+| **Adjoint** | Adjoint Sensitivity Method | 伴随法（ODE 反向传播，O(1) 内存） |
+| **ASR** | Automatic Speech Recognition | 自动语音识别（如 Fun-ASR / Paraformer） |
+| **LFM2** | Liquid Foundation Model 2 | Liquid AI 第二代基础模型（端侧 350M/1.2B，CfC 架构） |
+| **LFM2-VL** | LFM2 Vision-Language | LFM2 的视觉-语言多模态版本 |
+| **KG** | Knowledge Graph | 知识图谱（L2 情景记忆用 Graphiti） |
+| **bi-temporal** | bi-temporal model | 双时间模型（同时记录 t_valid 有效时间 + t_invalid 失效时间） |
+| **RNN / GRU / LSTM** | Recurrent / Gated Recurrent Unit / Long Short-Term Memory | 经典循环神经网络家族（离散时间） |
+| **Mamba / RWKV / S4** | — | 当代选择性状态空间模型（仍是离散时间） |
+| **MMEB-V2** | Massive Multilingual Embedding Benchmark V2 | 多语言 embedding 公开评测基准 |
+| **MVP α** | Minimum Viable Product alpha | 最小可行产品 alpha 版本（LnMem M4 的目标） |
+| **persona** | — | 虚拟用户人格画像（用于合成数据生成 50 主人 ×30 天） |
+| **Hadamard 积 ⊙** | Element-wise product | 逐元素乘（同形状向量 / 张量按位置相乘） |
+
+> 数学符号约定（正文 $x, \tau, NN, \theta, I, t$ 等）每个方程下表格逐一定义，这里不重复。
+
+---
+
 ## 1. LTC 方程：液态时间常数（训练时本质）
 
 ### 1.1 方程
@@ -48,7 +79,7 @@ LTC：**衰减率 $= 1/\tau + NN(x, I, \theta)$，本身依赖输入和状态**�
           ↓ x(t) [B, units]
 [boundary_gate 事件分割]
           ↓
-[Layer 2 工作记忆 LTC cell]   ← τ 偏置 + FiLM 调制注入这里
+[Layer 2 工作记忆 LTC cell]   ← τ 偏置 + FiLM (per-user 仿射调制) 注入这里
           ↓
 [EventTensor 组装 → KG 写入 / consolidation]
 ```
