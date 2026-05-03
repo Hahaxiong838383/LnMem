@@ -12,7 +12,9 @@
 
 **与传统"LLM + RAG"方案的本质区别**：传统方案在对话时检索过去；LnMem 在永远在线的连续时间状态里持有当下，通过事件分割主动写入，通过夜间巩固主动学习。
 
-**项目阶段**：v0.3 产品定义封版 · M0 启动准备中（2026-05-03）
+**项目阶段**：v0.3.2 产品定义微调 · M0 W2 启动准备中（2026-05-04）
+
+> **v0.3.2 微调（2026-05-04）**：基于外部独立技术分析的工程信号吸收——CfC 升级为 LNN 主路径（推理速度 ↑ 1-5 数量级、LTC 仅作研究对比）、Liquid-S4 升级为 τ≈小时反思层候选主路径、LNN 多模态训练风险下调 🟡→🟢、新增 v0.4 探索清单。**不是新方向，是外部验证已有方向后的精确化**。详见 [`docs/product-definition.md`](docs/product-definition.md) §14.0。
 
 ---
 
@@ -43,10 +45,12 @@ LnMem/
 ├── README.md                    # 你正在读
 ├── CLAUDE.md                    # vibecoding SOP + AI 同事工作纪律
 ├── docs/
-│   ├── product-definition.md    # 产品定义 v0.3（封版，716 行）
+│   ├── product-definition.md    # 产品定义 v0.3.2（封版，819 行）
 │   ├── memory-architecture.md   # LNN-centric 记忆系统技术架构 v0.1
-│   ├── source-research.md       # 12/18 月可行性研究底稿
-│   └── glossary.md              # 关键术语字典
+│   ├── source-research.md       # 12/18 月可行性研究底稿（含 v0.3.2 §3.4 Liquid-S4 升级）
+│   ├── lnn-math.md              # LNN 数学方程实战手册（LTC + CfC + 个性化三件套通俗注解）
+│   ├── glossary.md              # 关键术语字典
+│   └── decisions/               # ADR 记录（001 路线 B / 002 M0 骨架对抗审查）
 └── roadmap/
     └── milestones.md            # M0-M12 里程碑 + 红黄绿三色 + M0 启动清单
 ```
@@ -208,7 +212,8 @@ cd LnMem
 ## 风险已知（v0.3 §9）
 
 🔴 **高**：国产 LLM API 限流 / Graphiti 中文 entity 质量 / 用户付费意愿未知 / 合成数据污染 LNN 训练
-🟡 **中**：LNN 多模态训练稳定性 / 事件分割长尾 / 车载集成成本
+🟡 **中**：事件分割长尾 / 车载集成成本
+🟢 **中**（v0.3.2 下调）：LNN 多模态训练稳定性（CfC 主路径解决 ODE solver 不稳，但 ncps PEFT 空白与训练数据稀缺仍是真问题）
 
 每个风险都有降级路径，详见 [`docs/product-definition.md`](docs/product-definition.md) §9。
 
@@ -234,4 +239,4 @@ cd LnMem
 
 ---
 
-**v0.3 封版（M0 启动用版本） · 2026-05-03**
+**v0.3.2 微调（M0 启动用版本，外部技术分析工程信号吸收） · 2026-05-04**

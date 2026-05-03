@@ -211,12 +211,16 @@
 - **v2（M15+，研究）**：探索 Initial-State Tuning（LTC 的 h(0) 学一份 per-user 初值）+ FiLM-style 输出层 gain/bias，作为 State-offset Tuning 的 LTC 适配候选——但**不放在关键路径**
 - **接口**：`load_user_adapter(user_id) -> Adapter`，全系统支持热切换
 
-### 3.4 多时间尺度 LNN 的快速搭建
-- **v0（M3，2 人周）**：两层 LTC，τ=1s 和 τ=60s，用 ncps 库直接搭，sinusoidal warmup 预训
-- **v1（M5，2 人周）**：加 CfC 闭式版替换 LTC（推理快 2–3×）；引入 mixed_memory 模式
-- **v2（M9，3 人周）**：加第三层 τ≈1h 反思层，用于离线 consolidation；考虑 Liquid-S4 hybrid
+### 3.4 多时间尺度 LNN 的快速搭建（v0.3.2 升级）
+- **v0（M3，2 人周）**：两层 **CfC 主路径**（v0.3.2 起 LTC 仅作研究对比基线），τ=1s 和 τ=60s，用 ncps 库直接搭，sinusoidal warmup 预训
+- **v1（M5，2 人周）**：CfC 已是主路径；引入 mixed_memory 模式 + per-user τ 偏置 + FiLM 调制（v0.3.1 个性化栈）
+- **v2（M9–M12，3 人周）**：加第三层 τ≈1h 反思层，用于离线 consolidation。
+  **实现路径优先级（v0.3.2 升级）**：Liquid-S4 hybrid（候选主路径）> 纯 CfC 慢层（备选）。
+  **依据**：Liquid-S4 在 Long-Range Arena 长程记忆基准上达到 87.32% 平均准确率（Hasani et al.），专为长序列建模设计，比纯 CfC 在反思层任务上更适配。
+  **决策点**：M9 启动时根据 M5–M8 实测数据决定具体实现，**不预先冻结**。
 - **训练数据**：先在合成数据 + 种子用户日志上做 self-supervised next-event prediction；fine-tune 用槽位填充作为 auxiliary loss
 - **mock 策略**：**慢层在 v0 阶段直接用 LSTM 替代是完全可以的**——LSTM/GRU 与 LTC/CfC 在工作记忆任务上差距不大，先把流水线跑通再换 LNN
+- **CfC vs LTC 工程对比（v0.3.2 补充）**：CfC 用解析解替代 LTC 的 ODE solver，推理速度比 LTC 快 1-5 个数量级，训练稳定性大幅提升——这是 v0.3.2 把 CfC 升级为主路径的根本依据
 
 ### 3.5 多模态感知层的快速接入
 - **v0（M1，1 人周）**：调 Qwen3-VL API（云端），输入图像/视频帧 + 音频转写文本，输出多模态 embedding
