@@ -12,8 +12,10 @@
 
 **与传统"LLM + RAG"方案的本质区别**：传统方案在对话时检索过去；LnMem 在永远在线的连续时间状态里持有当下，通过事件分割主动写入，通过夜间巩固主动学习。
 
-**项目阶段**：v0.3.2 产品定义微调 · M0 W2 启动准备中（2026-05-04）
+**项目阶段**：v0.3.3 产品定义二次微调 · M0 W2 启动准备中（2026-05-04）
 
+> **v0.3.3 微调（2026-05-04 同日二次）**：cognitive.md v0.1.1 联动修订——"主观满意度"评估指标改为"多模态反馈信号自动聚合"（评估方法和产品能力同构原则）+ §13.1 能力门补充"强正信号占比 ≥ 30%"硬指标。详见 [`docs/product-definition.md`](docs/product-definition.md) §14.0.2 + [`docs/capability-specs/cognitive.md`](docs/capability-specs/cognitive.md) §5。
+>
 > **v0.3.2 微调（2026-05-04）**：基于外部独立技术分析的工程信号吸收——CfC 升级为 LNN 主路径（推理速度 ↑ 1-5 数量级、LTC 仅作研究对比）、Liquid-S4 升级为 τ≈小时反思层候选主路径、LNN 多模态训练风险下调 🟡→🟢、新增 v0.4 探索清单。**不是新方向，是外部验证已有方向后的精确化**。详见 [`docs/product-definition.md`](docs/product-definition.md) §14.0。
 
 ---
@@ -53,7 +55,7 @@ LnMem/
 ├── README.md                    # 你正在读
 ├── CLAUDE.md                    # vibecoding SOP + AI 同事工作纪律
 ├── docs/
-│   ├── product-definition.md    # 产品定义 v0.3.2（封版，819 行）
+│   ├── product-definition.md    # 产品定义 v0.3.3（封版，cognitive.md v0.1.1 联动修订）
 │   ├── memory-architecture.md   # LNN-centric 记忆系统技术架构 v0.1
 │   ├── source-research.md       # 12/18 月可行性研究底稿（含 v0.3.2 §3.4 Liquid-S4 升级）
 │   ├── lnn-math.md              # LNN 数学方程实战手册（LTC + CfC + 个性化三件套通俗注解）
@@ -247,4 +249,4 @@ cd LnMem
 
 ---
 
-**v0.3.2 微调（M0 启动用版本，外部技术分析工程信号吸收） · 2026-05-04**
+**v0.3.3 二次微调（M0 启动用版本，cognitive.md v0.1.1 联动 — 评估方法和产品能力同构） · 2026-05-04**
