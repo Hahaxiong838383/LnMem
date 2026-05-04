@@ -39,6 +39,16 @@
 - **不要内嵌大代码块到 prompt 回复**：直接 Write 文件，简洁说明改了什么
 - **不依赖未建模块**：你的代码只能 import `contracts` + 自己模块；不要 import 其他 codex 的模块
 
+## 认知能力规范（强制 · 涉及"AI 理解主人"必读）
+
+**任何涉及意图预测 / 多模态信号处理 / 评估机制的代码必读 [`docs/capability-specs/cognitive.md`](docs/capability-specs/cognitive.md)**：
+
+- **评估方法和产品能力同构**——坚决拒绝问卷/弹窗/评分，所有评估走多模态反馈信号自动聚合
+- 八层认知架构（Layer 0-8）的角色和信号贡献见 §2，意图预测是跨层涌现能力
+- 反馈采集闭环（30s-2min 多模态信号 → RL 奖励）见 §3.3 + §5.3
+- 错误预测的处理（即时/短期/长期）见 §5.5
+- 主动询问兜底机制（≤ 1 次/用户/日）见 §5.6
+
 ## 软件开发 Harness（强制 · BRO-PDCA × 目标驱动）
 
 **任何开发任务（写代码 / 写文档 / 改架构）开始前必读 [`docs/development-harness.md`](docs/development-harness.md)**——LnMem 软件开发铁律：

@@ -6,9 +6,10 @@
 
 1. **[`docs/STYLE.md`](../docs/STYLE.md)** — LnMem documentation writing standard. **Strict adherence required.** Covers L1-L4 doc tier system + L1 frontmatter + L2 Universal Formula v1 (RULE-ID + 4-dim priority + Why).
 2. **[`docs/development-harness.md`](../docs/development-harness.md)** — LnMem software development harness (BRO-PDCA × goal-driven acceptance). **Strict adherence required.** Every development task must define quantified Acceptance Criteria (AC) + Definition of Done (DoD) in the O phase, and verify against them in the C phase with empirical evidence.
-3. [`README.md`](../README.md) "30-second entry" section — project overview
-4. [`CLAUDE.md`](../CLAUDE.md) — vibecoding workflow rules (3-gate PR review)
-5. [`docs/product-definition.md`](../docs/product-definition.md) §0–§1 — product vision
+3. **[`docs/capability-specs/cognitive.md`](../docs/capability-specs/cognitive.md)** — LnMem cognitive capability spec (evaluation method must be isomorphic with product capability). Required reading for any code touching intent prediction / multimodal signals / evaluation. See §5 for multimodal-feedback-driven RL evaluation (no surveys / popups / ratings).
+4. [`README.md`](../README.md) "30-second entry" section — project overview
+5. [`CLAUDE.md`](../CLAUDE.md) — vibecoding workflow rules (3-gate PR review)
+6. [`docs/product-definition.md`](../docs/product-definition.md) §0–§1 — product vision
 
 ## Hard Rules
 

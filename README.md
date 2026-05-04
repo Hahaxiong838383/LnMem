@@ -26,10 +26,11 @@
 
 1. [`docs/STYLE.md`](docs/STYLE.md) — **所有 .md 写作规范，强制**（4 级体裁分层 + L1 frontmatter + L2 万能公式 v1）
 2. [`docs/development-harness.md`](docs/development-harness.md) — **所有开发任务工程纪律，强制**（BRO-PDCA × 目标驱动验收：O 阶段书面化 AC + DoD / C 阶段按 AC + DoD 逐项验收 + 附证据）
-3. [`docs/product-definition.md`](docs/product-definition.md) §0–§1（30 秒愿景）
-4. [`docs/memory-architecture.md`](docs/memory-architecture.md) §0–§2（30 秒技术骨架）
-5. [`CLAUDE.md`](CLAUDE.md)（vibecoding 工作纪律，**必读**）
-6. [`roadmap/milestones.md`](roadmap/milestones.md) §当前月份段（你现在该做什么）
+3. [`docs/capability-specs/cognitive.md`](docs/capability-specs/cognitive.md) — **认知能力规范**，涉及意图预测 / 多模态信号 / 评估机制必读（评估方法和产品能力同构，拒绝问卷/弹窗/评分）
+4. [`docs/product-definition.md`](docs/product-definition.md) §0–§1（30 秒愿景）
+5. [`docs/memory-architecture.md`](docs/memory-architecture.md) §0–§2（30 秒技术骨架）
+6. [`CLAUDE.md`](CLAUDE.md)（vibecoding 工作纪律，**必读**）
+7. [`roadmap/milestones.md`](roadmap/milestones.md) §当前月份段（你现在该做什么）
 
 **红线规则**：
 - 任何对 [§10 不可妥协 6 项](docs/product-definition.md) 的妥协建议——**先停下问老板**
