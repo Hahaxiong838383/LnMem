@@ -5,9 +5,10 @@
 ## Mandatory Reads (in order)
 
 1. **[`docs/STYLE.md`](../docs/STYLE.md)** — LnMem documentation writing standard. **Strict adherence required.** Covers L1-L4 doc tier system + L1 frontmatter + L2 Universal Formula v1 (RULE-ID + 4-dim priority + Why).
-2. [`README.md`](../README.md) "30-second entry" section — project overview
-3. [`CLAUDE.md`](../CLAUDE.md) — vibecoding workflow rules (3-gate PR review)
-4. [`docs/product-definition.md`](../docs/product-definition.md) §0–§1 — product vision
+2. **[`docs/development-harness.md`](../docs/development-harness.md)** — LnMem software development harness (BRO-PDCA × goal-driven acceptance). **Strict adherence required.** Every development task must define quantified Acceptance Criteria (AC) + Definition of Done (DoD) in the O phase, and verify against them in the C phase with empirical evidence.
+3. [`README.md`](../README.md) "30-second entry" section — project overview
+4. [`CLAUDE.md`](../CLAUDE.md) — vibecoding workflow rules (3-gate PR review)
+5. [`docs/product-definition.md`](../docs/product-definition.md) §0–§1 — product vision
 
 ## Hard Rules
 

@@ -11,9 +11,10 @@ purpose: Gemini 工具读取本仓库时的强制入口文件
 ## 必读文档（按顺序）
 
 1. **[`docs/STYLE.md`](docs/STYLE.md)** — LnMem 文档写作规范，**强制遵循**（4 级体裁分层 + L1 frontmatter + L2 万能公式 v1）。任何 .md 改动前必读
-2. [`README.md`](README.md) §"30 秒入口" — 项目概览
-3. [`CLAUDE.md`](CLAUDE.md) — vibecoding 工作纪律（cc/codex/Gemini 都适用）
-4. [`docs/product-definition.md`](docs/product-definition.md) §0–§1 — 产品愿景
+2. **[`docs/development-harness.md`](docs/development-harness.md)** — LnMem 软件开发 harness（BRO-PDCA × 目标驱动验收），**强制遵循**。任何开发任务（含 review / 调研报告）必须先 O 阶段书面化 AC + DoD，C 阶段附证据
+3. [`README.md`](README.md) §"30 秒入口" — 项目概览
+4. [`CLAUDE.md`](CLAUDE.md) — vibecoding 工作纪律（cc/codex/Gemini 都适用）
+5. [`docs/product-definition.md`](docs/product-definition.md) §0–§1 — 产品愿景
 
 ## 你的角色
 

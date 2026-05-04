@@ -39,6 +39,14 @@
 - **不要内嵌大代码块到 prompt 回复**：直接 Write 文件，简洁说明改了什么
 - **不依赖未建模块**：你的代码只能 import `contracts` + 自己模块；不要 import 其他 codex 的模块
 
+## 软件开发 Harness（强制 · BRO-PDCA × 目标驱动）
+
+**任何开发任务（写代码 / 写文档 / 改架构）开始前必读 [`docs/development-harness.md`](docs/development-harness.md)**——LnMem 软件开发铁律：
+
+- **O 阶段必须先书面化 AC（验收标准）+ DoD（交付清单）**——AC 必须可量化（数字/命令/产物三选一）+ 锚回产品目标，DoD 至少含代码/文档/沉淀三类
+- **C 阶段必须按 AC + DoD 逐项验收**——✅ 每项附实测证据（命令输出/diff/截图），❌ 未达成必须如实报告，**禁止"基本完成"等美化话术**
+- 落到 commit message / 落盘 `/tmp/codex-{module}-output.md` 的报告里都必须含 O / AC / DoD / C 四段（详见 [`docs/development-harness.md`](docs/development-harness.md) §5）
+
 ## 文档写作规范（强制）
 
 **写或改任何 `.md` 文档前必读 [`docs/STYLE.md`](docs/STYLE.md)**——LnMem 文档分 L1-L4 4 级体裁。codex 主要写**模块 README（L2 级）**：必须含 L1 frontmatter（version/audience/purpose）+ RULE-ID 索引表（如有派生规则）+ 章节末 Why。不允许散文式写法。

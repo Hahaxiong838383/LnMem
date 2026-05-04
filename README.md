@@ -25,16 +25,18 @@
 文档读取顺序（**按这个顺序读，不要跳序**）：
 
 1. [`docs/STYLE.md`](docs/STYLE.md) — **所有 .md 写作规范，强制**（4 级体裁分层 + L1 frontmatter + L2 万能公式 v1）
-2. [`docs/product-definition.md`](docs/product-definition.md) §0–§1（30 秒愿景）
-3. [`docs/memory-architecture.md`](docs/memory-architecture.md) §0–§2（30 秒技术骨架）
-4. [`CLAUDE.md`](CLAUDE.md)（vibecoding 工作纪律，**必读**）
-5. [`roadmap/milestones.md`](roadmap/milestones.md) §当前月份段（你现在该做什么）
+2. [`docs/development-harness.md`](docs/development-harness.md) — **所有开发任务工程纪律，强制**（BRO-PDCA × 目标驱动验收：O 阶段书面化 AC + DoD / C 阶段按 AC + DoD 逐项验收 + 附证据）
+3. [`docs/product-definition.md`](docs/product-definition.md) §0–§1（30 秒愿景）
+4. [`docs/memory-architecture.md`](docs/memory-architecture.md) §0–§2（30 秒技术骨架）
+5. [`CLAUDE.md`](CLAUDE.md)（vibecoding 工作纪律，**必读**）
+6. [`roadmap/milestones.md`](roadmap/milestones.md) §当前月份段（你现在该做什么）
 
 **红线规则**：
 - 任何对 [§10 不可妥协 6 项](docs/product-definition.md) 的妥协建议——**先停下问老板**
 - 三色判定（[`roadmap/milestones.md`](roadmap/milestones.md)）连续两次进入红区——**先停下问老板**
 - 类型 3 数据（团队真实交互）使用边界灰色地带——**先停下问老板**
 - **任何 .md 文档不带 L1 frontmatter 直接 commit**——CI 应当拒绝（M0 W3 加 pre-commit hook）
+- **任何开发任务跳过 O 阶段 AC + DoD 直接动手 / C 阶段美化"未达成"为"基本完成"**——红线违规（详见 [`docs/development-harness.md`](docs/development-harness.md) §1 铁律）
 
 **提交规则**：
 - 所有 PR 必须经过 cc 实现 + codex 对抗审查 + 人类工程师签名
