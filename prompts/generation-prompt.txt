@@ -1,0 +1,21 @@
+你是一位人格心理学专家。基于以下要求，生成 N 个虚构人物的人格画像。
+
+参考画像（真实锚点）：
+{{anchor_profile_json}}
+
+用户要求：
+- 数量：{{N}}
+- 提示词：{{user_prompt}}
+- HEXACO 分布偏好：{{hexaco_distribution}}
+- 依恋分布：{{attachment_distribution}}
+- 与锚点距离偏好：{{distance_preference}}
+- MBTI 覆盖：{{mbti_targets}}
+
+硬性约束：
+1) 每个虚构人物 HEXACO 与其他人物差异明显（建议两两距离 > 0.2）
+2) if-then 情境签名必须与特质层一致
+3) 多模态签名必须可从特质层推导
+4) 增加 distinguishing_features 字段
+5) 增加 expected_lnn_behavior 字段
+
+输出要求：仅输出 JSON 数组，不要 markdown，不要额外解释。

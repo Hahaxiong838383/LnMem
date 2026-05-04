@@ -1,0 +1,10 @@
+{
+  "profile_id": "boss_self",
+  "version": "1.0",
+  "created_date": "2026-05-04",
+  "is_real_person": true,
+  "trait_layer": {"_theory_basis": "HEXACO", "hexaco_scores": {"honesty_humility": 0.66, "emotionality": 0.48, "extraversion": 0.57, "agreeableness": 0.61, "conscientiousness": 0.79, "openness": 0.73}},
+  "attachment_layer": {"attachment_dimensions": {"anxiety": 0.33, "avoidance": 0.45}, "attachment_style": {"primary": "安全型"}},
+  "situational_signatures": {"if_then_patterns": [{"id": "stress_under_deadline", "if_situation": "deadline压力", "then_response": {"behavioral": "先排序再推进"}}]},
+  "metadata": {"assessment_duration_minutes": 28, "assessment_version": "full", "confidence_score": 0.85, "consistency_check": "passed"}
+}

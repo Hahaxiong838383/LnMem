@@ -1,0 +1,14 @@
+[
+  {"id":"ANX1","dimension":"anxiety","reverse":false,"text":"我担心被亲近的人抛弃。","source":"ECR short-form adapted"},
+  {"id":"ANX2","dimension":"anxiety","reverse":false,"text":"当重要的人没有及时回应时，我会不安。","source":"ECR short-form adapted"},
+  {"id":"ANX3","dimension":"anxiety","reverse":false,"text":"我经常怀疑自己是否足够被爱。","source":"ECR short-form adapted"},
+  {"id":"ANX4","dimension":"anxiety","reverse":false,"text":"关系变冷淡时我会非常焦虑。","source":"ECR short-form adapted"},
+  {"id":"ANX5","dimension":"anxiety","reverse":false,"text":"我害怕投入后最终会受伤。","source":"ECR short-form adapted"},
+  {"id":"ANX6","dimension":"anxiety","reverse":false,"text":"我需要频繁确认关系是否稳固。","source":"ECR short-form adapted"},
+  {"id":"AVD1","dimension":"avoidance","reverse":false,"text":"我不喜欢和别人太亲近。","source":"ECR short-form adapted"},
+  {"id":"AVD2","dimension":"avoidance","reverse":false,"text":"我更习惯独自消化压力，而不是依靠他人。","source":"ECR short-form adapted"},
+  {"id":"AVD3","dimension":"avoidance","reverse":true,"text":"我能轻松地依靠亲近的人。","source":"ECR short-form adapted"},
+  {"id":"AVD4","dimension":"avoidance","reverse":true,"text":"我能自在地表达脆弱和需要。","source":"ECR short-form adapted"},
+  {"id":"AVD5","dimension":"avoidance","reverse":false,"text":"当别人太靠近时我会想拉开距离。","source":"ECR short-form adapted"},
+  {"id":"AVD6","dimension":"avoidance","reverse":false,"text":"我不喜欢别人过多介入我的内心世界。","source":"ECR short-form adapted"}
+]
