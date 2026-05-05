@@ -111,7 +111,7 @@ multimodal_signal_density: low / medium / high / extreme_bipolar
 
 | # | 标准 | 不达标的后果 | cc 检查方式 |
 |---|------|-------------|------------|
-| 1 | **HEXACO 6 维余弦距离 ≥ 0.4**（两两） | LNN 个性化参数学不到差异 | frontmatter `hexaco` 6 维向量两两余弦计算，输出差异化矩阵 |
+| 1 | **HEXACO 6 维欧式距离 ≥ 0.4**（两两） | LNN 个性化参数学不到差异 | frontmatter `hexaco` 6 维向量两两欧式距离 √Σ(a_i-b_i)²，输出差异化矩阵。HEXACO 都是 0-1 正值，余弦距离恒接近 0 不合适 |
 | 2 | **依恋分布合理**：安全型不超过 65%、含 ≥ 2 个回避 + ≥ 1 个焦虑 + ≥ 1 个恐惧-回避 | 训练时极端依恋类型欠拟合 | frontmatter `attachment.type` 计数 |
 | 3 | **至少 5 种典型职业类型** | 数据多样性不足 | frontmatter `demographics.profession` 分组统计 |
 | 4 | **极端案例覆盖**（极内向 / 极外向 / 高 N / 高 O 各 ≥ 1） | 边界场景验证缺失 | hexaco 单维 ≤ 0.30 或 ≥ 0.85 计数 |

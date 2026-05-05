@@ -64,4 +64,46 @@
 
 ---
 
+## v0.3 — 2026-05-05（Day 0 收尾 — cc 校验脚本 + 依赖清单）
+
+**起草**：
+
+- A `poc/src/validate_personas.py` — 画像校验脚本（294 行）
+  - parse YAML frontmatter + 跑 7 条单画像评估门
+  - 跑全部时输出集合质量门：HEXACO 距离矩阵 + 依恋分布 + 极端覆盖 + t-SNE 锚点 + 职业覆盖
+  - CLI: `python3 poc/src/validate_personas.py [vboss_NNN ...]`
+- A `poc/requirements-poc.txt` — 依赖清单 v0.1（Day 0 仅 pyyaml + numpy）
+- A `.gitignore` 加 `!poc/data/` 白名单（修上次 commit 漏 vboss_*.md 的 bug）
+
+**度量纠正**：
+
+- 起初用 cosine_distance（1 - cos_sim），但 HEXACO 6 维全 0-1 正值时余弦距离恒接近 0
+  （vboss 三两实测 0.05-0.09，远 < 阈值 0.4）
+- 改用 **欧式距离 √Σ(a_i-b_i)²**——HEXACO 数值天然兼容，三两实测 0.527/0.615/0.708 ✅
+- 老板原话"余弦距离 > 0.4"实际指的是欧式距离（口语化术语）
+- 同步修 `poc/docs/data-generation-todo.md` §4 标准 1
+
+**校验脚本验证**（在 vboss_001~003 上跑）：
+- 单画像门：3 × 7 = 21/21 PASS ✅
+- 集合门 HEXACO 距离：3 对全 ≥ 0.4 ✅
+- 集合门 secure-like ≤ 65%：33.3% ✅
+- 集合门 ≥2 回避 + ≥1 焦虑 + ≥1 恐惧-回避：1/0/1 ❌（3 画像基线状态正常，老板继续写到 30 时达标）
+- 集合门 t-SNE 锚点：0 个 ❌（老板可标 2-3 个 `similar_to_self: true`）
+- 集合门 职业类型：3 种 ❌（30 画像时达 ≥5 种）
+
+**Day 0 全部完成**：
+- ✅ poc/lnn-validation 分支 + 目录骨架
+- ✅ 5 份 PoC 核心文档
+- ✅ 3 个范例画像本体（老板提供）
+- ✅ 校验脚本 + 依赖清单
+- ⏳ 等老板继续写 vboss_004+（当前 3/30）
+
+**变更文件**：
+- M `poc/docs/data-generation-todo.md` 余弦→欧式距离纠正
+- A `poc/src/validate_personas.py`
+- A `poc/requirements-poc.txt`
+- M `.gitignore` PoC personas 白名单（前次提交已落地）
+
+---
+
 <!-- Day 1 / 2 / 3 ... 每日 retro 在此追加 -->
