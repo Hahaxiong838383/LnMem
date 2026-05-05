@@ -30,4 +30,38 @@
 
 ---
 
+## v0.2 — 2026-05-05（Day 0 — 老板提供 3 个范例后升级 schema）
+
+**触发**：老板基于 HEXACO 七维度 + 依恋类型大型样本分布数据 + Schwartz 价值观真实分布，提供了 3 个完整范例画像（陈墨 / 林嘉怡 / 苏野），覆盖 22% / 60% / 17.5% 三大依恋人群。
+
+**升级**：
+
+- 画像 schema 从「demographics + traits 简化版」升级为「七层结构」：
+  - L1 HEXACO 6 维 + 关键 facets
+  - L2 依恋（焦虑 + 回避两维 + 类型 + 人群占比）
+  - L3 动机（4 个 need + Schwartz top3/bottom）
+  - L4 if-then 情境签名（≥ 5 情境，含行为 / 情绪 / 多模态三段）
+  - L5 身份与情境 + 当前生活章节 + 核心张力
+  - L6 多模态特征签名（视觉 / 疲劳 / 压力 / 专注 + 语音 + 行为）
+  - L7 AI 交互产品设计（信任建立路径 + 沟通风格 + 避免话题）
+- 文件格式从 `.json` 改为 `.md`（YAML frontmatter 机读 + body 自然书写）
+- 评估标准从「3 个 traits 显著不同」升级为「HEXACO 6 维余弦距离 ≥ 0.4」+ 7 条评估门
+- 真实分布锚点：依恋安全型 ≤ 65% / 含 ≥ 2 回避 + ≥ 1 焦虑 + ≥ 1 恐惧-回避
+
+**新增 3 个画像本体**：
+
+- [`vboss_001.md`](data/personas/vboss_001.md) 陈墨 · 内向高自律的技术管理者（HEXACO 高 C/O/H 低 E，回避型，22% 人群）
+- [`vboss_002.md`](data/personas/vboss_002.md) 林嘉怡 · 高能量高同理心的产品负责人（高 E/A，偏安全略焦虑，60% 人群）
+- [`vboss_003.md`](data/personas/vboss_003.md) 苏野 · 高敏感的独立创作者（极高 O 高 H 高 N 极低 E，恐惧-回避型，17.5% 人群）
+
+**老板已点出的待补缺口**：极度焦虑型（5-19%） / 戏剧性高 E 高 N（~5%） / 老年画像（55+，可暂缓）
+
+**变更文件**：
+- M `poc/docs/data-generation-todo.md` v0.1 → v0.2（schema 七层升级）
+- A `poc/data/personas/vboss_001.md`
+- A `poc/data/personas/vboss_002.md`
+- A `poc/data/personas/vboss_003.md`
+
+---
+
 <!-- Day 1 / 2 / 3 ... 每日 retro 在此追加 -->
