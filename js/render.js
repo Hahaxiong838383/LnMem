@@ -73,12 +73,13 @@ function homeHtml() {
               ${option('openai', state.provider)}
               ${option('anthropic', state.provider)}
               ${option('deepseek', state.provider)}
+              ${option('minimax', state.provider)}
             </select>
           </label>
           <label class="grid gap-2 text-sm text-slate-300">
             <span>API Key</span>
             <input id="apiKey" type="password" value="${escapeAttr(state.apiKey)}"
-              class="rounded-xl border border-white/10 bg-slate-950 p-3 text-white" placeholder="仅保存在本机">
+              class="rounded-xl border border-white/10 bg-slate-950 p-3 text-white" placeholder="仅当前页面内存，不持久化">
           </label>
         </div>
         <div class="mt-5 flex flex-wrap gap-3 text-sm">

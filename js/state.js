@@ -141,6 +141,7 @@ export function loadState() {
   try {
     const saved = JSON.parse(raw);
     const safe = { ...saved };
+    delete safe.apiKey;
     delete safe.questions;
     delete safe.chapters;
     Object.assign(state, safe);
@@ -150,7 +151,7 @@ export function loadState() {
 }
 
 export function saveState() {
-  const { questions, chapters, ...serializable } = state;
+  const { apiKey, questions, chapters, ...serializable } = state;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
 }
 

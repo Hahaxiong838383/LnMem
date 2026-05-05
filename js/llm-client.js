@@ -8,8 +8,14 @@ const PROVIDER_CONFIG = {
     endpoint: 'https://api.deepseek.com/chat/completions'
   },
   anthropic: {
+    apiStyle: 'anthropic-x-api-key',
     defaultModel: 'claude-3-5-sonnet-latest',
     endpoint: 'https://api.anthropic.com/v1/messages'
+  },
+  minimax: {
+    apiStyle: 'anthropic-bearer',
+    defaultModel: 'MiniMax-M2.7',
+    endpoint: 'https://api.minimaxi.com/anthropic/v1/messages'
   }
 };
 
@@ -23,7 +29,7 @@ function getProviderConfig(provider) {
   const key = String(provider || '').toLowerCase();
   const config = PROVIDER_CONFIG[key];
   if (!config) {
-    throw new Error(`Unsupported LLM provider: ${provider}. Expected openai, anthropic, or deepseek.`);
+    throw new Error(`Unsupported LLM provider: ${provider}. Expected openai, anthropic, deepseek, or minimax.`);
   }
   return { key, ...config };
 }
@@ -126,7 +132,7 @@ export async function callLLM(provider, apiKey, systemPrompt, userPrompt, option
 
   try {
     let request;
-    if (config.key === 'anthropic') {
+    if (config.apiStyle === 'anthropic-x-api-key') {
       request = fetch(endpoint, {
         method: 'POST',
         signal,
@@ -135,6 +141,16 @@ export async function callLLM(provider, apiKey, systemPrompt, userPrompt, option
           'x-api-key': apiKey,
           'anthropic-dangerous-direct-browser-access': normalized.headers['anthropic-dangerous-direct-browser-access'] || 'true',
           'anthropic-version': normalized.headers['anthropic-version'] || '2023-06-01'
+        },
+        body: JSON.stringify(buildAnthropicPayload(model, systemPrompt, userPrompt, normalized))
+      });
+    } else if (config.apiStyle === 'anthropic-bearer') {
+      request = fetch(endpoint, {
+        method: 'POST',
+        signal,
+        headers: {
+          ...commonHeaders,
+          authorization: `Bearer ${apiKey}`
         },
         body: JSON.stringify(buildAnthropicPayload(model, systemPrompt, userPrompt, normalized))
       });
@@ -151,7 +167,7 @@ export async function callLLM(provider, apiKey, systemPrompt, userPrompt, option
     }
 
     const raw = await parseJsonResponse(await request, config.key);
-    const text = config.key === 'anthropic'
+    const text = config.apiStyle?.startsWith('anthropic')
       ? joinAnthropicText(raw.content)
       : (raw.choices?.[0]?.message?.content || raw.choices?.[0]?.text || '');
 

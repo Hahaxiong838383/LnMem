@@ -111,6 +111,7 @@ v0.2 从当前实际 120 题收敛为 93 题。
 - OpenAI: `https://api.openai.com/v1/chat/completions`
 - Anthropic: `https://api.anthropic.com/v1/messages`
 - DeepSeek: `https://api.deepseek.com/chat/completions`
+- MiniMax Token Plan: `https://api.minimaxi.com/anthropic/v1/messages`，默认模型 `MiniMax-M2.7`
 
 LLM 只负责解释与扩展，不改写本地分数。
 
@@ -158,7 +159,7 @@ LLM 只负责解释与扩展，不改写本地分数。
 
 只有用户点击 LLM 分析或批量生成时，答案和 profile 才会发往所选 provider。
 
-API Key 也保存在浏览器本地状态中。
+API Key 只保存在当前页面内存中，不写入仓库，也不持久化到 `localStorage`。
 
 生产化时建议改成后端代理或更严格的密钥管理。
 
@@ -179,6 +180,7 @@ node scripts/validate-v02.mjs
 - 章节题目总数是否为 93。
 - 是否存在写死价值观图表。
 - LLM 与批量生成模块是否存在。
+- LLM client 是否包含真实 `fetch` 调用与 MiniMax M2.7 provider。
 - JS 模块数是否不少于 6。
 - 源码行宽是否不超过 200。
 - 示例 profile 是否超过 8KB。

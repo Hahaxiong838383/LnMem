@@ -104,6 +104,7 @@ check('no_hardcoded_values_chart', !allSource.includes('data:[1,.9,.4,.3]'), 'gr
 check('llm_client_exists', exists('js/llm-client.js'), 'js/llm-client.js');
 check('batch_client_exists', exists('js/batch.js'), 'js/batch.js');
 check('llm_client_uses_fetch', /\bfetch\s*\(/u.test(readFile('js/llm-client.js')), 'fetch(');
+check('llm_client_supports_minimax', /MiniMax-M2\.7/u.test(readFile('js/llm-client.js')), 'MiniMax-M2.7');
 check('analysis_uses_call_llm', /callLLM\s*\(/u.test(readFile('js/export.js')), 'export.js callLLM');
 check('batch_uses_call_llm', /callLLM\s*\(/u.test(readFile('js/batch.js')), 'batch.js callLLM');
 check('modular_js_file_count_ge_6', jsFiles.length >= 6, String(jsFiles.length));
