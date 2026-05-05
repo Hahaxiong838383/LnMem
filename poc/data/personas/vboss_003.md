@@ -20,7 +20,7 @@ motivation:
   autonomy_need: 0.95
   competence_need: 0.70
   relatedness_need: 0.50
-values_top3: [autonomy, universalism, stimulation]
+values_top3: [self-direction, universalism, stimulation]
 values_bottom: [power, conformity, security]
 demographics:
   age_range: [27, 32]

@@ -5,6 +5,68 @@
 
 ---
 
+## v0.9 — 2026-05-05（Day 2 收官）
+
+**Day 2 多模态信号融合 — fusion 层就位 + ENUM 标准化**
+
+### 新增
+
+- `poc/src/fusion.py`（259 行）— `MultimodalFusion` 多模态融合层
+  - 上游：消费 `capture/multimodal_capture.py` 的 `capture_frame()` 输出 dict
+  - 下游：产出 `FusionFrame`（12 维归一化向量 + missing 标注 + meta），给 LNN 用
+  - 12 维特征分组：face 4（eye/pitch/yaw/gaze）+ derived 4（fatigue/attention/pose/blink）+ audio 2（voice_present/utterance_density）+ context 2（known/focus_stability）
+  - 设计要点：缺模态不崩（fallback 中性 0.5 + missing 标注，给下游 attention mask 用）/ 零外部依赖 / 阈值参数化（per-user τ 偏置同源思路）
+  - immutability：`FusionFrame` 是 frozen dataclass（对齐 coding-style.md）
+- `poc/tests/test_fusion.py`（118 行）— 8 个 fusion tests，全 PASS
+
+### 变更（ENUM 标准化）
+
+**问题**：v0.7-v0.8 期间 SCHWARTZ_VALUES 集合同时含 `autonomy` 和 `self-direction`（11 项），违反 PVQ-10 标准 10 维。`autonomy` 是 `self-direction` 的非标俗称，与 SDT autonomy_need 容易混淆。
+
+**修复**（5 处同步）：
+- `poc/src/validate_personas.py` SCHWARTZ_VALUES 集合：删 `autonomy` → 严格 PVQ-10 10 维
+- `poc/data/personas/vboss_001.md`：`values_top3: [autonomy, ...]` → `[self-direction, ...]`
+- `poc/data/personas/vboss_003.md`：同上
+- `poc/data/personas/_boss_self_raw.json`：`V*.value` 从 `self_direction` 下划线统一为 `self-direction` 连字符（与 SCHWARTZ_VALUES 一致）
+- `poc/docs/data-generation-todo.md` §3.1 ENUM 清单：删 `autonomy`，标记修订日期
+
+**保留不动**：`_boss_self_raw.json:41` 的 `self_determination.autonomy = 0.5` 是 SDT 自主需求维度（与 Schwartz V autonomy 同名异义），不在标准化范围。
+
+### 变更（vboss_002 bottom 补齐）
+
+- `poc/data/personas/vboss_002.md`：`values_bottom: [tradition, power]` → `[tradition, power, conformity]`（补到第 3 项）
+- ⚠️ `conformity` 系 cc 推断：与 top3 中 `stimulation` 在 Schwartz 圆盘跨象限对立，与高 E + 高 A 的"高能量产品负责人"画像一致。frontmatter 已注 ⚠️ 标签，老板可改
+
+### 验收
+
+- pytest **12/12 PASS**（原 4 + 新增 8 fusion tests）
+- validator **217/217 PASS**（31 画像，ENUM 标准化未破坏）
+- import 路径 OK：`from poc.src.fusion import MultimodalFusion, FEATURE_DIM`
+- autonomy 残留 grep 干净（只剩 SDT autonomy_need / self_determination.autonomy / 修订说明 / 历史 changelog 记录）
+
+### Day 2 README 硬门槛对照（poc/README.md §时间盒）
+
+| 硬门槛 | 状态 | 备注 |
+|--------|------|------|
+| Day 1-2 多模态信号流入 | 🟡 骨架就位（fusion 层 +12 维向量契约） | 30fps + 16kHz 实跑挂账老板 Day 8+ 真实环境（cc sandbox 无摄像头） |
+| `poc/src/fusion.py` | ✅ 完整 | README §目录结构必产 |
+| 测试覆盖 | ✅ 12 tests | 含缺模态/边界 clamp/immutability |
+
+### 待 Day 8+ 真实采集补：
+
+- 面部 landmarks（478 点）→ AU（FACS 行动单元）映射
+- 音频频谱基线 → 语速 / 音调 / 沉默率
+- 上下文事件分割（接 boundary_detection 模型）
+- 30fps + 16kHz + macOS 上下文实跑验证（需老板装 mediapipe / whisper.cpp / streamlit-webrtc）
+
+### Day 2 结束状态
+
+- 当前 commit：（待 Day 2 收官 commit hash 替换）
+- 累计 commits 自 Day 0：6 个（含本次）
+- 可启动 Day 3-4 数据生成阶段
+
+---
+
 ## v0.1 — 2026-05-05（Day 0）
 
 **起草**

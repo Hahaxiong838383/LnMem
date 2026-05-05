@@ -90,8 +90,8 @@ multimodal_signal_density: low / medium / high / extreme_bipolar
 ---
 ```
 
-**Schwartz 10 价值观清单**（供 values_top3/bottom 选择）：
-`autonomy / achievement / hedonism / stimulation / self-direction / universalism / benevolence / tradition / conformity / security / power`
+**Schwartz PVQ-10 标准 10 维清单**（供 values_top3/bottom 选择，v0.9 2026-05-05 修订：删除非标 `autonomy`，统一对齐 personalt-test source-of-truth）：
+`self-direction / stimulation / hedonism / achievement / power / security / conformity / tradition / benevolence / universalism`
 
 ### 3.2 Body 七层（markdown 自由书写）
 

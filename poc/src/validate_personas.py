@@ -52,17 +52,18 @@ ATTACHMENT_TYPES = {
     "secure_with_anxious_tendency",
 }
 SCHWARTZ_VALUES = {
-    "autonomy",
-    "achievement",
-    "hedonism",
-    "stimulation",
+    # Schwartz PVQ-10 标准 10 维（2026-05-05 v0.9 修订：删除 autonomy，统一用 self-direction
+    # 对齐 personalt-test data/values-questions.json source-of-truth）
     "self-direction",
-    "universalism",
-    "benevolence",
-    "tradition",
-    "conformity",
-    "security",
+    "stimulation",
+    "hedonism",
+    "achievement",
     "power",
+    "security",
+    "conformity",
+    "tradition",
+    "benevolence",
+    "universalism",
 }
 SIMILARITY_THRESHOLD = 0.4  # HEXACO 6 维欧式距离下限（< 0.4 则差异化不足，老板设）
 # Note: HEXACO 6 维都是 [0,1] 正值，余弦距离恒接近 0（向量方向一致）。

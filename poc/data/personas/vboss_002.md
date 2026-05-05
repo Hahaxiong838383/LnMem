@@ -21,7 +21,7 @@ motivation:
   competence_need: 0.70
   relatedness_need: 0.88
 values_top3: [benevolence, achievement, stimulation]
-values_bottom: [tradition, power]
+values_bottom: [tradition, power, conformity]  # ⚠️ conformity 系 cc 推断（v0.9 2026-05-05）：与 top3 中 stimulation 在 Schwartz 圆盘跨象限对立，与高 E + 高 A 的产品负责人画像一致。老板可改
 demographics:
   age_range: [29, 34]
   gender: female

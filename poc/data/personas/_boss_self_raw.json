@@ -46,7 +46,7 @@
       "_mapping_source": "personalt-test data/values-questions.json (PVQ-10 adapted, source-of-truth verified 2026-05-05 by cc curl + agent research)",
       "_v_to_schwartz": {
         "V1": {
-          "value": "self_direction",
+          "value": "self-direction",
           "score": 7
         },
         "V2": {

@@ -20,7 +20,7 @@ motivation:
   autonomy_need: 0.92
   competence_need: 0.85
   relatedness_need: 0.55
-values_top3: [autonomy, achievement, security]
+values_top3: [self-direction, achievement, security]
 values_bottom: [power, conformity, tradition]
 demographics:
   age_range: [32, 38]
