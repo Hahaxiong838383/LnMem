@@ -27,6 +27,10 @@ outputs/
 day*_results.txt
 day*_results.json
 *.jsonl
+!evals/data/
+!evals/data/*.jsonl
+!poc/demos/results/
+!poc/demos/results/*.jsonl
 
 # spikes intermediate
 spikes/*/.cache/

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lnmem"
-version = "0.3.1"
-description = "LnMem · 伴侣型 AI 智能体记忆系统（v0.3.1 LNN-centric, M0 W1）"
+version = "0.3.3"
+description = "LnMem · 伴侣型 AI 智能体记忆系统（v0.3.3 cognitive.md v0.1.1 联动, M0 W2）"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "LnMem · 老板 + cc + codex" }]
