@@ -6,17 +6,37 @@ export function buildProfile(state) {
   return mergeProfile(localProfileSeed(state));
 }
 
-export async function analyzeProfileWithLLM(state) {
+export async function analyzeProfileWithLLM(state, runtime = {}) {
   if (!state.provider || !state.apiKey) {
     throw new Error('请先在首页填写 provider 和 API Key。');
   }
 
+  const { signal, onStatus } = runtime;
   const seed = localProfileSeed(state);
   const prompt = buildAnalysisPrompt(state.answers, seed);
-  const response = await callLLM(state.provider, state.apiKey, ANALYSIS_SYSTEM, prompt, {
+  const base = {
     responseFormat: { type: 'json_object' },
-    temperature: 0.4
-  });
+    temperature: 0.4,
+    maxTokens: 2200,
+    signal
+  };
+
+  let response;
+  try {
+    onStatus?.('调用 LLM 分析中...（第 1 次请求，最长约 45 秒）');
+    response = await callLLM(state.provider, state.apiKey, ANALYSIS_SYSTEM, prompt, {
+      ...base,
+      timeoutMs: 45000
+    });
+  } catch (error) {
+    if (!isTimeoutError(error) || signal?.aborted) throw error;
+    onStatus?.('首轮超时，正在重试...（第 2 次请求，最长约 60 秒）');
+    response = await callLLM(state.provider, state.apiKey, ANALYSIS_SYSTEM, prompt, {
+      ...base,
+      timeoutMs: 60000,
+      temperature: 0.3
+    });
+  }
 
   return mergeProfile(seed, response.text);
 }
@@ -34,6 +54,11 @@ function localProfileSeed(state) {
       analysis_status: 'local_only'
     }
   };
+}
+
+function isTimeoutError(error) {
+  const message = String(error?.message || '');
+  return /timed out|timeout/i.test(message);
 }
 
 export function downloadJson(name, payload) {

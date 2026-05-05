@@ -420,6 +420,8 @@ function bindResult(root) {
   renderHexChart(root.querySelector('#hexChart'), state.result.hex || {});
   renderValuesChart(root.querySelector('#valuesChart'), state.result.motivation?.values || []);
   const output = root.querySelector('#analysisStatus');
+  const analyzeBtn = root.querySelector('[data-action="analyze-llm"]');
+  let analyzing = false;
 
   root.querySelector('[data-action="export-json"]')?.addEventListener('click', () => {
     try {
@@ -429,14 +431,30 @@ function bindResult(root) {
       if (output) output.textContent = `JSON 导出失败：${error.message}`;
     }
   });
-  root.querySelector('[data-action="analyze-llm"]')?.addEventListener('click', async () => {
+  analyzeBtn?.addEventListener('click', async () => {
+    if (analyzing) return;
+    analyzing = true;
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = '分析中...';
+    const controller = new AbortController();
+    const hardTimeout = setTimeout(() => controller.abort(new Error('analysis hard timeout')), 130000);
     output.textContent = '调用 LLM 分析中...';
     try {
-      state.fullProfile = await analyzeProfileWithLLM(state);
+      state.fullProfile = await analyzeProfileWithLLM(state, {
+        signal: controller.signal,
+        onStatus: (message) => {
+          output.textContent = message;
+        }
+      });
       saveState();
       output.textContent = JSON.stringify(state.fullProfile, null, 2);
     } catch (error) {
-      output.textContent = error.message;
+      output.textContent = normalizeAnalysisError(error);
+    } finally {
+      clearTimeout(hardTimeout);
+      analyzing = false;
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = '调用 LLM 分析';
     }
   });
   root.querySelector('[data-action="export-shot"]')?.addEventListener('click', async () => {
@@ -579,6 +597,17 @@ function formatPair(left, right) {
 
 function formatScore(value) {
   return Number.isFinite(value) ? value.toFixed(2) : '0.00';
+}
+
+function normalizeAnalysisError(error) {
+  const message = String(error?.message || error || '未知错误');
+  if (/timed out|timeout/i.test(message)) {
+    return 'LLM 请求超时：请确认代理是否走直连，或稍后重试。';
+  }
+  if (/aborted|abort/i.test(message)) {
+    return 'LLM 请求已中止：请重试一次。';
+  }
+  return message;
 }
 
 function debugHtml() {
