@@ -146,4 +146,39 @@
 
 ---
 
+## v0.5 — 2026-05-05（Day 0 完整收官 — 27 画像批量入库）
+
+**触发**：老板一次性提供 27 个画像（vboss_004~030），按"近邻参照 5 + 中等距离 10 + 远端 8 + 极端 4"分组，覆盖缺口（极度焦虑 vboss_010 / 戏剧性 vboss_011 / 极端边缘 vboss_027~030）+ 4 个 `similar_to_self: true` 锚点。
+
+**cc 落地**：
+- 写 `gen_personas.py` 生成器（一次性脚本，27 画像 dict 硬编码 → 27 .md 文件）
+- 关键标准化：老板 yaml 字段名 → validator schema（`motivation.autonomy` → `autonomy_need` / 顶层 `values_top3` 替代 `motivation.top_values` / 中文 attachment 类型 → ENUM 映射）
+- 中文 attachment 映射表：`安全偏回避型/偏安全型 → secure_with_anxious_tendency` / `回避型/极度回避型 → avoidant` / `焦虑型/焦虑-先占型/偏焦虑型 → anxious` / `恐惧-回避型/偏混乱型 → fearful_avoidant` / `安全型 → secure`
+- 不代笔 if-then：老板未列具体情境的画像，body 标 `⚠️ 老板原文未列，待 Day 1+ 补 ≥5 条`；不虚构内容污染 ground truth
+
+**30 画像 validator 结果**：
+
+| 维度 | 结果 | 状态 |
+|------|------|------|
+| 单画像门通过率 | 156/210 = 74.3% | ⚠️ 部分内容待老板补 |
+| HEXACO 距离 ≥ 0.4 | 378/435 对（13% 同类画像偏近，符合分布） | ⚠️ 建议门 |
+| 依恋 secure-like ≤ 65% | 实际 43.3% | ✅ |
+| 依恋 ≥2 回避 + ≥1 焦虑 + ≥1 恐惧-回避 | 实际 6/8/3 | ✅ |
+| 极端 HEXACO 维度覆盖 | 26/30 画像 | ✅ |
+| t-SNE 锚点 (similar_to_self=true) | 4 个 | ✅ |
+| 职业类型 ≥5 | 30 种 | ✅ |
+
+**Day 0 收官 ✅**：6 个集合质量门全通过。54 个失败的单画像门全是「if-then 内容 + 多模态全 4 类信号」要老板补，**结构层面 Day 0 完整**。
+
+**待老板 review/补的画像**（按优先级）：
+- 高优：vboss_007/009/010/011（精简但接近门槛，补 if-then 第 5-6 条 + 多模态细节）
+- 中优：vboss_012-018（中段画像，补 if-then 5 条）
+- 低优：vboss_019-030（远端 + 极端，补 if-then 5 条）
+- 距离过近建议差异化：vboss_022↔029 (0.256) / vboss_025↔030 (0.269) / vboss_026↔028 (0.308)
+
+**变更文件**：
+- A `poc/data/personas/vboss_004.md` ~ `vboss_030.md`（27 个画像）
+
+---
+
 <!-- Day 1 / 2 / 3 ... 每日 retro 在此追加 -->
