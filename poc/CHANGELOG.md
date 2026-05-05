@@ -209,3 +209,45 @@
 ---
 
 <!-- Day 1 / 2 / 3 ... 每日 retro 在此追加 -->
+
+## v0.7 — 2026-05-05（Day 1 启动 + Schwartz V 映射验证）
+
+**Day 1 启动**：codex 后台跑多模态采集骨架（streamlit-webrtc + MediaPipe + Whisper.cpp + macOS context + signal_buffer），任务 ID `task-mos8sj81-hb4tx8`，gpt-5.3-codex/high。等 codex 完成后 cc 接管 commit + push。
+
+**Schwartz V1-V10 映射验证完成**（cc 三方交叉验证）：
+1. Explore agent 找到学术谱系：personalt-test = TIVI (Sandy/Gosling/Schwartz/Koelkebeck 2017) + SSVS-10 (Lindeman/Verkasalo 2005) 的中文 hybrid（第一人称 + 7 点 Likert）
+2. cc 亲自 `curl raw.githubusercontent.com/.../data/values-questions.json` 拿原文 JSON，10 题逐一核对，每题带 `value` + `source: "Schwartz PVQ-10 adapted"` 字段
+3. 映射对照表（V1→self_direction / V2→stimulation / V3→hedonism / V4→achievement / V5→power / V6→security / V7→conformity / V8→tradition / V9→benevolence / V10→universalism）
+
+**vboss_self values 字段修正（关键纠错）**：
+
+cc 原 frontmatter（凭"PVQ 范式直觉"猜）：
+- `values_top3: [self-direction, achievement, universalism]` ❌ — universalism 实际只 5 分，根本不在 top
+- `values_bottom: [tradition, conformity, power]` ❌ — power 实际是 7 分顶配，绝不在 bottom
+
+修正后（A+B 双字段）：
+- `values_top3: [self-direction, achievement, power]` — 从 5 个并列满分里选老板创业者最有代表性的 3 个
+- `values_bottom: [tradition, conformity, security]` — 真实 bottom3
+- `values_top5_tied`: 完整记录 5 个并列 7 分项
+- `dominant_value_groups: [openness_to_change, self_enhancement]`（均值 7.0）
+- `neutral_value_groups: [self_transcendence]`（均值 5.5）
+- `recessive_value_groups: [conservation]`（均值 4.0）
+- `schwartz_v_mapping_source` 字段标 source-of-truth
+
+**raw JSON 同步**：`_boss_self_raw.json` 的 `motivation_layer.values_hierarchy` 从空 `{top_values: [], low_values: [], ranked_values: []}` 改为含完整 V→Schwartz 映射 + 10 维 ranked_values + 4 大组别。
+
+**审计副产物**：Explore agent 扫 30 vboss 发现：
+- vboss_001/003 含非标 ENUM "autonomy"（标 PVQ-10 应为 self-direction）
+- vboss_002 bottom 只 2 个值
+- 这 3 处是老板原作，cc 不擅改，等老板决定是否批量修
+
+**validator 验证**：217/217 全 PASS（vboss_self 的 values 修正 + raw JSON 改动均不破坏现有校验）
+
+**门控**：
+- gate_frontmatter_complete ✅（保留 values_top3 字段）
+- gate_values_in_schwartz ✅（top3 + bottom 都在 SCHWARTZ_VALUES 集合）
+- 其余 5 门 ✅
+
+**待老板确认**：
+- top3 代表性挑选 [self-direction, achievement, power] 是否符合自我认知，还是要换 [stimulation, hedonism, ...]？
+- 是否需要 cc 修 vboss_001/003 的 "autonomy" → self-direction（保 ENUM 一致），以及 vboss_002 补 bottom3？

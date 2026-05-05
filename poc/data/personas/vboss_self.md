@@ -21,8 +21,14 @@ motivation:
   autonomy_need: 1.000
   competence_need: 1.000
   relatedness_need: 1.000
-values_top3: [self-direction, achievement, universalism]
-values_bottom: [tradition, conformity, power]
+values_top3: [self-direction, achievement, power]
+values_bottom: [tradition, conformity, security]
+values_top5_tied: [self-direction, stimulation, hedonism, achievement, power]  # 全 7 分并列，top3 是 cc 选的代表，老板可换
+values_bottom3_tied: [tradition, conformity, security]  # 3/4/5 分递增，security 与 universalism 并列 5 分
+dominant_value_groups: [openness_to_change, self_enhancement]  # 均值 7.0
+neutral_value_groups: [self_transcendence]  # 均值 5.5（benevolence 6 + universalism 5）
+recessive_value_groups: [conservation]  # 均值 4.0
+schwartz_v_mapping_source: personalt-test data/values-questions.json (PVQ-10 adapted, source-of-truth verified 2026-05-05)
 demographics:
   age_range: [37, 37]
   gender: male
