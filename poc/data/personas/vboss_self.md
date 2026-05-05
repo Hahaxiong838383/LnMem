@@ -1,7 +1,7 @@
 ---
 id: vboss_self
-name: 川哥
-type_label: 老板自画像 · personalt-test 测评 v0.2（真实主人基线）
+name: 陈川
+type_label: 老板真实主人画像 · personalt-test 测评 v0.2（真实数据基线）
 mbti_tag: TBD
 hexaco:
   honesty_humility: 0.667
@@ -37,7 +37,7 @@ data_source: personalt-test v0.2 (2026-05-05, minimax, local_only)
 raw_data_file: _boss_self_raw.json
 ---
 
-# 川哥 · 老板自画像（真实，2026-05-05 测评）
+# 陈川 · 老板真实主人画像（真实数据，2026-05-05 测评）
 
 > 这是基于 [personalt-test](https://github.com/...) 自评测的真实主人画像，作为 LnMem PoC **真实数据基线**（vboss_001-030 为虚拟参照集）。
 > Raw 测评数据见 `_boss_self_raw.json`（HEXACO + ECR + GSE + SDT + Schwartz PVQ + CAPS 题库）。
