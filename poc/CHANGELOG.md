@@ -251,3 +251,49 @@ cc 原 frontmatter（凭"PVQ 范式直觉"猜）：
 **待老板确认**：
 - top3 代表性挑选 [self-direction, achievement, power] 是否符合自我认知，还是要换 [stimulation, hedonism, ...]？
 - 是否需要 cc 修 vboss_001/003 的 "autonomy" → self-direction（保 ENUM 一致），以及 vboss_002 补 bottom3？
+
+## v0.8 — 2026-05-05（Day 1 多模态采集骨架收官）
+
+**codex 实战**：
+- 第一次（codex-companion runtime 后台 task-mos8sj81）→ ❌ 静默失败，55min 空跑无产出
+- 第二次（`Bash codex exec --full-auto` 直调，stdin 喂 prompt）→ ✅ 5min 完成
+- 教训沉淀到 mycc memory `feedback_codex_runtime_vs_exec_direct.md`
+
+**Day 1 交付（commit `e8d28d8`）**：
+
+```
+poc/src/capture/
+├── __init__.py            导出 MultimodalCapture
+├── multimodal_capture.py  主类 open()/close()/capture_frame() -> dict
+├── face_signals.py        MediaPipe FaceMesh（眼睑/姿态/眼动）
+├── audio_transcribe.py    Whisper.cpp subprocess 包装
+├── app_context.py         macOS osascript 抓前台 app
+├── signal_buffer.py       5min 滑窗 + jsonl 异步落盘
+└── streamlit_app.py       streamlit-webrtc UI 单页
+
+poc/tests/
+├── __init__.py
+└── test_capture_skeleton.py    4 tests（unittest.mock 模式）
+
+poc/requirements-day1.txt  streamlit, streamlit-webrtc, mediapipe, opencv-python, numpy, sounddevice
+pyproject.toml             pytest 配置（codex 顺手加的）
+```
+
+**验收**：
+- ✅ pytest 4/4 PASS（无外部依赖，mock 模式）
+- ✅ validator 217/217 PASS（不破坏现有校验）
+- ✅ `from poc.src.capture import MultimodalCapture` import OK
+
+**设计要点**：
+1. 外部依赖（mediapipe/cv2/streamlit/sounddevice）顶部 try/except ImportError 包裹，给 stub 但保留接口签名
+2. 数据契约：jsonl 一行一帧 `{ts, frame_idx, face: {eye_closure, head_pitch_deg, head_yaw_deg, gaze_stability, landmarks_n}, audio: {transcript, lang, duration_s}, context: {active_app, app_switch_count_5min}}`
+3. 每文件 < 300 行，类型注解齐全
+4. docstring 标 "Day 1 PoC 骨架，等 Day 8+ 真实采集时补全"
+
+**待 Day 2-7**：
+- Day 2-3：数据生成框架 + TSV 实验日志
+- Day 4：7200h 虚拟数据生成
+- Day 5-6：LNN 模型（CfC + StateRecognitionLNN + BoundaryDetectionLNN）
+- Day 7：5 阶段记忆形成
+
+**Day 8+ 真实采集**：用 vboss_self 老板自用累积 ≥10h，回填 if-then / 多模态 / narrative 三个 ⚠️ 字段。
