@@ -176,8 +176,6 @@ export function resetState() {
 
 export function activeAssessmentChapters() {
   return state.chapters.filter((chapter) => {
-    const scales = chapterScaleIds(chapter);
-    if (state.mode === 'fast' && scales.includes('values')) return false;
     return chapterQuestions(chapter).length > 0;
   });
 }
@@ -197,11 +195,11 @@ export function findChapterByScale(scaleId) {
 export function chapterQuestions(chapter) {
   if (!chapter) return [];
   if (Array.isArray(chapter.question_ids) && chapter.question_ids.length) {
-    return chapter.question_ids.map(findQuestionById).filter(Boolean);
+    return chapter.question_ids.map(findQuestionById).filter(filterQuestionForMode);
   }
   return (chapter.scales || []).flatMap((scale) => {
     return (state.questions[scale] || []).map((question) => ({ ...question, __scale: scale }));
-  });
+  }).filter(filterQuestionForMode);
 }
 
 export function findQuestionById(questionId) {
@@ -247,8 +245,8 @@ async function fetchJson(url, fallback) {
   }
 }
 
-function chapterScaleIds(chapter) {
-  if (Array.isArray(chapter.scales) && chapter.scales.length) return chapter.scales;
-  if (!Array.isArray(chapter.question_ids)) return [];
-  return [...new Set(chapter.question_ids.map(findQuestionById).filter(Boolean).map((q) => q.__scale))];
+function filterQuestionForMode(question) {
+  if (!question) return false;
+  if (state.mode === 'fast' && question.__scale === 'values') return false;
+  return true;
 }

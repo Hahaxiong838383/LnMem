@@ -151,12 +151,16 @@ function assessmentHtml() {
 }
 
 function questionTitle(question) {
-  const title = question.scenario || question.text || question.title || question.id;
+  const title = question.scenario || question.narrative || question.text || question.title || question.id;
+  const prompt = question.question && question.question !== title
+    ? `<p class="mt-3 text-lg font-semibold text-white">${escapeHtml(question.question)}</p>`
+    : '';
   const subtitle = question.subtitle || question.facet || question.group || '请按第一反应作答。';
   const why = question._why_for_user || question.why_for_user || question.source || '用于提升画像稳定性。';
   return html`
     <p class="text-xs uppercase tracking-[0.25em] text-cyan-300">${escapeHtml(question.id || '')}</p>
     <h3 class="mt-3 text-xl font-bold text-white">${escapeHtml(title)}</h3>
+    ${prompt}
     <p class="mt-2 text-sm text-slate-300">${escapeHtml(subtitle)}</p>
     <p class="mt-2 rounded-2xl bg-cyan-950/50 p-3 text-sm text-cyan-100">为什么问：${escapeHtml(why)}</p>
   `;
@@ -432,8 +436,9 @@ function readCurrentAnswer(root, question) {
   const selected = root.querySelector('input[name="answer"]:checked');
   if (Array.isArray(question.options)) return selected?.value || '';
   if (question.type === 'narrative_likert' || question.narrative_prompt) {
+    if (!selected) return null;
     return {
-      likert: Number(selected?.value || 0),
+      likert: Number(selected.value),
       narrative: root.querySelector('#narrative')?.value || ''
     };
   }

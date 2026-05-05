@@ -50,11 +50,14 @@ function maxLineLength(file) {
 }
 
 const questions = flattenQuestions();
+const questionIds = questions.map((question) => question.id);
+const uniqueQuestionIds = new Set(questionIds);
 const situationalCount = questions.filter((q) => {
   return q.type === 'situational' || q.type === 'narrative_likert';
 }).length;
 
 check('total_questions_eq_93', questions.length === 93, String(questions.length));
+check('question_ids_unique', uniqueQuestionIds.size === questionIds.length, String(uniqueQuestionIds.size));
 check('situational_or_narrative_ge_28', situationalCount >= 28, String(situationalCount));
 
 const missingUserFields = questions.filter((q) => !q.subtitle || !q._why_for_user);
@@ -63,12 +66,19 @@ check('all_questions_have_user_context', missingUserFields.length === 0, `${miss
 if (exists('data/chapters.json')) {
   const chapters = readJson('data/chapters.json');
   const chapterQuestionTotal = chapters.reduce((sum, chapter) => sum + chapter.question_ids.length, 0);
+  const chapterIds = chapters.flatMap((chapter) => chapter.question_ids);
+  const uniqueChapterIds = new Set(chapterIds);
+  const unknownChapterIds = chapterIds.filter((id) => !uniqueQuestionIds.has(id));
+  const omittedQuestionIds = questionIds.filter((id) => !uniqueChapterIds.has(id));
   const invalidChapterSizes = chapters.filter((chapter) => {
     return chapter.question_ids.length < 11 || chapter.question_ids.length > 15;
   });
 
   check('chapters_eq_7', chapters.length === 7, String(chapters.length));
   check('chapter_question_total_eq_93', chapterQuestionTotal === 93, String(chapterQuestionTotal));
+  check('chapter_question_ids_unique', uniqueChapterIds.size === chapterIds.length, String(uniqueChapterIds.size));
+  check('chapter_question_ids_known', unknownChapterIds.length === 0, unknownChapterIds.join(', ') || 'ok');
+  check('chapter_question_ids_complete', omittedQuestionIds.length === 0, omittedQuestionIds.join(', ') || 'ok');
   check('chapter_sizes_11_to_15', invalidChapterSizes.length === 0, `${invalidChapterSizes.length} invalid`);
 } else {
   check('chapters_eq_7', false, 'data/chapters.json missing');
@@ -93,6 +103,9 @@ const allSource = sourceFiles
 check('no_hardcoded_values_chart', !allSource.includes('data:[1,.9,.4,.3]'), 'grep literal');
 check('llm_client_exists', exists('js/llm-client.js'), 'js/llm-client.js');
 check('batch_client_exists', exists('js/batch.js'), 'js/batch.js');
+check('llm_client_uses_fetch', /\bfetch\s*\(/u.test(readFile('js/llm-client.js')), 'fetch(');
+check('analysis_uses_call_llm', /callLLM\s*\(/u.test(readFile('js/export.js')), 'export.js callLLM');
+check('batch_uses_call_llm', /callLLM\s*\(/u.test(readFile('js/batch.js')), 'batch.js callLLM');
 check('modular_js_file_count_ge_6', jsFiles.length >= 6, String(jsFiles.length));
 
 const overlong = sourceFiles
@@ -127,4 +140,8 @@ for (const item of checks) {
 
 if (failed.length > 0) {
   process.exitCode = 1;
+}
+
+function readFile(file) {
+  return exists(file) ? fs.readFileSync(path.join(root, file), 'utf8') : '';
 }

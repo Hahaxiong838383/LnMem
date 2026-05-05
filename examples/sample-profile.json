@@ -350,11 +350,12 @@
   "raw_assessment_data": {
     "mode": "sample_full",
     "answers_summary": {
-      "hexaco_items_answered": 60,
+      "hexaco_items_answered": 36,
       "ecr_items_answered": 12,
-      "motivation_items_answered": 24,
+      "motivation_items_answered": 15,
       "values_items_answered": 10,
-      "situational_items_answered": 14
+      "situational_items_answered": 20,
+      "total_items_answered": 93
     },
     "selected_situational_options": {
       "S1": "D",
