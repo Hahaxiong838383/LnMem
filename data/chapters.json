@@ -1,0 +1,144 @@
+[
+  {
+    "id": "chapter_1",
+    "title": "基本特质底盘",
+    "subtitle": "先建立 HEXACO 六维的基础轮廓",
+    "question_ids": [
+      "H1",
+      "H2",
+      "H3",
+      "H4",
+      "H5",
+      "H6",
+      "E1",
+      "E2",
+      "E3",
+      "E4",
+      "E5",
+      "E6",
+      "X1",
+      "X2"
+    ]
+  },
+  {
+    "id": "chapter_2",
+    "title": "表达、协作与执行",
+    "subtitle": "观察外向性、宜人性与尽责性的日常表现",
+    "question_ids": [
+      "X3",
+      "X4",
+      "X5",
+      "X6",
+      "A1",
+      "A2",
+      "A3",
+      "A4",
+      "A5",
+      "A6",
+      "C1",
+      "C2",
+      "C3"
+    ]
+  },
+  {
+    "id": "chapter_3",
+    "title": "规划、探索与动机",
+    "subtitle": "连接执行方式、开放性和基础自我效能",
+    "question_ids": [
+      "C4",
+      "C5",
+      "C6",
+      "O1",
+      "O2",
+      "O3",
+      "O4",
+      "O5",
+      "O6",
+      "GSE1",
+      "GSE2",
+      "GSE3",
+      "SDT_A1"
+    ]
+  },
+  {
+    "id": "chapter_4",
+    "title": "自主、胜任与关系动能",
+    "subtitle": "覆盖 SDT 三需求和具体领域自评",
+    "question_ids": [
+      "SDT_A2",
+      "SDT_C1",
+      "SDT_C2",
+      "SDT_R1",
+      "SDT_R2",
+      "M_S1",
+      "M_S2",
+      "M_S3",
+      "DSE1",
+      "DSE2",
+      "DSE3",
+      "V1",
+      "V2"
+    ]
+  },
+  {
+    "id": "chapter_5",
+    "title": "价值观优先级",
+    "subtitle": "梳理 PVQ-10 与早期情境反应",
+    "question_ids": [
+      "V3",
+      "V4",
+      "V5",
+      "V6",
+      "V7",
+      "V8",
+      "V9",
+      "V10",
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5"
+    ]
+  },
+  {
+    "id": "chapter_6",
+    "title": "压力、关系与决策情境",
+    "subtitle": "用 CAPS 情境签名捕捉 if-then 模式",
+    "question_ids": [
+      "S6",
+      "S7",
+      "S8",
+      "S9",
+      "S10",
+      "S11",
+      "S12",
+      "S13",
+      "S14",
+      "S15",
+      "S16",
+      "S17",
+      "S18"
+    ]
+  },
+  {
+    "id": "chapter_7",
+    "title": "依恋叙事与未来协作",
+    "subtitle": "最后补齐亲密关系、AI 协作和高风险机会画像",
+    "question_ids": [
+      "S19",
+      "S20",
+      "ANX1",
+      "ANX2",
+      "ANX3",
+      "ANX4",
+      "ANX5",
+      "ANX6",
+      "AVD1",
+      "AVD2",
+      "AVD3",
+      "AVD4",
+      "AVD5",
+      "AVD6"
+    ]
+  }
+]

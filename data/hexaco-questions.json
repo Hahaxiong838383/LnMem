@@ -1,67 +1,638 @@
 [
-  {"id":"H1","scale":"hexaco","dimension":"honesty_humility","facet":"sincerity","reverse":false,"text":"我倾向于坦诚表达真实想法，即使不一定讨好他人。","source":"IPIP-HEXACO adapted"},
-  {"id":"H2","scale":"hexaco","dimension":"honesty_humility","facet":"fairness","reverse":false,"text":"即使没人发现，我也不会占制度漏洞的便宜。","source":"IPIP-HEXACO adapted"},
-  {"id":"H3","scale":"hexaco","dimension":"honesty_humility","facet":"greed_avoidance","reverse":true,"text":"如果有机会，我会追求比他人更多的特权。","source":"IPIP-HEXACO adapted"},
-  {"id":"H4","scale":"hexaco","dimension":"honesty_humility","facet":"modesty","reverse":false,"text":"我不太喜欢炫耀自己的成就。","source":"IPIP-HEXACO adapted"},
-  {"id":"H5","scale":"hexaco","dimension":"honesty_humility","facet":"sincerity","reverse":false,"text":"我会尽量避免说违心的话。","source":"IPIP-HEXACO adapted"},
-  {"id":"H6","scale":"hexaco","dimension":"honesty_humility","facet":"fairness","reverse":false,"text":"在竞争中我仍然重视公平规则。","source":"IPIP-HEXACO adapted"},
-  {"id":"H7","scale":"hexaco","dimension":"honesty_humility","facet":"greed_avoidance","reverse":true,"text":"我希望通过财富和地位来证明自己更重要。","source":"IPIP-HEXACO adapted"},
-  {"id":"H8","scale":"hexaco","dimension":"honesty_humility","facet":"modesty","reverse":false,"text":"被夸奖时我通常会把功劳分给团队。","source":"IPIP-HEXACO adapted"},
-  {"id":"H9","scale":"hexaco","dimension":"honesty_humility","facet":"sincerity","reverse":false,"text":"我不会为了短期利益故意误导别人。","source":"IPIP-HEXACO adapted"},
-  {"id":"H10","scale":"hexaco","dimension":"honesty_humility","facet":"fairness","reverse":false,"text":"我反感通过不正当手段获得好处。","source":"IPIP-HEXACO adapted"},
-
-  {"id":"E1","scale":"hexaco","dimension":"emotionality","facet":"fearfulness","reverse":false,"text":"面对不确定风险时我会明显紧张。","source":"IPIP-HEXACO adapted"},
-  {"id":"E2","scale":"hexaco","dimension":"emotionality","facet":"anxiety","reverse":false,"text":"压力大时我容易反复担心最坏结果。","source":"IPIP-HEXACO adapted"},
-  {"id":"E3","scale":"hexaco","dimension":"emotionality","facet":"dependence","reverse":false,"text":"在困难时我希望得到可靠支持。","source":"IPIP-HEXACO adapted"},
-  {"id":"E4","scale":"hexaco","dimension":"emotionality","facet":"sentimentality","reverse":false,"text":"我很容易被亲密关系中的细节打动。","source":"IPIP-HEXACO adapted"},
-  {"id":"E5","scale":"hexaco","dimension":"emotionality","facet":"fearfulness","reverse":false,"text":"突发状况会让我短时间失去冷静。","source":"IPIP-HEXACO adapted"},
-  {"id":"E6","scale":"hexaco","dimension":"emotionality","facet":"anxiety","reverse":false,"text":"我经常提前为可能的失误做心理准备。","source":"IPIP-HEXACO adapted"},
-  {"id":"E7","scale":"hexaco","dimension":"emotionality","facet":"dependence","reverse":true,"text":"即使情绪很差，我也不会向人求助。","source":"IPIP-HEXACO adapted"},
-  {"id":"E8","scale":"hexaco","dimension":"emotionality","facet":"sentimentality","reverse":false,"text":"我会珍惜与重要他人的情感联结。","source":"IPIP-HEXACO adapted"},
-  {"id":"E9","scale":"hexaco","dimension":"emotionality","facet":"fearfulness","reverse":true,"text":"我几乎从不因风险而担忧。","source":"IPIP-HEXACO adapted"},
-  {"id":"E10","scale":"hexaco","dimension":"emotionality","facet":"anxiety","reverse":false,"text":"关键节点时我会担心自己表现不够好。","source":"IPIP-HEXACO adapted"},
-
-  {"id":"X1","scale":"hexaco","dimension":"extraversion","facet":"social_self_esteem","reverse":false,"text":"在社交场合我通常表现得自信。","source":"IPIP-HEXACO adapted"},
-  {"id":"X2","scale":"hexaco","dimension":"extraversion","facet":"social_boldness","reverse":false,"text":"我愿意主动认识新朋友或合作方。","source":"IPIP-HEXACO adapted"},
-  {"id":"X3","scale":"hexaco","dimension":"extraversion","facet":"sociability","reverse":false,"text":"长时间独处后我会想找人交流。","source":"IPIP-HEXACO adapted"},
-  {"id":"X4","scale":"hexaco","dimension":"extraversion","facet":"liveliness","reverse":false,"text":"我常给团队带来积极和活跃气氛。","source":"IPIP-HEXACO adapted"},
-  {"id":"X5","scale":"hexaco","dimension":"extraversion","facet":"social_self_esteem","reverse":true,"text":"在众人面前表达观点让我不自在。","source":"IPIP-HEXACO adapted"},
-  {"id":"X6","scale":"hexaco","dimension":"extraversion","facet":"social_boldness","reverse":true,"text":"我倾向避免成为讨论焦点。","source":"IPIP-HEXACO adapted"},
-  {"id":"X7","scale":"hexaco","dimension":"extraversion","facet":"sociability","reverse":false,"text":"与人共事会让我更有动力。","source":"IPIP-HEXACO adapted"},
-  {"id":"X8","scale":"hexaco","dimension":"extraversion","facet":"liveliness","reverse":false,"text":"我说话通常富有感染力。","source":"IPIP-HEXACO adapted"},
-  {"id":"X9","scale":"hexaco","dimension":"extraversion","facet":"social_self_esteem","reverse":false,"text":"被多人关注时我仍能保持自然。","source":"IPIP-HEXACO adapted"},
-  {"id":"X10","scale":"hexaco","dimension":"extraversion","facet":"sociability","reverse":true,"text":"我更喜欢尽量减少不必要的社交互动。","source":"IPIP-HEXACO adapted"},
-
-  {"id":"A1","scale":"hexaco","dimension":"agreeableness","facet":"forgiveness","reverse":false,"text":"别人冒犯我后，我通常能较快释怀。","source":"IPIP-HEXACO adapted"},
-  {"id":"A2","scale":"hexaco","dimension":"agreeableness","facet":"gentleness","reverse":false,"text":"我会尽量用温和方式表达不同意见。","source":"IPIP-HEXACO adapted"},
-  {"id":"A3","scale":"hexaco","dimension":"agreeableness","facet":"flexibility","reverse":false,"text":"冲突时我愿意寻找双方都能接受的方案。","source":"IPIP-HEXACO adapted"},
-  {"id":"A4","scale":"hexaco","dimension":"agreeableness","facet":"patience","reverse":false,"text":"遇到低效沟通时我仍能保持耐心。","source":"IPIP-HEXACO adapted"},
-  {"id":"A5","scale":"hexaco","dimension":"agreeableness","facet":"forgiveness","reverse":true,"text":"别人伤害我后我会长期记着这件事。","source":"IPIP-HEXACO adapted"},
-  {"id":"A6","scale":"hexaco","dimension":"agreeableness","facet":"gentleness","reverse":true,"text":"辩论时我容易变得尖锐和苛刻。","source":"IPIP-HEXACO adapted"},
-  {"id":"A7","scale":"hexaco","dimension":"agreeableness","facet":"flexibility","reverse":true,"text":"我常坚持己见，不愿妥协。","source":"IPIP-HEXACO adapted"},
-  {"id":"A8","scale":"hexaco","dimension":"agreeableness","facet":"patience","reverse":true,"text":"我很难容忍他人反复犯同样错误。","source":"IPIP-HEXACO adapted"},
-  {"id":"A9","scale":"hexaco","dimension":"agreeableness","facet":"gentleness","reverse":false,"text":"即便生气我也会控制语气。","source":"IPIP-HEXACO adapted"},
-  {"id":"A10","scale":"hexaco","dimension":"agreeableness","facet":"forgiveness","reverse":false,"text":"我愿意给真诚道歉的人第二次机会。","source":"IPIP-HEXACO adapted"},
-
-  {"id":"C1","scale":"hexaco","dimension":"conscientiousness","facet":"organization","reverse":false,"text":"我会把任务分解并安排明确优先级。","source":"IPIP-HEXACO adapted"},
-  {"id":"C2","scale":"hexaco","dimension":"conscientiousness","facet":"diligence","reverse":false,"text":"即使困难，我也会持续推进关键工作。","source":"IPIP-HEXACO adapted"},
-  {"id":"C3","scale":"hexaco","dimension":"conscientiousness","facet":"perfectionism","reverse":false,"text":"我会反复检查工作的细节质量。","source":"IPIP-HEXACO adapted"},
-  {"id":"C4","scale":"hexaco","dimension":"conscientiousness","facet":"prudence","reverse":false,"text":"做重要决定前我会先评估风险。","source":"IPIP-HEXACO adapted"},
-  {"id":"C5","scale":"hexaco","dimension":"conscientiousness","facet":"organization","reverse":true,"text":"我的工作环境常常混乱难找东西。","source":"IPIP-HEXACO adapted"},
-  {"id":"C6","scale":"hexaco","dimension":"conscientiousness","facet":"diligence","reverse":true,"text":"我经常拖到最后一刻才开始任务。","source":"IPIP-HEXACO adapted"},
-  {"id":"C7","scale":"hexaco","dimension":"conscientiousness","facet":"perfectionism","reverse":false,"text":"我会主动设定清晰的完成标准。","source":"IPIP-HEXACO adapted"},
-  {"id":"C8","scale":"hexaco","dimension":"conscientiousness","facet":"prudence","reverse":true,"text":"我常在冲动下快速拍板重要事情。","source":"IPIP-HEXACO adapted"},
-  {"id":"C9","scale":"hexaco","dimension":"conscientiousness","facet":"diligence","reverse":false,"text":"我能在无人监督时保持执行力。","source":"IPIP-HEXACO adapted"},
-  {"id":"C10","scale":"hexaco","dimension":"conscientiousness","facet":"organization","reverse":false,"text":"我会通过工具追踪进度与截止时间。","source":"IPIP-HEXACO adapted"},
-
-  {"id":"O1","scale":"hexaco","dimension":"openness","facet":"aesthetic_appreciation","reverse":false,"text":"我容易被有美感的设计或艺术打动。","source":"IPIP-HEXACO adapted"},
-  {"id":"O2","scale":"hexaco","dimension":"openness","facet":"inquisitiveness","reverse":false,"text":"我经常主动学习陌生领域的新知识。","source":"IPIP-HEXACO adapted"},
-  {"id":"O3","scale":"hexaco","dimension":"openness","facet":"creativity","reverse":false,"text":"我喜欢尝试非常规的新方法。","source":"IPIP-HEXACO adapted"},
-  {"id":"O4","scale":"hexaco","dimension":"openness","facet":"unconventionality","reverse":false,"text":"我愿意挑战传统做法，只要更有效。","source":"IPIP-HEXACO adapted"},
-  {"id":"O5","scale":"hexaco","dimension":"openness","facet":"inquisitiveness","reverse":false,"text":"我经常思考人生的意义和长远问题。","source":"IPIP-HEXACO adapted"},
-  {"id":"O6","scale":"hexaco","dimension":"openness","facet":"creativity","reverse":true,"text":"我更偏好沿用现成方案而不是创新。","source":"IPIP-HEXACO adapted"},
-  {"id":"O7","scale":"hexaco","dimension":"openness","facet":"aesthetic_appreciation","reverse":true,"text":"审美和体验细节对我不太重要。","source":"IPIP-HEXACO adapted"},
-  {"id":"O8","scale":"hexaco","dimension":"openness","facet":"unconventionality","reverse":true,"text":"我通常排斥与主流不同的观点。","source":"IPIP-HEXACO adapted"},
-  {"id":"O9","scale":"hexaco","dimension":"openness","facet":"inquisitiveness","reverse":false,"text":"我对复杂系统背后的原理很好奇。","source":"IPIP-HEXACO adapted"},
-  {"id":"O10","scale":"hexaco","dimension":"openness","facet":"creativity","reverse":false,"text":"我乐于把不同领域的想法进行跨界组合。","source":"IPIP-HEXACO adapted"}
+  {
+    "id": "H1",
+    "scale": "hexaco",
+    "dimension": "honesty_humility",
+    "facet": "sincerity",
+    "reverse": false,
+    "text": "我倾向于坦诚表达真实想法，即使不一定讨好他人。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "诚实谦逊：你如何处理利益、规则与自我呈现",
+    "_why_for_user": "这组题帮助画像判断你在诱惑、权力和公平规则面前的稳定选择，而不只看自我评价。"
+  },
+  {
+    "id": "H2",
+    "scale": "hexaco",
+    "dimension": "honesty_humility",
+    "facet": "fairness",
+    "reverse": false,
+    "text": "即使没人发现，我也不会占制度漏洞的便宜。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "诚实谦逊：你如何处理利益、规则与自我呈现",
+    "_why_for_user": "这组题帮助画像判断你在诱惑、权力和公平规则面前的稳定选择，而不只看自我评价。"
+  },
+  {
+    "id": "H3",
+    "scale": "hexaco",
+    "dimension": "honesty_humility",
+    "facet": "greed_avoidance",
+    "reverse": true,
+    "text": "如果有机会，我会追求比他人更多的特权。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "诚实谦逊：你如何处理利益、规则与自我呈现",
+    "_why_for_user": "这组题帮助画像判断你在诱惑、权力和公平规则面前的稳定选择，而不只看自我评价。"
+  },
+  {
+    "id": "H4",
+    "scale": "hexaco",
+    "dimension": "honesty_humility",
+    "facet": "modesty",
+    "reverse": false,
+    "text": "我不太喜欢炫耀自己的成就。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "诚实谦逊：你如何处理利益、规则与自我呈现",
+    "_why_for_user": "这组题帮助画像判断你在诱惑、权力和公平规则面前的稳定选择，而不只看自我评价。"
+  },
+  {
+    "id": "H5",
+    "scale": "hexaco",
+    "dimension": "honesty_humility",
+    "facet": "sincerity",
+    "reverse": false,
+    "text": "我会尽量避免说违心的话。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "诚实谦逊：你如何处理利益、规则与自我呈现",
+    "_why_for_user": "这组题帮助画像判断你在诱惑、权力和公平规则面前的稳定选择，而不只看自我评价。"
+  },
+  {
+    "id": "H6",
+    "scale": "hexaco",
+    "dimension": "honesty_humility",
+    "facet": "fairness",
+    "reverse": false,
+    "type": "situational",
+    "text": "你最可能怎么做？",
+    "scenario": "你发现项目规则有一个没人注意的漏洞，利用它能让你个人获得额外好处。",
+    "question": "你最可能怎么做？",
+    "options": [
+      {
+        "key": "A",
+        "text": "直接利用漏洞，因为规则没有明确禁止。",
+        "signals": "低H:机会主义,高利益敏感"
+      },
+      {
+        "key": "B",
+        "text": "先确认规则意图，再决定是否行动。",
+        "signals": "中高H:规则意识,高C:审慎"
+      },
+      {
+        "key": "C",
+        "text": "主动提醒相关人修正规则。",
+        "signals": "高H:公平,高A:合作"
+      },
+      {
+        "key": "D",
+        "text": "不利用漏洞，但也不主动指出。",
+        "signals": "中H:自我约束,低X:低曝光"
+      }
+    ],
+    "signals": {
+      "primary": "honesty_humility",
+      "high": "公平、低特权偏好、低操控",
+      "low": "机会主义、特权敏感、结果优先"
+    },
+    "subtitle": "诚实谦逊：你如何处理利益、规则与自我呈现",
+    "_why_for_user": "这组题帮助画像判断你在诱惑、权力和公平规则面前的稳定选择，而不只看自我评价。",
+    "source": "IPIP-HEXACO adapted + CAPS scenario"
+  },
+  {
+    "id": "E1",
+    "scale": "hexaco",
+    "dimension": "emotionality",
+    "facet": "fearfulness",
+    "reverse": false,
+    "text": "面对不确定风险时我会明显紧张。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "情绪性：你在风险、压力与亲密支持中的反应",
+    "_why_for_user": "这组题用于识别压力下的安全感需求、担忧模式和求助倾向。"
+  },
+  {
+    "id": "E2",
+    "scale": "hexaco",
+    "dimension": "emotionality",
+    "facet": "anxiety",
+    "reverse": false,
+    "text": "压力大时我容易反复担心最坏结果。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "情绪性：你在风险、压力与亲密支持中的反应",
+    "_why_for_user": "这组题用于识别压力下的安全感需求、担忧模式和求助倾向。"
+  },
+  {
+    "id": "E3",
+    "scale": "hexaco",
+    "dimension": "emotionality",
+    "facet": "dependence",
+    "reverse": false,
+    "text": "在困难时我希望得到可靠支持。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "情绪性：你在风险、压力与亲密支持中的反应",
+    "_why_for_user": "这组题用于识别压力下的安全感需求、担忧模式和求助倾向。"
+  },
+  {
+    "id": "E4",
+    "scale": "hexaco",
+    "dimension": "emotionality",
+    "facet": "sentimentality",
+    "reverse": false,
+    "text": "我很容易被亲密关系中的细节打动。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "情绪性：你在风险、压力与亲密支持中的反应",
+    "_why_for_user": "这组题用于识别压力下的安全感需求、担忧模式和求助倾向。"
+  },
+  {
+    "id": "E5",
+    "scale": "hexaco",
+    "dimension": "emotionality",
+    "facet": "fearfulness",
+    "reverse": false,
+    "text": "突发状况会让我短时间失去冷静。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "情绪性：你在风险、压力与亲密支持中的反应",
+    "_why_for_user": "这组题用于识别压力下的安全感需求、担忧模式和求助倾向。"
+  },
+  {
+    "id": "E6",
+    "scale": "hexaco",
+    "dimension": "emotionality",
+    "facet": "anxiety",
+    "reverse": false,
+    "type": "situational",
+    "text": "你通常会先出现哪种反应？",
+    "scenario": "一个重要计划突然出现不确定风险，你暂时拿不到完整信息。",
+    "question": "你通常会先出现哪种反应？",
+    "options": [
+      {
+        "key": "A",
+        "text": "明显紧张，反复预想最坏情况。",
+        "signals": "高Em:焦虑预演"
+      },
+      {
+        "key": "B",
+        "text": "先找可信的人确认风险和支持方案。",
+        "signals": "高Em:支持需求,中高A"
+      },
+      {
+        "key": "C",
+        "text": "把风险拆成可处理清单。",
+        "signals": "中Em,高C:问题聚焦"
+      },
+      {
+        "key": "D",
+        "text": "感觉影响不大，先继续推进。",
+        "signals": "低Em:低威胁敏感"
+      }
+    ],
+    "signals": {
+      "primary": "emotionality",
+      "high": "风险敏感、依恋支持、情绪波动",
+      "low": "冷静、低担忧、独立承压"
+    },
+    "subtitle": "情绪性：你在风险、压力与亲密支持中的反应",
+    "_why_for_user": "这组题用于识别压力下的安全感需求、担忧模式和求助倾向。",
+    "source": "IPIP-HEXACO adapted + CAPS scenario"
+  },
+  {
+    "id": "X1",
+    "scale": "hexaco",
+    "dimension": "extraversion",
+    "facet": "social_self_esteem",
+    "reverse": false,
+    "text": "在社交场合我通常表现得自信。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "外向性：你如何从社交、自信与表达中获得能量",
+    "_why_for_user": "这组题帮助区分你是通过外部互动获得动能，还是更偏好低刺激、低曝光的节奏。"
+  },
+  {
+    "id": "X2",
+    "scale": "hexaco",
+    "dimension": "extraversion",
+    "facet": "social_boldness",
+    "reverse": false,
+    "text": "我愿意主动认识新朋友或合作方。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "外向性：你如何从社交、自信与表达中获得能量",
+    "_why_for_user": "这组题帮助区分你是通过外部互动获得动能，还是更偏好低刺激、低曝光的节奏。"
+  },
+  {
+    "id": "X3",
+    "scale": "hexaco",
+    "dimension": "extraversion",
+    "facet": "sociability",
+    "reverse": false,
+    "text": "长时间独处后我会想找人交流。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "外向性：你如何从社交、自信与表达中获得能量",
+    "_why_for_user": "这组题帮助区分你是通过外部互动获得动能，还是更偏好低刺激、低曝光的节奏。"
+  },
+  {
+    "id": "X4",
+    "scale": "hexaco",
+    "dimension": "extraversion",
+    "facet": "liveliness",
+    "reverse": false,
+    "text": "我常给团队带来积极和活跃气氛。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "外向性：你如何从社交、自信与表达中获得能量",
+    "_why_for_user": "这组题帮助区分你是通过外部互动获得动能，还是更偏好低刺激、低曝光的节奏。"
+  },
+  {
+    "id": "X5",
+    "scale": "hexaco",
+    "dimension": "extraversion",
+    "facet": "social_self_esteem",
+    "reverse": true,
+    "text": "在众人面前表达观点让我不自在。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "外向性：你如何从社交、自信与表达中获得能量",
+    "_why_for_user": "这组题帮助区分你是通过外部互动获得动能，还是更偏好低刺激、低曝光的节奏。"
+  },
+  {
+    "id": "X6",
+    "scale": "hexaco",
+    "dimension": "extraversion",
+    "facet": "social_boldness",
+    "reverse": true,
+    "type": "situational",
+    "text": "你最自然的做法是什么？",
+    "scenario": "一个新机会需要你在陌生人面前介绍自己的想法，并争取支持。",
+    "question": "你最自然的做法是什么？",
+    "options": [
+      {
+        "key": "A",
+        "text": "主动上台表达，并享受现场互动。",
+        "signals": "高X:社交胆量,高活力"
+      },
+      {
+        "key": "B",
+        "text": "准备好重点后表达，控制在必要范围内。",
+        "signals": "中X,高C:准备型表达"
+      },
+      {
+        "key": "C",
+        "text": "更愿意用文字材料让别人先了解。",
+        "signals": "低X:低曝光偏好,高C"
+      },
+      {
+        "key": "D",
+        "text": "尽量让更外向的人代为介绍。",
+        "signals": "低X:回避焦点"
+      }
+    ],
+    "signals": {
+      "primary": "extraversion",
+      "high": "表达自信、社交动能、主动连接",
+      "low": "低曝光、安静推进、谨慎互动"
+    },
+    "subtitle": "外向性：你如何从社交、自信与表达中获得能量",
+    "_why_for_user": "这组题帮助区分你是通过外部互动获得动能，还是更偏好低刺激、低曝光的节奏。",
+    "source": "IPIP-HEXACO adapted + CAPS scenario"
+  },
+  {
+    "id": "A1",
+    "scale": "hexaco",
+    "dimension": "agreeableness",
+    "facet": "forgiveness",
+    "reverse": false,
+    "text": "别人冒犯我后，我通常能较快释怀。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "宜人性：你在冲突、耐心与关系修复中的倾向",
+    "_why_for_user": "这组题用于判断冲突中你更偏向修复、协商、克制，还是坚持边界。"
+  },
+  {
+    "id": "A2",
+    "scale": "hexaco",
+    "dimension": "agreeableness",
+    "facet": "gentleness",
+    "reverse": false,
+    "text": "我会尽量用温和方式表达不同意见。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "宜人性：你在冲突、耐心与关系修复中的倾向",
+    "_why_for_user": "这组题用于判断冲突中你更偏向修复、协商、克制，还是坚持边界。"
+  },
+  {
+    "id": "A3",
+    "scale": "hexaco",
+    "dimension": "agreeableness",
+    "facet": "flexibility",
+    "reverse": false,
+    "text": "冲突时我愿意寻找双方都能接受的方案。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "宜人性：你在冲突、耐心与关系修复中的倾向",
+    "_why_for_user": "这组题用于判断冲突中你更偏向修复、协商、克制，还是坚持边界。"
+  },
+  {
+    "id": "A4",
+    "scale": "hexaco",
+    "dimension": "agreeableness",
+    "facet": "patience",
+    "reverse": false,
+    "text": "遇到低效沟通时我仍能保持耐心。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "宜人性：你在冲突、耐心与关系修复中的倾向",
+    "_why_for_user": "这组题用于判断冲突中你更偏向修复、协商、克制，还是坚持边界。"
+  },
+  {
+    "id": "A5",
+    "scale": "hexaco",
+    "dimension": "agreeableness",
+    "facet": "forgiveness",
+    "reverse": true,
+    "text": "别人伤害我后我会长期记着这件事。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "宜人性：你在冲突、耐心与关系修复中的倾向",
+    "_why_for_user": "这组题用于判断冲突中你更偏向修复、协商、克制，还是坚持边界。"
+  },
+  {
+    "id": "A6",
+    "scale": "hexaco",
+    "dimension": "agreeableness",
+    "facet": "gentleness",
+    "reverse": true,
+    "type": "situational",
+    "text": "你会如何回应？",
+    "scenario": "合作方连续两次误解你的意思，导致沟通成本上升。",
+    "question": "你会如何回应？",
+    "options": [
+      {
+        "key": "A",
+        "text": "压住情绪，换一种更清楚的表达方式。",
+        "signals": "高A:温和,高C:修正沟通"
+      },
+      {
+        "key": "B",
+        "text": "直接指出问题，但尽量不攻击对方。",
+        "signals": "中高A:边界清晰"
+      },
+      {
+        "key": "C",
+        "text": "语气变尖锐，让对方意识到后果。",
+        "signals": "低A:强硬,高控制"
+      },
+      {
+        "key": "D",
+        "text": "暂时停止沟通，等双方冷静后再说。",
+        "signals": "中A:降温,中C"
+      }
+    ],
+    "signals": {
+      "primary": "agreeableness",
+      "high": "耐心、温和、修复导向",
+      "low": "强硬、易怒、低妥协"
+    },
+    "subtitle": "宜人性：你在冲突、耐心与关系修复中的倾向",
+    "_why_for_user": "这组题用于判断冲突中你更偏向修复、协商、克制，还是坚持边界。",
+    "source": "IPIP-HEXACO adapted + CAPS scenario"
+  },
+  {
+    "id": "C1",
+    "scale": "hexaco",
+    "dimension": "conscientiousness",
+    "facet": "organization",
+    "reverse": false,
+    "text": "我会把任务分解并安排明确优先级。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "尽责性：你如何规划、执行与管理风险",
+    "_why_for_user": "这组题帮助理解你的执行可靠性、计划能力和关键节点的决策习惯。"
+  },
+  {
+    "id": "C2",
+    "scale": "hexaco",
+    "dimension": "conscientiousness",
+    "facet": "diligence",
+    "reverse": false,
+    "text": "即使困难，我也会持续推进关键工作。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "尽责性：你如何规划、执行与管理风险",
+    "_why_for_user": "这组题帮助理解你的执行可靠性、计划能力和关键节点的决策习惯。"
+  },
+  {
+    "id": "C3",
+    "scale": "hexaco",
+    "dimension": "conscientiousness",
+    "facet": "perfectionism",
+    "reverse": false,
+    "text": "我会反复检查工作的细节质量。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "尽责性：你如何规划、执行与管理风险",
+    "_why_for_user": "这组题帮助理解你的执行可靠性、计划能力和关键节点的决策习惯。"
+  },
+  {
+    "id": "C4",
+    "scale": "hexaco",
+    "dimension": "conscientiousness",
+    "facet": "prudence",
+    "reverse": false,
+    "text": "做重要决定前我会先评估风险。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "尽责性：你如何规划、执行与管理风险",
+    "_why_for_user": "这组题帮助理解你的执行可靠性、计划能力和关键节点的决策习惯。"
+  },
+  {
+    "id": "C5",
+    "scale": "hexaco",
+    "dimension": "conscientiousness",
+    "facet": "organization",
+    "reverse": true,
+    "text": "我的工作环境常常混乱难找东西。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "尽责性：你如何规划、执行与管理风险",
+    "_why_for_user": "这组题帮助理解你的执行可靠性、计划能力和关键节点的决策习惯。"
+  },
+  {
+    "id": "C6",
+    "scale": "hexaco",
+    "dimension": "conscientiousness",
+    "facet": "diligence",
+    "reverse": true,
+    "type": "situational",
+    "text": "你最可能怎么推进？",
+    "scenario": "一个关键任务没人监督，但两周后会直接影响结果。",
+    "question": "你最可能怎么推进？",
+    "options": [
+      {
+        "key": "A",
+        "text": "立刻拆解里程碑，并安排固定检查点。",
+        "signals": "高C:计划执行"
+      },
+      {
+        "key": "B",
+        "text": "先做最难的一步，确认方向可行。",
+        "signals": "高C:主动推进,高O"
+      },
+      {
+        "key": "C",
+        "text": "等压力更明显时再集中处理。",
+        "signals": "低C:拖延,压力驱动"
+      },
+      {
+        "key": "D",
+        "text": "先处理更有反馈感的小任务。",
+        "signals": "中低C:短反馈偏好"
+      }
+    ],
+    "signals": {
+      "primary": "conscientiousness",
+      "high": "自我驱动、结构化、可靠交付",
+      "low": "拖延、低计划、即时反馈依赖"
+    },
+    "subtitle": "尽责性：你如何规划、执行与管理风险",
+    "_why_for_user": "这组题帮助理解你的执行可靠性、计划能力和关键节点的决策习惯。",
+    "source": "IPIP-HEXACO adapted + CAPS scenario"
+  },
+  {
+    "id": "O1",
+    "scale": "hexaco",
+    "dimension": "openness",
+    "facet": "aesthetic_appreciation",
+    "reverse": false,
+    "text": "我容易被有美感的设计或艺术打动。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "开放性：你对新观点、美感与跨界创造的接受度",
+    "_why_for_user": "这组题用于识别你对新方法、审美体验和非传统路径的真实开放度。"
+  },
+  {
+    "id": "O2",
+    "scale": "hexaco",
+    "dimension": "openness",
+    "facet": "inquisitiveness",
+    "reverse": false,
+    "text": "我经常主动学习陌生领域的新知识。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "开放性：你对新观点、美感与跨界创造的接受度",
+    "_why_for_user": "这组题用于识别你对新方法、审美体验和非传统路径的真实开放度。"
+  },
+  {
+    "id": "O3",
+    "scale": "hexaco",
+    "dimension": "openness",
+    "facet": "creativity",
+    "reverse": false,
+    "text": "我喜欢尝试非常规的新方法。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "开放性：你对新观点、美感与跨界创造的接受度",
+    "_why_for_user": "这组题用于识别你对新方法、审美体验和非传统路径的真实开放度。"
+  },
+  {
+    "id": "O4",
+    "scale": "hexaco",
+    "dimension": "openness",
+    "facet": "unconventionality",
+    "reverse": false,
+    "text": "我愿意挑战传统做法，只要更有效。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "开放性：你对新观点、美感与跨界创造的接受度",
+    "_why_for_user": "这组题用于识别你对新方法、审美体验和非传统路径的真实开放度。"
+  },
+  {
+    "id": "O5",
+    "scale": "hexaco",
+    "dimension": "openness",
+    "facet": "inquisitiveness",
+    "reverse": false,
+    "text": "我经常思考人生的意义和长远问题。",
+    "source": "IPIP-HEXACO adapted",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "subtitle": "开放性：你对新观点、美感与跨界创造的接受度",
+    "_why_for_user": "这组题用于识别你对新方法、审美体验和非传统路径的真实开放度。"
+  },
+  {
+    "id": "O6",
+    "scale": "hexaco",
+    "dimension": "openness",
+    "facet": "creativity",
+    "reverse": true,
+    "type": "situational",
+    "text": "你会怎么处理？",
+    "scenario": "团队沿用的老方法稳定但效率一般，你发现一个未经充分验证的新方法。",
+    "question": "你会怎么处理？",
+    "options": [
+      {
+        "key": "A",
+        "text": "设计小实验验证，再决定是否替换。",
+        "signals": "高O,高C:实验开放"
+      },
+      {
+        "key": "B",
+        "text": "直接推动新方法，先跑起来再修。",
+        "signals": "高O:创新冲动,中C"
+      },
+      {
+        "key": "C",
+        "text": "除非老方法失效，否则不轻易改。",
+        "signals": "低O:稳定偏好,高C"
+      },
+      {
+        "key": "D",
+        "text": "先收集外部案例，确认不是一时兴起。",
+        "signals": "中高O,高C:证据导向"
+      }
+    ],
+    "signals": {
+      "primary": "openness",
+      "high": "探索、想象、跨界组合",
+      "low": "熟悉路径、稳定方案、低新奇偏好"
+    },
+    "subtitle": "开放性：你对新观点、美感与跨界创造的接受度",
+    "_why_for_user": "这组题用于识别你对新方法、审美体验和非传统路径的真实开放度。",
+    "source": "IPIP-HEXACO adapted + CAPS scenario"
+  }
 ]

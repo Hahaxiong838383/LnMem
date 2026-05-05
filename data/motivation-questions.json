@@ -1,26 +1,275 @@
 [
-  {"id":"GSE1","group":"gse","text":"面对困难任务时，我通常相信自己能找到解决办法。"},
-  {"id":"GSE2","group":"gse","text":"即使有人反对，我也能坚持完成目标。"},
-  {"id":"GSE3","group":"gse","text":"我能冷静应对意外事件。"},
-  {"id":"GSE4","group":"gse","text":"遇到新问题时我通常知道该怎么开始。"},
-  {"id":"GSE5","group":"gse","text":"我能够持续推动长期目标。"},
-  {"id":"GSE6","group":"gse","text":"面对复杂挑战时我相信自己能胜任。"},
-  {"id":"GSE7","group":"gse","text":"失败后我可以较快恢复并再尝试。"},
-  {"id":"GSE8","group":"gse","text":"我能有效整合资源来解决问题。"},
-  {"id":"GSE9","group":"gse","text":"时间紧迫时我仍然能做出可执行计划。"},
-  {"id":"GSE10","group":"gse","text":"总体上，我相信自己能处理生活中的多数难题。"},
-  {"id":"SDT_A1","group":"autonomy","text":"对我来说，自己决定做事方式很重要。"},
-  {"id":"SDT_A2","group":"autonomy","text":"当我能按自己的价值观行动时，我更有动力。"},
-  {"id":"SDT_A3","group":"autonomy","text":"被过度控制会明显降低我的投入度。"},
-  {"id":"SDT_C1","group":"competence","text":"我希望持续提升能力并看到进步。"},
-  {"id":"SDT_C2","group":"competence","text":"完成有挑战的任务会带给我成就感。"},
-  {"id":"SDT_C3","group":"competence","text":"我重视可衡量的专业成长。"},
-  {"id":"SDT_R1","group":"relatedness","text":"与重要的人建立稳定连接对我很关键。"},
-  {"id":"SDT_R2","group":"relatedness","text":"当被理解和支持时，我会表现更好。"},
-  {"id":"SDT_R3","group":"relatedness","text":"我愿意为维护高质量关系投入时间。"},
-  {"id":"DSE1","group":"domain_professional","text":"你对自己在专业工作中的胜任感如何（1-7）？"},
-  {"id":"DSE2","group":"domain_relationship","text":"你对自己在人际沟通中的胜任感如何（1-7）？"},
-  {"id":"DSE3","group":"domain_emotion","text":"你对自己在情绪调节中的胜任感如何（1-7）？"},
-  {"id":"DSE4","group":"domain_health","text":"你对自己在健康管理中的执行力如何（1-7）？"},
-  {"id":"DSE5","group":"domain_creativity","text":"你对自己在创意表达中的能力如何（1-7）？"}
+  {
+    "id": "GSE1",
+    "group": "gse",
+    "text": "面对困难任务时，我通常相信自己能找到解决办法。",
+    "scale": "gse",
+    "type": "likert",
+    "scale_type": "likert_7",
+    "question": "面对困难任务时，我通常相信自己能找到解决办法。",
+    "subtitle": "一般自我效能：困难面前的启动与坚持",
+    "_why_for_user": "自我效能题用于判断你面对困难时是否相信自己能启动、坚持并找到办法。",
+    "source": "Bandura GSE adapted"
+  },
+  {
+    "id": "GSE2",
+    "group": "gse",
+    "text": "即使有人反对，我也能坚持完成目标。",
+    "scale": "gse",
+    "type": "likert",
+    "scale_type": "likert_7",
+    "question": "即使有人反对，我也能坚持完成目标。",
+    "subtitle": "一般自我效能：困难面前的启动与坚持",
+    "_why_for_user": "自我效能题用于判断你面对困难时是否相信自己能启动、坚持并找到办法。",
+    "source": "Bandura GSE adapted"
+  },
+  {
+    "id": "GSE3",
+    "group": "gse",
+    "text": "我能冷静应对意外事件。",
+    "scale": "gse",
+    "type": "likert",
+    "scale_type": "likert_7",
+    "question": "我能冷静应对意外事件。",
+    "subtitle": "一般自我效能：困难面前的启动与坚持",
+    "_why_for_user": "自我效能题用于判断你面对困难时是否相信自己能启动、坚持并找到办法。",
+    "source": "Bandura GSE adapted"
+  },
+  {
+    "id": "SDT_A1",
+    "group": "autonomy",
+    "text": "对我来说，自己决定做事方式很重要。",
+    "scale": "sdt",
+    "type": "likert",
+    "scale_type": "likert_7",
+    "question": "对我来说，自己决定做事方式很重要。",
+    "subtitle": "自主性：按自己价值行动时的动力",
+    "_why_for_user": "自主性题用于判断外部控制和个人价值感如何影响你的投入度。",
+    "source": "Self-Determination Theory adapted"
+  },
+  {
+    "id": "SDT_A2",
+    "group": "autonomy",
+    "text": "当我能按自己的价值观行动时，我更有动力。",
+    "scale": "sdt",
+    "type": "likert",
+    "scale_type": "likert_7",
+    "question": "当我能按自己的价值观行动时，我更有动力。",
+    "subtitle": "自主性：按自己价值行动时的动力",
+    "_why_for_user": "自主性题用于判断外部控制和个人价值感如何影响你的投入度。",
+    "source": "Self-Determination Theory adapted"
+  },
+  {
+    "id": "SDT_C1",
+    "group": "competence",
+    "text": "我希望持续提升能力并看到进步。",
+    "scale": "sdt",
+    "type": "likert",
+    "scale_type": "likert_7",
+    "question": "我希望持续提升能力并看到进步。",
+    "subtitle": "胜任感：挑战、进步与掌控感",
+    "_why_for_user": "胜任感题用于判断挑战、进步和可衡量成长对你的驱动力。",
+    "source": "Self-Determination Theory adapted"
+  },
+  {
+    "id": "SDT_C2",
+    "group": "competence",
+    "text": "完成有挑战的任务会带给我成就感。",
+    "scale": "sdt",
+    "type": "likert",
+    "scale_type": "likert_7",
+    "question": "完成有挑战的任务会带给我成就感。",
+    "subtitle": "胜任感：挑战、进步与掌控感",
+    "_why_for_user": "胜任感题用于判断挑战、进步和可衡量成长对你的驱动力。",
+    "source": "Self-Determination Theory adapted"
+  },
+  {
+    "id": "SDT_R1",
+    "group": "relatedness",
+    "text": "与重要的人建立稳定连接对我很关键。",
+    "scale": "sdt",
+    "type": "likert",
+    "scale_type": "likert_7",
+    "question": "与重要的人建立稳定连接对我很关键。",
+    "subtitle": "关系感：被理解和支持带来的动能",
+    "_why_for_user": "关系感题用于判断理解、支持和连接感是否会显著提升你的状态。",
+    "source": "Self-Determination Theory adapted"
+  },
+  {
+    "id": "SDT_R2",
+    "group": "relatedness",
+    "text": "当被理解和支持时，我会表现更好。",
+    "scale": "sdt",
+    "type": "likert",
+    "scale_type": "likert_7",
+    "question": "当被理解和支持时，我会表现更好。",
+    "subtitle": "关系感：被理解和支持带来的动能",
+    "_why_for_user": "关系感题用于判断理解、支持和连接感是否会显著提升你的状态。",
+    "source": "Self-Determination Theory adapted"
+  },
+  {
+    "id": "M_S1",
+    "group": "autonomy",
+    "scale": "sdt",
+    "type": "situational",
+    "scenario": "你接到一个任务，目标明确，但执行方式被规定得非常细。",
+    "question": "哪种安排最能提升你的投入？",
+    "options": [
+      {
+        "key": "A",
+        "text": "给我清晰目标，方法让我自己决定。",
+        "signals": "高自主需求"
+      },
+      {
+        "key": "B",
+        "text": "给我标准流程，我照做会更安心。",
+        "signals": "低自主需求,高结构需求"
+      },
+      {
+        "key": "C",
+        "text": "先解释这件事为什么重要。",
+        "signals": "价值内化驱动"
+      },
+      {
+        "key": "D",
+        "text": "如果能看到结果反馈，我就能投入。",
+        "signals": "胜任反馈驱动"
+      }
+    ],
+    "signals": {
+      "primary": "autonomy",
+      "high": "需要选择权和意义感",
+      "low": "更依赖明确流程和外部结构"
+    },
+    "subtitle": "自主性：按自己价值行动时的动力",
+    "_why_for_user": "自主性题用于判断外部控制和个人价值感如何影响你的投入度。",
+    "source": "Self-Determination Theory + CAPS scenario"
+  },
+  {
+    "id": "M_S2",
+    "group": "competence",
+    "scale": "sdt",
+    "type": "situational",
+    "scenario": "你正在学习一项新技能，前两次尝试都没有达到预期。",
+    "question": "你最可能如何继续？",
+    "options": [
+      {
+        "key": "A",
+        "text": "拆小目标，先获得一个可见进步。",
+        "signals": "高胜任需求,高C"
+      },
+      {
+        "key": "B",
+        "text": "找高手反馈，快速修正方法。",
+        "signals": "高胜任需求,高学习导向"
+      },
+      {
+        "key": "C",
+        "text": "暂时搁置，避免继续受挫。",
+        "signals": "低胜任感,挫败回避"
+      },
+      {
+        "key": "D",
+        "text": "换一个更有兴趣的方向。",
+        "signals": "自主/兴趣优先"
+      }
+    ],
+    "signals": {
+      "primary": "competence",
+      "high": "被挑战和进步激活",
+      "low": "容易被连续挫败削弱投入"
+    },
+    "subtitle": "胜任感：挑战、进步与掌控感",
+    "_why_for_user": "胜任感题用于判断挑战、进步和可衡量成长对你的驱动力。",
+    "source": "Self-Determination Theory + CAPS scenario"
+  },
+  {
+    "id": "M_S3",
+    "group": "relatedness",
+    "scale": "sdt",
+    "type": "situational",
+    "scenario": "你在推进一个长期目标，但身边人暂时不理解它的意义。",
+    "question": "这会怎样影响你？",
+    "options": [
+      {
+        "key": "A",
+        "text": "影响很大，我需要被理解才更有动力。",
+        "signals": "高关系需求"
+      },
+      {
+        "key": "B",
+        "text": "有影响，但我会寻找同频支持者。",
+        "signals": "中高关系需求,主动连接"
+      },
+      {
+        "key": "C",
+        "text": "影响不大，目标本身足够驱动我。",
+        "signals": "低关系依赖,高自主"
+      },
+      {
+        "key": "D",
+        "text": "我会先证明结果，再期待理解。",
+        "signals": "成就/胜任驱动"
+      }
+    ],
+    "signals": {
+      "primary": "relatedness",
+      "high": "连接和被理解显著影响投入",
+      "low": "更能独立维持动机"
+    },
+    "subtitle": "关系感：被理解和支持带来的动能",
+    "_why_for_user": "关系感题用于判断理解、支持和连接感是否会显著提升你的状态。",
+    "source": "Self-Determination Theory + CAPS scenario"
+  },
+  {
+    "id": "DSE1",
+    "group": "domain_professional",
+    "text": "你对自己在专业工作中的胜任感如何（1-7）？",
+    "scale": "gse_domain",
+    "type": "domain_self_rating",
+    "scale_type": "likert_7",
+    "question": "你对自己在专业工作中的胜任感如何（1-7）？",
+    "anchors": {
+      "1": "非常低",
+      "4": "中等",
+      "7": "非常高"
+    },
+    "subtitle": "领域自评：专业工作胜任感",
+    "_why_for_user": "领域自评帮助把总体自我效能落到具体生活/工作场景。",
+    "source": "Domain-specific self-efficacy adapted"
+  },
+  {
+    "id": "DSE2",
+    "group": "domain_relationship",
+    "text": "你对自己在人际沟通中的胜任感如何（1-7）？",
+    "scale": "gse_domain",
+    "type": "domain_self_rating",
+    "scale_type": "likert_7",
+    "question": "你对自己在人际沟通中的胜任感如何（1-7）？",
+    "anchors": {
+      "1": "非常低",
+      "4": "中等",
+      "7": "非常高"
+    },
+    "subtitle": "领域自评：人际沟通胜任感",
+    "_why_for_user": "领域自评帮助区分“总体有信心”和“人际沟通有信心”。",
+    "source": "Domain-specific self-efficacy adapted"
+  },
+  {
+    "id": "DSE3",
+    "group": "domain_emotion",
+    "text": "你对自己在情绪调节中的胜任感如何（1-7）？",
+    "scale": "gse_domain",
+    "type": "domain_self_rating",
+    "scale_type": "likert_7",
+    "question": "你对自己在情绪调节中的胜任感如何（1-7）？",
+    "anchors": {
+      "1": "非常低",
+      "4": "中等",
+      "7": "非常高"
+    },
+    "subtitle": "领域自评：情绪调节胜任感",
+    "_why_for_user": "领域自评帮助识别情绪调节是否是你的优势或支持需求。",
+    "source": "Domain-specific self-efficacy adapted"
+  }
 ]

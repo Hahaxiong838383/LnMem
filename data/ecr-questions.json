@@ -1,14 +1,230 @@
 [
-  {"id":"ANX1","dimension":"anxiety","reverse":false,"text":"我担心被亲近的人抛弃。","source":"ECR short-form adapted"},
-  {"id":"ANX2","dimension":"anxiety","reverse":false,"text":"当重要的人没有及时回应时，我会不安。","source":"ECR short-form adapted"},
-  {"id":"ANX3","dimension":"anxiety","reverse":false,"text":"我经常怀疑自己是否足够被爱。","source":"ECR short-form adapted"},
-  {"id":"ANX4","dimension":"anxiety","reverse":false,"text":"关系变冷淡时我会非常焦虑。","source":"ECR short-form adapted"},
-  {"id":"ANX5","dimension":"anxiety","reverse":false,"text":"我害怕投入后最终会受伤。","source":"ECR short-form adapted"},
-  {"id":"ANX6","dimension":"anxiety","reverse":false,"text":"我需要频繁确认关系是否稳固。","source":"ECR short-form adapted"},
-  {"id":"AVD1","dimension":"avoidance","reverse":false,"text":"我不喜欢和别人太亲近。","source":"ECR short-form adapted"},
-  {"id":"AVD2","dimension":"avoidance","reverse":false,"text":"我更习惯独自消化压力，而不是依靠他人。","source":"ECR short-form adapted"},
-  {"id":"AVD3","dimension":"avoidance","reverse":true,"text":"我能轻松地依靠亲近的人。","source":"ECR short-form adapted"},
-  {"id":"AVD4","dimension":"avoidance","reverse":true,"text":"我能自在地表达脆弱和需要。","source":"ECR short-form adapted"},
-  {"id":"AVD5","dimension":"avoidance","reverse":false,"text":"当别人太靠近时我会想拉开距离。","source":"ECR short-form adapted"},
-  {"id":"AVD6","dimension":"avoidance","reverse":false,"text":"我不喜欢别人过多介入我的内心世界。","source":"ECR short-form adapted"}
+  {
+    "id": "ANX1",
+    "dimension": "anxiety",
+    "reverse": false,
+    "text": "我担心被亲近的人抛弃。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋焦虑：关系不确定时的安全感需求",
+    "_why_for_user": "这题帮助识别你在亲密关系中是否容易通过确认、预演和担忧来寻找安全感。",
+    "type": "narrative_likert",
+    "narrative": "你很在意一段关系，但最近对方的回应变少。你开始反复回想自己是否做错了什么。",
+    "question": "这种情况下，“我会担心自己被对方慢慢放弃”有多符合你？",
+    "scale_type": "likert_5",
+    "anchors": {
+      "1": "非常不符合",
+      "2": "比较不符合",
+      "3": "不确定/有时符合",
+      "4": "比较符合",
+      "5": "非常符合"
+    }
+  },
+  {
+    "id": "ANX2",
+    "dimension": "anxiety",
+    "reverse": false,
+    "text": "当重要的人没有及时回应时，我会不安。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋焦虑：关系不确定时的安全感需求",
+    "_why_for_user": "这题帮助识别你在亲密关系中是否容易通过确认、预演和担忧来寻找安全感。",
+    "type": "narrative_likert",
+    "narrative": "你发出一条重要消息后，对方几个小时没有回复。你知道对方可能只是忙，但身体已经先紧张起来。",
+    "question": "这种情况下，“我会因为没有及时回应而不安”有多符合你？",
+    "scale_type": "likert_5",
+    "anchors": {
+      "1": "非常不符合",
+      "2": "比较不符合",
+      "3": "不确定/有时符合",
+      "4": "比较符合",
+      "5": "非常符合"
+    }
+  },
+  {
+    "id": "ANX3",
+    "dimension": "anxiety",
+    "reverse": false,
+    "text": "我经常怀疑自己是否足够被爱。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋焦虑：关系不确定时的安全感需求",
+    "_why_for_user": "这题帮助识别你在亲密关系中是否容易通过确认、预演和担忧来寻找安全感。",
+    "type": "narrative_likert",
+    "narrative": "一段亲近关系进入稳定期后，热烈感不如以前。你开始怀疑自己是否仍然足够重要。",
+    "question": "这种情况下，“我会怀疑自己是否足够被爱”有多符合你？",
+    "scale_type": "likert_5",
+    "anchors": {
+      "1": "非常不符合",
+      "2": "比较不符合",
+      "3": "不确定/有时符合",
+      "4": "比较符合",
+      "5": "非常符合"
+    }
+  },
+  {
+    "id": "ANX4",
+    "dimension": "anxiety",
+    "reverse": false,
+    "text": "关系变冷淡时我会非常焦虑。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋焦虑：关系不确定时的安全感需求",
+    "_why_for_user": "这题帮助识别你在亲密关系中是否容易通过确认、预演和担忧来寻找安全感。",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "question": "关系变冷淡时我会非常焦虑。",
+    "anchors": {
+      "1": "非常不符合",
+      "5": "非常符合"
+    }
+  },
+  {
+    "id": "ANX5",
+    "dimension": "anxiety",
+    "reverse": false,
+    "text": "我害怕投入后最终会受伤。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋焦虑：关系不确定时的安全感需求",
+    "_why_for_user": "这题帮助识别你在亲密关系中是否容易通过确认、预演和担忧来寻找安全感。",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "question": "我害怕投入后最终会受伤。",
+    "anchors": {
+      "1": "非常不符合",
+      "5": "非常符合"
+    }
+  },
+  {
+    "id": "ANX6",
+    "dimension": "anxiety",
+    "reverse": false,
+    "text": "我需要频繁确认关系是否稳固。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋焦虑：关系不确定时的安全感需求",
+    "_why_for_user": "这题帮助识别你在亲密关系中是否容易通过确认、预演和担忧来寻找安全感。",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "question": "我需要频繁确认关系是否稳固。",
+    "anchors": {
+      "1": "非常不符合",
+      "5": "非常符合"
+    }
+  },
+  {
+    "id": "AVD1",
+    "dimension": "avoidance",
+    "reverse": false,
+    "text": "我不喜欢和别人太亲近。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋回避：亲近、依靠与暴露脆弱的舒适度",
+    "_why_for_user": "这题帮助识别你在亲密关系中更倾向靠近、求助，还是保持距离和自主。",
+    "type": "narrative_likert",
+    "narrative": "有人希望更深入了解你的真实想法和脆弱面，你感到关系正在变近。",
+    "question": "这种情况下，“我不喜欢和别人太亲近”有多符合你？",
+    "scale_type": "likert_5",
+    "anchors": {
+      "1": "非常不符合",
+      "2": "比较不符合",
+      "3": "不确定/有时符合",
+      "4": "比较符合",
+      "5": "非常符合"
+    }
+  },
+  {
+    "id": "AVD2",
+    "dimension": "avoidance",
+    "reverse": false,
+    "text": "我更习惯独自消化压力，而不是依靠他人。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋回避：亲近、依靠与暴露脆弱的舒适度",
+    "_why_for_user": "这题帮助识别你在亲密关系中更倾向靠近、求助，还是保持距离和自主。",
+    "type": "narrative_likert",
+    "narrative": "你遇到压力，很亲近的人主动提出陪你一起处理。你知道对方是真心的。",
+    "question": "这种情况下，“我更习惯独自消化压力，而不是依靠他人”有多符合你？",
+    "scale_type": "likert_5",
+    "anchors": {
+      "1": "非常不符合",
+      "2": "比较不符合",
+      "3": "不确定/有时符合",
+      "4": "比较符合",
+      "5": "非常符合"
+    }
+  },
+  {
+    "id": "AVD3",
+    "dimension": "avoidance",
+    "reverse": true,
+    "text": "我能轻松地依靠亲近的人。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋回避：亲近、依靠与暴露脆弱的舒适度",
+    "_why_for_user": "这题帮助识别你在亲密关系中更倾向靠近、求助，还是保持距离和自主。",
+    "type": "narrative_likert",
+    "narrative": "你需要向重要的人求助，这件事会暴露你的不确定和需要。",
+    "question": "这种情况下，“我能轻松地依靠亲近的人”有多符合你？",
+    "scale_type": "likert_5",
+    "anchors": {
+      "1": "非常不符合",
+      "2": "比较不符合",
+      "3": "不确定/有时符合",
+      "4": "比较符合",
+      "5": "非常符合"
+    }
+  },
+  {
+    "id": "AVD4",
+    "dimension": "avoidance",
+    "reverse": true,
+    "text": "我能自在地表达脆弱和需要。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋回避：亲近、依靠与暴露脆弱的舒适度",
+    "_why_for_user": "这题帮助识别你在亲密关系中更倾向靠近、求助，还是保持距离和自主。",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "question": "我能自在地表达脆弱和需要。",
+    "anchors": {
+      "1": "非常不符合",
+      "5": "非常符合"
+    }
+  },
+  {
+    "id": "AVD5",
+    "dimension": "avoidance",
+    "reverse": false,
+    "text": "当别人太靠近时我会想拉开距离。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋回避：亲近、依靠与暴露脆弱的舒适度",
+    "_why_for_user": "这题帮助识别你在亲密关系中更倾向靠近、求助，还是保持距离和自主。",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "question": "当别人太靠近时我会想拉开距离。",
+    "anchors": {
+      "1": "非常不符合",
+      "5": "非常符合"
+    }
+  },
+  {
+    "id": "AVD6",
+    "dimension": "avoidance",
+    "reverse": false,
+    "text": "我不喜欢别人过多介入我的内心世界。",
+    "source": "ECR short-form adapted",
+    "scale": "ecr",
+    "subtitle": "依恋回避：亲近、依靠与暴露脆弱的舒适度",
+    "_why_for_user": "这题帮助识别你在亲密关系中更倾向靠近、求助，还是保持距离和自主。",
+    "type": "likert",
+    "scale_type": "likert_5",
+    "question": "我不喜欢别人过多介入我的内心世界。",
+    "anchors": {
+      "1": "非常不符合",
+      "5": "非常符合"
+    }
+  }
 ]

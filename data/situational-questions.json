@@ -1,16 +1,702 @@
 [
-  {"id":"S1","scenario":"深度工作中被同事打断","options":[{"key":"A","text":"立即停下来认真听同事说什么","signals":"高A,低C"},{"key":"B","text":"礼貌简短回应，继续保持当前任务焦点","signals":"中A,高C"},{"key":"C","text":"明显表现烦躁，要求不要打断","signals":"高N,低A"},{"key":"D","text":"主动约稍后固定时间沟通","signals":"高C,中高A"}]},
-  {"id":"S2","scenario":"项目接近 deadline 且任务量大","options":[{"key":"A","text":"加班硬扛，焦虑但不外露","signals":"高C,内化焦虑"},{"key":"B","text":"和团队协商缩减范围","signals":"高A,高C"},{"key":"C","text":"明显焦虑并寻求帮助","signals":"高Em"},{"key":"D","text":"按优先级砍掉次要任务","signals":"高C,低N"}]},
-  {"id":"S3","scenario":"工作时收到家人意外电话","options":[{"key":"A","text":"立即接听，担心紧急情况","signals":"高Em,高A"},{"key":"B","text":"先看来电信息再决策","signals":"高C"},{"key":"C","text":"先完成当前块任务后回拨","signals":"高C,低A"},{"key":"D","text":"无条件接听，不考虑当前任务","signals":"高A/高Em"}]},
-  {"id":"S4","scenario":"下午 2-3 点能量低","options":[{"key":"A","text":"起身补给并短暂走动","signals":"高C自我管理"},{"key":"B","text":"强撑继续推进","signals":"高责任,低自我关怀"},{"key":"C","text":"切换到轻量任务","signals":"高C灵活"},{"key":"D","text":"短休或小睡恢复","signals":"高O自我接纳"}]},
-  {"id":"S5","scenario":"收到产品上线后的差评","options":[{"key":"A","text":"先道歉并收集细节","signals":"高A,高H"},{"key":"B","text":"先自责并反复复盘","signals":"高Em"},{"key":"C","text":"先判断反馈是否专业","signals":"高C,低A"},{"key":"D","text":"公开说明边界并坚持路线","signals":"高X,高C"}]},
-  {"id":"S6","scenario":"团队会议出现激烈分歧","options":[{"key":"A","text":"先让各方完整表达","signals":"高A"},{"key":"B","text":"快速投票决策","signals":"高C,中低A"},{"key":"C","text":"以数据框架重构问题","signals":"高C,高O"},{"key":"D","text":"暂缓决策先私下协调关键人","signals":"高C,高A"}]},
-  {"id":"S7","scenario":"伴侣抱怨你最近投入工作过多","options":[{"key":"A","text":"立刻停下并完整倾听","signals":"高A,高R"},{"key":"B","text":"解释阶段性压力并约定补偿时间","signals":"高C,中A"},{"key":"C","text":"认为对方不理解自己目标","signals":"低A,高成就驱动"},{"key":"D","text":"回避冲突，先冷处理","signals":"高回避"}]},
-  {"id":"S8","scenario":"朋友请求临时帮忙但你已排满","options":[{"key":"A","text":"无论如何挤时间帮忙","signals":"高A,低边界"},{"key":"B","text":"说明情况并给替代方案","signals":"高A,高C"},{"key":"C","text":"直接拒绝以保护计划","signals":"高C,低A"},{"key":"D","text":"先答应再拖延处理","signals":"低C,冲突回避"}]},
-  {"id":"S9","scenario":"突然得到重大好消息（融资/晋升）","options":[{"key":"A","text":"立刻分享并庆祝","signals":"高X"},{"key":"B","text":"先记录复盘成功因素","signals":"高C"},{"key":"C","text":"担心后续期待过高","signals":"高Em"},{"key":"D","text":"低调处理，仅告知核心圈","signals":"高H,中低X"}]},
-  {"id":"S10","scenario":"高强度周后身体出现疲惫信号","options":[{"key":"A","text":"继续硬扛直到节点结束","signals":"高C,低健康关注"},{"key":"B","text":"主动调整节奏和睡眠","signals":"高自我调节"},{"key":"C","text":"寻求他人监督健康习惯","signals":"高依赖支持"},{"key":"D","text":"忽视信号并用刺激物维持","signals":"高风险偏好"}]},
-  {"id":"S11","scenario":"需要在不完整信息下做决策","options":[{"key":"A","text":"先定最小可逆决策并快速试错","signals":"高O,高C"},{"key":"B","text":"等待更多信息再行动","signals":"高谨慎"},{"key":"C","text":"凭直觉快速拍板","signals":"高X,低C"},{"key":"D","text":"让团队共同承担决策","signals":"高A,中C"}]},
-  {"id":"S12","scenario":"连续两小时被消息打断导致注意力涣散","options":[{"key":"A","text":"开启免打扰并设沟通窗口","signals":"高C"},{"key":"B","text":"多线程并行处理所有消息","signals":"高X,低深度专注"},{"key":"C","text":"先休息重置再回到主任务","signals":"高自我觉察"},{"key":"D","text":"情绪上来后效率明显下滑","signals":"高Em"}]},
-  {"id":"S13","scenario":"团队成员犯错导致项目延误","options":[{"key":"A","text":"先兜底再复盘系统问题","signals":"高A,高C"},{"key":"B","text":"严厉批评以防再犯","signals":"低A,高控制"},{"key":"C","text":"把错误视作学习机会","signals":"高O,高A"},{"key":"D","text":"自己接管关键任务","signals":"高C,低授权"}]},
-  {"id":"S14","scenario":"和 AI 助手的互动偏好","options":[{"key":"A","text":"AI 完全被动，我问才答","signals":"高自主,低AI容忍"},{"key":"B","text":"AI 可主动提示，但要克制","signals":"中等容忍"},{"key":"C","text":"AI 应主动关心我的状态","signals":"高容忍,陪伴需求"},{"key":"D","text":"AI 应主动管理我的事务","signals":"极高容忍,依赖倾向"}]}
+  {
+    "id": "S1",
+    "scenario": "深度工作中被同事打断",
+    "options": [
+      {
+        "key": "A",
+        "text": "立即停下来认真听同事说什么",
+        "signals": "高A,低C"
+      },
+      {
+        "key": "B",
+        "text": "礼貌简短回应，继续保持当前任务焦点",
+        "signals": "中A,高C"
+      },
+      {
+        "key": "C",
+        "text": "明显表现烦躁，要求不要打断",
+        "signals": "高N,低A"
+      },
+      {
+        "key": "D",
+        "text": "主动约稍后固定时间沟通",
+        "signals": "高C,中高A"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "conscientiousness/agreeableness",
+      "reads": "专注边界与合作姿态"
+    },
+    "subtitle": "专注边界",
+    "_why_for_user": "这题观察你在被打断时如何平衡礼貌、边界和深度工作。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S2",
+    "scenario": "项目接近 deadline 且任务量大",
+    "options": [
+      {
+        "key": "A",
+        "text": "加班硬扛，焦虑但不外露",
+        "signals": "高C,内化焦虑"
+      },
+      {
+        "key": "B",
+        "text": "和团队协商缩减范围",
+        "signals": "高A,高C"
+      },
+      {
+        "key": "C",
+        "text": "明显焦虑并寻求帮助",
+        "signals": "高Em"
+      },
+      {
+        "key": "D",
+        "text": "按优先级砍掉次要任务",
+        "signals": "高C,低N"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "conscientiousness/emotionality",
+      "reads": "压力交付策略"
+    },
+    "subtitle": "截止期压力",
+    "_why_for_user": "这题观察你在高压交付下是硬扛、协商、求助还是裁剪范围。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S3",
+    "scenario": "工作时收到家人意外电话",
+    "options": [
+      {
+        "key": "A",
+        "text": "立即接听，担心紧急情况",
+        "signals": "高Em,高A"
+      },
+      {
+        "key": "B",
+        "text": "先看来电信息再决策",
+        "signals": "高C"
+      },
+      {
+        "key": "C",
+        "text": "先完成当前块任务后回拨",
+        "signals": "高C,低A"
+      },
+      {
+        "key": "D",
+        "text": "无条件接听，不考虑当前任务",
+        "signals": "高A/高Em"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "emotionality/relatedness",
+      "reads": "关系信号优先级"
+    },
+    "subtitle": "亲情与任务冲突",
+    "_why_for_user": "这题观察重要关系信号如何影响你的注意力和优先级。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S4",
+    "scenario": "下午 2-3 点能量低",
+    "options": [
+      {
+        "key": "A",
+        "text": "起身补给并短暂走动",
+        "signals": "高C自我管理"
+      },
+      {
+        "key": "B",
+        "text": "强撑继续推进",
+        "signals": "高责任,低自我关怀"
+      },
+      {
+        "key": "C",
+        "text": "切换到轻量任务",
+        "signals": "高C灵活"
+      },
+      {
+        "key": "D",
+        "text": "短休或小睡恢复",
+        "signals": "高O自我接纳"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "self_regulation",
+      "reads": "能量管理方式"
+    },
+    "subtitle": "能量低谷管理",
+    "_why_for_user": "这题观察你是否会主动管理身体能量，而不是只靠意志力硬撑。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S5",
+    "scenario": "收到产品上线后的差评",
+    "options": [
+      {
+        "key": "A",
+        "text": "先道歉并收集细节",
+        "signals": "高A,高H"
+      },
+      {
+        "key": "B",
+        "text": "先自责并反复复盘",
+        "signals": "高Em"
+      },
+      {
+        "key": "C",
+        "text": "先判断反馈是否专业",
+        "signals": "高C,低A"
+      },
+      {
+        "key": "D",
+        "text": "公开说明边界并坚持路线",
+        "signals": "高X,高C"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "honesty_humility/emotionality",
+      "reads": "反馈和责任处理"
+    },
+    "subtitle": "负面反馈处理",
+    "_why_for_user": "这题观察你面对差评时的责任感、情绪反应和判断边界。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S6",
+    "scenario": "团队会议出现激烈分歧",
+    "options": [
+      {
+        "key": "A",
+        "text": "先让各方完整表达",
+        "signals": "高A"
+      },
+      {
+        "key": "B",
+        "text": "快速投票决策",
+        "signals": "高C,中低A"
+      },
+      {
+        "key": "C",
+        "text": "以数据框架重构问题",
+        "signals": "高C,高O"
+      },
+      {
+        "key": "D",
+        "text": "暂缓决策先私下协调关键人",
+        "signals": "高C,高A"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "agreeableness/conscientiousness/openness",
+      "reads": "冲突决策风格"
+    },
+    "subtitle": "团队分歧决策",
+    "_why_for_user": "这题观察你在冲突中更偏向倾听、框架化、投票还是私下协调。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S7",
+    "scenario": "伴侣抱怨你最近投入工作过多",
+    "options": [
+      {
+        "key": "A",
+        "text": "立刻停下并完整倾听",
+        "signals": "高A,高R"
+      },
+      {
+        "key": "B",
+        "text": "解释阶段性压力并约定补偿时间",
+        "signals": "高C,中A"
+      },
+      {
+        "key": "C",
+        "text": "认为对方不理解自己目标",
+        "signals": "低A,高成就驱动"
+      },
+      {
+        "key": "D",
+        "text": "回避冲突，先冷处理",
+        "signals": "高回避"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "attachment/relatedness",
+      "reads": "亲密关系修复方式"
+    },
+    "subtitle": "亲密关系修复",
+    "_why_for_user": "这题观察工作投入和亲密需求冲突时你的回应模式。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S8",
+    "scenario": "朋友请求临时帮忙但你已排满",
+    "options": [
+      {
+        "key": "A",
+        "text": "无论如何挤时间帮忙",
+        "signals": "高A,低边界"
+      },
+      {
+        "key": "B",
+        "text": "说明情况并给替代方案",
+        "signals": "高A,高C"
+      },
+      {
+        "key": "C",
+        "text": "直接拒绝以保护计划",
+        "signals": "高C,低A"
+      },
+      {
+        "key": "D",
+        "text": "先答应再拖延处理",
+        "signals": "低C,冲突回避"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "agreeableness/conscientiousness",
+      "reads": "助人与边界"
+    },
+    "subtitle": "朋友求助边界",
+    "_why_for_user": "这题观察你如何在助人、计划和边界之间做取舍。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S9",
+    "scenario": "突然得到重大好消息（融资/晋升）",
+    "options": [
+      {
+        "key": "A",
+        "text": "立刻分享并庆祝",
+        "signals": "高X"
+      },
+      {
+        "key": "B",
+        "text": "先记录复盘成功因素",
+        "signals": "高C"
+      },
+      {
+        "key": "C",
+        "text": "担心后续期待过高",
+        "signals": "高Em"
+      },
+      {
+        "key": "D",
+        "text": "低调处理，仅告知核心圈",
+        "signals": "高H,中低X"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "extraversion/honesty_humility/emotionality",
+      "reads": "成功后的调节方式"
+    },
+    "subtitle": "重大好消息反应",
+    "_why_for_user": "这题观察成功时你的表达、自省、担忧和低调倾向。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S10",
+    "scenario": "高强度周后身体出现疲惫信号",
+    "options": [
+      {
+        "key": "A",
+        "text": "继续硬扛直到节点结束",
+        "signals": "高C,低健康关注"
+      },
+      {
+        "key": "B",
+        "text": "主动调整节奏和睡眠",
+        "signals": "高自我调节"
+      },
+      {
+        "key": "C",
+        "text": "寻求他人监督健康习惯",
+        "signals": "高依赖支持"
+      },
+      {
+        "key": "D",
+        "text": "忽视信号并用刺激物维持",
+        "signals": "高风险偏好"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "self_regulation/health",
+      "reads": "疲惫信号处理"
+    },
+    "subtitle": "疲惫信号处理",
+    "_why_for_user": "这题观察你对健康信号的重视程度和自我调节方式。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S11",
+    "scenario": "需要在不完整信息下做决策",
+    "options": [
+      {
+        "key": "A",
+        "text": "先定最小可逆决策并快速试错",
+        "signals": "高O,高C"
+      },
+      {
+        "key": "B",
+        "text": "等待更多信息再行动",
+        "signals": "高谨慎"
+      },
+      {
+        "key": "C",
+        "text": "凭直觉快速拍板",
+        "signals": "高X,低C"
+      },
+      {
+        "key": "D",
+        "text": "让团队共同承担决策",
+        "signals": "高A,中C"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "openness/conscientiousness",
+      "reads": "不确定性决策"
+    },
+    "subtitle": "不完整信息决策",
+    "_why_for_user": "这题观察不确定条件下你的试错、等待、直觉和共担倾向。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S12",
+    "scenario": "连续两小时被消息打断导致注意力涣散",
+    "options": [
+      {
+        "key": "A",
+        "text": "开启免打扰并设沟通窗口",
+        "signals": "高C"
+      },
+      {
+        "key": "B",
+        "text": "多线程并行处理所有消息",
+        "signals": "高X,低深度专注"
+      },
+      {
+        "key": "C",
+        "text": "先休息重置再回到主任务",
+        "signals": "高自我觉察"
+      },
+      {
+        "key": "D",
+        "text": "情绪上来后效率明显下滑",
+        "signals": "高Em"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "conscientiousness/emotionality",
+      "reads": "注意力恢复策略"
+    },
+    "subtitle": "消息打断恢复",
+    "_why_for_user": "这题观察你对注意力污染的恢复策略。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S13",
+    "scenario": "团队成员犯错导致项目延误",
+    "options": [
+      {
+        "key": "A",
+        "text": "先兜底再复盘系统问题",
+        "signals": "高A,高C"
+      },
+      {
+        "key": "B",
+        "text": "严厉批评以防再犯",
+        "signals": "低A,高控制"
+      },
+      {
+        "key": "C",
+        "text": "把错误视作学习机会",
+        "signals": "高O,高A"
+      },
+      {
+        "key": "D",
+        "text": "自己接管关键任务",
+        "signals": "高C,低授权"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "agreeableness/conscientiousness",
+      "reads": "失误后的系统修复"
+    },
+    "subtitle": "成员犯错复盘",
+    "_why_for_user": "这题观察你面对他人失误时的兜底、问责、学习和授权模式。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S14",
+    "scenario": "和 AI 助手的互动偏好",
+    "options": [
+      {
+        "key": "A",
+        "text": "AI 完全被动，我问才答",
+        "signals": "高自主,低AI容忍"
+      },
+      {
+        "key": "B",
+        "text": "AI 可主动提示，但要克制",
+        "signals": "中等容忍"
+      },
+      {
+        "key": "C",
+        "text": "AI 应主动关心我的状态",
+        "signals": "高容忍,陪伴需求"
+      },
+      {
+        "key": "D",
+        "text": "AI 应主动管理我的事务",
+        "signals": "极高容忍,依赖倾向"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "signals": {
+      "primary": "ai_collaboration/autonomy",
+      "reads": "AI 主动性容忍度"
+    },
+    "subtitle": "AI 协作边界",
+    "_why_for_user": "这题观察你期待 AI 是被动工具、克制助理、陪伴者还是事务代理。",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S15",
+    "scenario": "长期目标与短期诱惑冲突",
+    "subtitle": "延迟满足",
+    "_why_for_user": "这题观察你在长期收益和即时反馈冲突时的自控、意义感和替代策略。",
+    "signals": {
+      "primary": "conscientiousness/autonomy",
+      "reads": "长期目标坚持方式"
+    },
+    "options": [
+      {
+        "key": "A",
+        "text": "回到长期目标，直接拒绝短期诱惑。",
+        "signals": "高C,高自主"
+      },
+      {
+        "key": "B",
+        "text": "允许小剂量奖励，但设明确停止点。",
+        "signals": "高自我调节,中高C"
+      },
+      {
+        "key": "C",
+        "text": "先享受当下，之后再补进度。",
+        "signals": "高享乐,低C"
+      },
+      {
+        "key": "D",
+        "text": "找人监督，避免自己反复摇摆。",
+        "signals": "高关系支持需求,中C"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S16",
+    "scenario": "进入一个陌生但重要的新圈子",
+    "subtitle": "新关系启动",
+    "_why_for_user": "这题观察你在新环境中主动连接、观察适应和自我呈现的方式。",
+    "signals": {
+      "primary": "extraversion/agreeableness",
+      "reads": "陌生社交启动模式"
+    },
+    "options": [
+      {
+        "key": "A",
+        "text": "主动介绍自己并快速建立连接。",
+        "signals": "高X,高社交胆量"
+      },
+      {
+        "key": "B",
+        "text": "先观察规则，再选择合适的人交流。",
+        "signals": "高C,中X"
+      },
+      {
+        "key": "C",
+        "text": "等待别人来开启对话。",
+        "signals": "低X,高谨慎"
+      },
+      {
+        "key": "D",
+        "text": "用具体贡献证明自己，而不是先社交。",
+        "signals": "高C,高胜任驱动"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S17",
+    "scenario": "你发现自己在公开场合说错了一个关键事实",
+    "subtitle": "公开纠错",
+    "_why_for_user": "这题观察你面对公开失误时的诚实、面子压力和修复速度。",
+    "signals": {
+      "primary": "honesty_humility/emotionality",
+      "reads": "错误承认与修复"
+    },
+    "options": [
+      {
+        "key": "A",
+        "text": "立刻公开更正并说明新依据。",
+        "signals": "高H,高C"
+      },
+      {
+        "key": "B",
+        "text": "会后私下补充，避免现场尴尬。",
+        "signals": "中H,高Em"
+      },
+      {
+        "key": "C",
+        "text": "如果没人发现，就先不提。",
+        "signals": "低H,面子保护"
+      },
+      {
+        "key": "D",
+        "text": "把错误转成讨论点，邀请大家一起校准。",
+        "signals": "高O,高X,中高H"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S18",
+    "scenario": "连续高产后，你仍想趁状态好继续推进",
+    "subtitle": "高产后的刹车",
+    "_why_for_user": "这题观察你在高动能状态下是否能识别恢复需求和长期可持续性。",
+    "signals": {
+      "primary": "self_regulation/conscientiousness",
+      "reads": "产出与恢复平衡"
+    },
+    "options": [
+      {
+        "key": "A",
+        "text": "继续推进，把窗口期用到极致。",
+        "signals": "高成就驱动,低恢复优先"
+      },
+      {
+        "key": "B",
+        "text": "保存进度，安排恢复，避免透支。",
+        "signals": "高自我调节,高C"
+      },
+      {
+        "key": "C",
+        "text": "切换到轻量整理任务。",
+        "signals": "高C,能量管理"
+      },
+      {
+        "key": "D",
+        "text": "询问他人是否觉得我已经过载。",
+        "signals": "高关系支持需求"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S19",
+    "scenario": "AI 助手给出与你直觉相反的建议",
+    "subtitle": "AI 分歧处理",
+    "_why_for_user": "这题观察你对 AI 建议的信任边界、验证习惯和自主决策方式。",
+    "signals": {
+      "primary": "openness/autonomy/conscientiousness",
+      "reads": "人机分歧决策"
+    },
+    "options": [
+      {
+        "key": "A",
+        "text": "要求 AI 展开证据链，再决定是否采纳。",
+        "signals": "高C,高AI协作素养"
+      },
+      {
+        "key": "B",
+        "text": "保留直觉，只把 AI 当参考。",
+        "signals": "高自主,低外部依赖"
+      },
+      {
+        "key": "C",
+        "text": "直接采用 AI 建议，减少决策成本。",
+        "signals": "高AI信任,低自主校验"
+      },
+      {
+        "key": "D",
+        "text": "让另一个来源交叉验证。",
+        "signals": "高C,高审慎"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "source": "CAPS situational signature adapted"
+  },
+  {
+    "id": "S20",
+    "scenario": "出现一个高风险高回报的新机会",
+    "subtitle": "风险机会权衡",
+    "_why_for_user": "这题观察你面对不确定机会时的风险偏好、开放性和审慎程度。",
+    "signals": {
+      "primary": "openness/emotionality/conscientiousness",
+      "reads": "高风险机会评估"
+    },
+    "options": [
+      {
+        "key": "A",
+        "text": "快速投入，机会窗口最重要。",
+        "signals": "高O,低风险回避"
+      },
+      {
+        "key": "B",
+        "text": "做小规模试点，控制最大损失。",
+        "signals": "高O,高C"
+      },
+      {
+        "key": "C",
+        "text": "除非风险被充分消除，否则不参与。",
+        "signals": "高Em/高安全需求"
+      },
+      {
+        "key": "D",
+        "text": "找可信专家评估后再决定。",
+        "signals": "高C,高支持寻求"
+      }
+    ],
+    "type": "situational",
+    "question": "你最可能选择哪一种反应？",
+    "source": "CAPS situational signature adapted"
+  }
 ]
