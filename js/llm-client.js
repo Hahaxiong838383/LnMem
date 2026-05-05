@@ -1,0 +1,174 @@
+const PROVIDER_CONFIG = {
+  openai: {
+    defaultModel: 'gpt-4o-mini',
+    endpoint: 'https://api.openai.com/v1/chat/completions'
+  },
+  deepseek: {
+    defaultModel: 'deepseek-chat',
+    endpoint: 'https://api.deepseek.com/chat/completions'
+  },
+  anthropic: {
+    defaultModel: 'claude-3-5-sonnet-latest',
+    endpoint: 'https://api.anthropic.com/v1/messages'
+  }
+};
+
+function assertString(value, name) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`${name} must be a non-empty string`);
+  }
+}
+
+function getProviderConfig(provider) {
+  const key = String(provider || '').toLowerCase();
+  const config = PROVIDER_CONFIG[key];
+  if (!config) {
+    throw new Error(`Unsupported LLM provider: ${provider}. Expected openai, anthropic, or deepseek.`);
+  }
+  return { key, ...config };
+}
+
+function joinAnthropicText(content) {
+  if (!Array.isArray(content)) return '';
+  return content
+    .filter((part) => part && part.type === 'text' && typeof part.text === 'string')
+    .map((part) => part.text)
+    .join('\n');
+}
+
+function normalizeOptions(options = {}) {
+  return {
+    temperature: options.temperature ?? 0.4,
+    maxTokens: options.maxTokens ?? options.max_tokens ?? 4000,
+    timeoutMs: options.timeoutMs ?? 90000,
+    signal: options.signal,
+    responseFormat: options.responseFormat,
+    headers: options.headers || {},
+    baseUrl: options.baseUrl,
+    model: options.model
+  };
+}
+
+function withTimeout(signal, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error('LLM request timed out')), timeoutMs);
+
+  if (signal) {
+    if (signal.aborted) controller.abort(signal.reason);
+    signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
+  }
+
+  return { signal: controller.signal, cancel: () => clearTimeout(timer) };
+}
+
+function buildChatPayload(model, systemPrompt, userPrompt, options) {
+  const payload = {
+    model,
+    temperature: options.temperature,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ]
+  };
+
+  if (options.maxTokens) payload.max_tokens = options.maxTokens;
+  if (options.responseFormat) payload.response_format = options.responseFormat;
+
+  return payload;
+}
+
+function buildAnthropicPayload(model, systemPrompt, userPrompt, options) {
+  return {
+    model,
+    system: systemPrompt,
+    temperature: options.temperature,
+    max_tokens: options.maxTokens,
+    messages: [{ role: 'user', content: userPrompt }]
+  };
+}
+
+async function parseJsonResponse(response, providerKey) {
+  const text = await response.text();
+  let body;
+  try {
+    body = text ? JSON.parse(text) : {};
+  } catch (error) {
+    throw new Error(`${providerKey} returned non-JSON response: ${text.slice(0, 240)}`);
+  }
+
+  if (!response.ok) {
+    const message = body?.error?.message || body?.message || response.statusText || 'LLM request failed';
+    throw new Error(`${providerKey} API error ${response.status}: ${message}`);
+  }
+
+  return body;
+}
+
+/**
+ * Call an LLM provider from a browser ESM environment.
+ * Returns a normalized object: { provider, model, text, raw, usage }.
+ */
+export async function callLLM(provider, apiKey, systemPrompt, userPrompt, options = {}) {
+  const config = getProviderConfig(provider);
+  const normalized = normalizeOptions(options);
+  const model = normalized.model || config.defaultModel;
+  const endpoint = normalized.baseUrl || config.endpoint;
+
+  assertString(apiKey, 'apiKey');
+  assertString(systemPrompt, 'systemPrompt');
+  assertString(userPrompt, 'userPrompt');
+
+  const { signal, cancel } = withTimeout(normalized.signal, normalized.timeoutMs);
+  const commonHeaders = {
+    'content-type': 'application/json',
+    ...normalized.headers
+  };
+
+  try {
+    let request;
+    if (config.key === 'anthropic') {
+      request = fetch(endpoint, {
+        method: 'POST',
+        signal,
+        headers: {
+          ...commonHeaders,
+          'x-api-key': apiKey,
+          'anthropic-dangerous-direct-browser-access': normalized.headers['anthropic-dangerous-direct-browser-access'] || 'true',
+          'anthropic-version': normalized.headers['anthropic-version'] || '2023-06-01'
+        },
+        body: JSON.stringify(buildAnthropicPayload(model, systemPrompt, userPrompt, normalized))
+      });
+    } else {
+      request = fetch(endpoint, {
+        method: 'POST',
+        signal,
+        headers: {
+          ...commonHeaders,
+          authorization: `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(buildChatPayload(model, systemPrompt, userPrompt, normalized))
+      });
+    }
+
+    const raw = await parseJsonResponse(await request, config.key);
+    const text = config.key === 'anthropic'
+      ? joinAnthropicText(raw.content)
+      : (raw.choices?.[0]?.message?.content || raw.choices?.[0]?.text || '');
+
+    if (!text) {
+      throw new Error(`${config.key} API response did not contain text content`);
+    }
+
+    return {
+      provider: config.key,
+      model,
+      text,
+      raw,
+      usage: raw.usage || null
+    };
+  } finally {
+    cancel();
+  }
+}
+
+export default callLLM;
