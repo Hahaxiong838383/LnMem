@@ -29,7 +29,8 @@ export const ANALYSIS_SYSTEM = [
   '请坚持以下原则：分数层只解释，不篡改。',
   '所有推论都必须能回到 HEXACO、ECR、GSE/SDT/PVQ 或情境题证据。',
   '不做临床诊断，不使用病理化标签。',
-  '输出必须是严格 JSON，不要 Markdown、注释或额外解释。'
+  '输出必须是严格 JSON，不要 Markdown、注释或额外解释。',
+  'JSON 的 key 保持英文 snake_case，但所有自然语言内容必须使用简体中文。'
 ].join('\n');
 
 function isPlainObject(value) {
@@ -134,7 +135,7 @@ function normalizeMotivation(source = {}) {
 
 function defaultSituationalSignatures() {
   return {
-    _theory_basis: 'CAPS cognitive-affective processing system',
+    _theory_basis: 'CAPS 认知-情感加工系统',
     if_then_patterns: [],
     stress_triggers: [],
     recovery_conditions: [],
@@ -155,8 +156,8 @@ function defaultMultimodalSignature() {
 function defaultAiDesign() {
   return {
     interaction_principles: [],
-    preferred_tone: 'direct_supportive',
-    proactivity_level: 'moderate',
+    preferred_tone: '直接且支持',
+    proactivity_level: '中等主动',
     trust_building_path: [],
     do: [],
     avoid: [],
@@ -246,6 +247,7 @@ export function buildAnalysisPrompt(answers, scoreResult) {
     JSON.stringify(schema, null, 2),
     '',
     '硬性要求：只输出 JSON；不要修改已给出的量表分数。',
+    '所有描述性文字必须使用简体中文；禁止输出英文描述性句子。',
     'if_then_patterns 每条包含 id、if_situation、then_response 和 supporting_evidence。',
     'then_response 必须包含 behavioral、emotional、cognitive。'
   ].join('\n');
@@ -264,7 +266,7 @@ export function mergeProfile(scoreResult = {}, analysisJson = {}) {
     created_date: analysis.created_date || scoreResult.created_date || now,
     is_real_person: Boolean(analysis.is_real_person ?? scoreResult.is_real_person ?? true),
     trait_layer: {
-      _theory_basis: 'HEXACO six-factor personality model',
+      _theory_basis: 'HEXACO 六因素人格模型',
       hexaco_scores: hexaco,
       facet_scores: scoreResult.facet_scores
         || scoreResult.facets
@@ -274,7 +276,7 @@ export function mergeProfile(scoreResult = {}, analysisJson = {}) {
       hexaco_scores: hexaco
     },
     attachment_layer: {
-      _theory_basis: 'ECR attachment dimensions',
+      _theory_basis: 'ECR 依恋维度',
       ...attachment,
       ...(isPlainObject(analysis.attachment_layer) ? analysis.attachment_layer : {}),
       attachment_dimensions: attachment.attachment_dimensions,

@@ -336,7 +336,7 @@ function bindView(root) {
 function bindHome(root) {
   const applyHomeConfig = () => {
     state.provider = root.querySelector('#provider')?.value || 'openai';
-    state.apiKey = root.querySelector('#apiKey')?.value || '';
+    state.apiKey = normalizeUserApiKey(state.provider, root.querySelector('#apiKey')?.value || '');
     state.mode = root.querySelector('input[name="mode"]:checked')?.value || 'full';
     saveState();
   };
@@ -601,6 +601,12 @@ function formatScore(value) {
 
 function normalizeAnalysisError(error) {
   const message = String(error?.message || error || '未知错误');
+  if (/401|login fail|api secret key|authorization/i.test(message)) {
+    return 'API Key 校验失败：请检查 key 是否完整、无多余字符，并确认 provider 选择正确。';
+  }
+  if (/did not contain text content|no text/i.test(message)) {
+    return '模型返回了思考片段但未给出正文结果，已触发重试；若仍失败请再点一次分析。';
+  }
   if (/timed out|timeout/i.test(message)) {
     return 'LLM 请求超时：请确认代理是否走直连，或稍后重试。';
   }
@@ -608,6 +614,15 @@ function normalizeAnalysisError(error) {
     return 'LLM 请求已中止：请重试一次。';
   }
   return message;
+}
+
+function normalizeUserApiKey(provider, key) {
+  const normalizedProvider = String(provider || '').toLowerCase();
+  let value = String(key || '').trim();
+  if (normalizedProvider === 'minimax' && /^sk-/i.test(value)) {
+    value = value.replace(/[。．.,，;；:：!！?？"'`）)\]】》〉>]+$/u, '');
+  }
+  return value;
 }
 
 function debugHtml() {

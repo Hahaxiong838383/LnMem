@@ -25,6 +25,18 @@ function assertString(value, name) {
   }
 }
 
+function sanitizeApiKey(provider, apiKey) {
+  let key = String(apiKey || '').trim();
+  const normalizedProvider = String(provider || '').toLowerCase();
+
+  // Users often paste keys with trailing punctuation from chat/apps.
+  if (normalizedProvider === 'minimax' && /^sk-/i.test(key)) {
+    key = key.replace(/[。．.,，;；:：!！?？"'`）)\]】》〉>]+$/u, '');
+  }
+
+  return key;
+}
+
 function getProviderConfig(provider) {
   const key = String(provider || '').toLowerCase();
   const config = PROVIDER_CONFIG[key];
@@ -65,6 +77,16 @@ function withTimeout(signal, timeoutMs) {
   }
 
   return { signal: controller.signal, cancel: () => clearTimeout(timer) };
+}
+
+function withPromiseTimeout(promise, timeoutMs, message) {
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message || 'LLM request timed out')), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timer);
+  });
 }
 
 function buildChatPayload(model, systemPrompt, userPrompt, options) {
@@ -119,8 +141,9 @@ export async function callLLM(provider, apiKey, systemPrompt, userPrompt, option
   const normalized = normalizeOptions(options);
   const model = normalized.model || config.defaultModel;
   const endpoint = normalized.baseUrl || config.endpoint;
+  const cleanApiKey = sanitizeApiKey(config.key, apiKey);
 
-  assertString(apiKey, 'apiKey');
+  assertString(cleanApiKey, 'apiKey');
   assertString(systemPrompt, 'systemPrompt');
   assertString(userPrompt, 'userPrompt');
 
@@ -138,7 +161,7 @@ export async function callLLM(provider, apiKey, systemPrompt, userPrompt, option
         signal,
         headers: {
           ...commonHeaders,
-          'x-api-key': apiKey,
+          'x-api-key': cleanApiKey,
           'anthropic-dangerous-direct-browser-access': normalized.headers['anthropic-dangerous-direct-browser-access'] || 'true',
           'anthropic-version': normalized.headers['anthropic-version'] || '2023-06-01'
         },
@@ -150,7 +173,7 @@ export async function callLLM(provider, apiKey, systemPrompt, userPrompt, option
         signal,
         headers: {
           ...commonHeaders,
-          authorization: `Bearer ${apiKey}`
+          authorization: `Bearer ${cleanApiKey}`
         },
         body: JSON.stringify(buildAnthropicPayload(model, systemPrompt, userPrompt, normalized))
       });
@@ -160,13 +183,18 @@ export async function callLLM(provider, apiKey, systemPrompt, userPrompt, option
         signal,
         headers: {
           ...commonHeaders,
-          authorization: `Bearer ${apiKey}`
+          authorization: `Bearer ${cleanApiKey}`
         },
         body: JSON.stringify(buildChatPayload(model, systemPrompt, userPrompt, normalized))
       });
     }
 
-    const raw = await parseJsonResponse(await request, config.key);
+    const response = await withPromiseTimeout(
+      request,
+      normalized.timeoutMs + 5000,
+      'LLM request timed out'
+    );
+    const raw = await parseJsonResponse(response, config.key);
     const text = config.apiStyle?.startsWith('anthropic')
       ? joinAnthropicText(raw.content)
       : (raw.choices?.[0]?.message?.content || raw.choices?.[0]?.text || '');

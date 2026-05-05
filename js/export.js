@@ -12,12 +12,16 @@ export async function analyzeProfileWithLLM(state, runtime = {}) {
   }
 
   const { signal, onStatus } = runtime;
+  const provider = String(state.provider || '').toLowerCase();
   const seed = localProfileSeed(state);
   const prompt = buildAnalysisPrompt(state.answers, seed);
+  const providerModel = provider === 'minimax' ? 'MiniMax-M2.7-highspeed' : undefined;
+  const providerMaxTokens = provider === 'minimax' ? 2200 : 1800;
   const base = {
     responseFormat: { type: 'json_object' },
     temperature: 0.4,
-    maxTokens: 2200,
+    maxTokens: providerMaxTokens,
+    model: providerModel,
     signal
   };
 
@@ -29,12 +33,14 @@ export async function analyzeProfileWithLLM(state, runtime = {}) {
       timeoutMs: 45000
     });
   } catch (error) {
-    if (!isTimeoutError(error) || signal?.aborted) throw error;
-    onStatus?.('首轮超时，正在重试...（第 2 次请求，最长约 60 秒）');
+    if ((!isTimeoutError(error) && !isNoTextError(error)) || signal?.aborted) throw error;
+    onStatus?.('首轮结果不完整，正在重试...（第 2 次请求，最长约 90 秒）');
     response = await callLLM(state.provider, state.apiKey, ANALYSIS_SYSTEM, prompt, {
       ...base,
-      timeoutMs: 60000,
-      temperature: 0.3
+      timeoutMs: 90000,
+      maxTokens: provider === 'minimax' ? 2800 : providerMaxTokens,
+      model: provider === 'minimax' ? 'MiniMax-M2.7' : providerModel,
+      temperature: 0.25
     });
   }
 
@@ -59,6 +65,11 @@ function localProfileSeed(state) {
 function isTimeoutError(error) {
   const message = String(error?.message || '');
   return /timed out|timeout/i.test(message);
+}
+
+function isNoTextError(error) {
+  const message = String(error?.message || '');
+  return /did not contain text content|no text/i.test(message);
 }
 
 export function downloadJson(name, payload) {
