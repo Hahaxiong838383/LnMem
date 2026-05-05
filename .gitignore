@@ -28,6 +28,11 @@ day*_results.txt
 day*_results.json
 *.jsonl
 
+# PoC personas — 源文件 tracked（synthetic/ + real/ 仍被 data/ 忽略）
+!poc/data/
+poc/data/synthetic/
+poc/data/real/
+
 # spikes intermediate
 spikes/*/.cache/
 spikes/*/checkpoints/
