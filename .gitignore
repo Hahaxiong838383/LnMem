@@ -12,6 +12,7 @@ dist/
 
 # venv
 .venv/
+.venv-poc/
 venv/
 env/
 

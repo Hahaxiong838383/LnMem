@@ -106,4 +106,44 @@
 
 ---
 
+## v0.4 — 2026-05-05（Day 0 收尾 polish + 经验沉淀）
+
+**polish**：
+
+- M `.gitignore` 加 `.venv-poc/`（防 venv 入仓）
+- A `poc/CHANGELOG.md` v0.4 段（本段）
+
+**沉淀到 mycc memory**（4 条 feedback）：
+
+- `feedback_lnmem_poc_day0_kickoff.md` — PoC Day 0 cc/老板并行分工模式（cc 写文档+脚本+目录骨架，老板写画像本体）
+- `feedback_hexaco_euclidean_not_cosine.md` — 全正值有界向量必须用欧式距离，余弦距离恒接近 0
+- `feedback_boss_colloquial_terminology.md` — 老板术语口语化处理协议（"余弦"实指"欧式"，先字面跑→FAIL→原理推导）
+- `feedback_lnmem_personas_gitignore_whitelist.md` — `!poc/data/` 白名单 + 显式 ignore synthetic/real 模式
+
+**核心踩坑**（已沉淀到上述 memory）：
+
+| 类别 | 踩坑 | 修复 |
+|------|------|------|
+| 度量选型 | cosine 在 HEXACO 全正 0-1 上恒 ≈ 0，三两实测 0.05-0.09 全 FAIL | 改欧式 √Σ(a-b)² → 0.527/0.615/0.708 全 ≥ 0.4 ✅ |
+| .gitignore | `data/` 通配符 silently 吞 vboss_*.md | 写 `!poc/data/` 白名单 + 显式 ignore synthetic/real |
+| 归因引用 | prompt 里 §11.2 PR 三道门 实际位置 §2.1 | grep CLAUDE.md → 实测 §2.1 line 35 → 修复 + CHANGELOG 标"归因纠正" |
+| 老板术语 | "余弦距离"实意是"欧式距离"，是口语化术语 | 不直接质疑老板，先按字面跑 → FAIL → 推导 → 改 + 同步告知 |
+| venv | python3 系统装无 yaml | `python3 -m venv .venv-poc` + `pip install pyyaml numpy` |
+
+**Day 0 ✅ 收尾确认**（最终）：
+- 4 commits 推 origin/poc/lnn-validation: `6aa2b2c → d2e15a8 → 32d6bd9 → 60bbe84`（+ Day 0 polish 待 push）
+- 4 docs 立稳：poc-spec / data-generation-todo（七层 schema + 欧式纠正） / limitations 骨架 / migration-guide 骨架 / lnn-training-log schema
+- 3 范例画像本体（vboss_001/002/003）+ schema 校验脚本（21/21 PASS）
+- HEXACO 度量度量纠正（cosine → euclidean）
+- 4 经验记忆沉淀到 mycc memory
+
+**Day 0 → Day 1 阻塞依赖**（老板/cc 各自）：
+
+| 角色 | 阻塞项 |
+|------|--------|
+| 老板 | vboss_004~030 27 个画像（27 × 30 min 估 ~14h，分多日完成）；中途可标 ≥ 2-3 个 `similar_to_self: true` 让 t-SNE 锚点过门 |
+| cc | Day 1 多模态信号采集骨架（streamlit-webrtc + MediaPipe + Whisper.cpp + macOS context capture），等老板放话开 Day 1 |
+
+---
+
 <!-- Day 1 / 2 / 3 ... 每日 retro 在此追加 -->
