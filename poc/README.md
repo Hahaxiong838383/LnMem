@@ -52,15 +52,31 @@ poc/
 │   ├── limitations.md       # 诚实声明
 │   ├── migration-guide.md   # 主分支迁移建议
 │   └── lnn-training-log.md  # 训练实验日志
-├── src/
-│   ├── multimodal/          # 视觉 / 音频 / macOS 上下文（Day 1-2）
-│   ├── fusion.py            # 多模态融合（Day 1-2）
-│   ├── lnn/                 # LNN 模型 + 训练（Day 5-6）
-│   ├── memory/              # 5 阶段记忆形成（Day 7）
-│   ├── ui/                  # Streamlit 主入口 + 5 个可视化（Day 7-14）
-│   └── validate_personas.py # 画像校验脚本（Day 0 cc 写）
-└── demos/                   # 录屏 + 截图（Day 14）
+├── src/                     # 见下方"已实现 vs 计划中"两表
+└── demos/                   # smoke 真采脚本 + Day 14 录屏
 ```
+
+### `poc/src/` 已实现 vs 计划中
+
+> 文档真实性优先于"看起来完整"。下表反映 HEAD `fdc8234` 的真实落盘状态。
+
+**已实现（Day 1-2 收官）**：
+
+| 路径 | 用途 | 实测 |
+|------|------|------|
+| `capture/` | Day 1 多模态采集骨架（face/audio/context/buffer） | smoke 4/4 PASS（25.5fps + 16kHz + osascript + 478 landmarks） |
+| `fusion.py` | Day 2 12-dim FusionFrame 融合层（face4+derived4+audio2+context2） | `pytest poc/tests/test_fusion.py` 12/12 PASS |
+| `validate_personas.py` | Day 0 画像校验（HEXACO/ECR/Schwartz/SDT 30 维门） | 217/217 门通过 |
+
+**计划中（按 README §时间盒推进）**：
+
+| 路径 | 阶段 | 硬门槛 |
+|------|------|--------|
+| `lnn/` | Day 5-6 | CfC + 状态识别 + 边界检测 + 个性化 τ，60-75% accuracy |
+| `memory/` | Day 7 | 5 阶段记忆形成 pipeline + F1 SlotValue 类型收紧 |
+| `ui/` | Day 7-14 | Streamlit 主入口 + 5 可视化 + Day 14 录屏 |
+| `multimodal/` | Day 8+ | 真实采集累积（在 capture/ 之上扩 wrapper，老板自用产数据） |
+
 
 ---
 

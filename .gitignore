@@ -34,6 +34,10 @@ day*_results.json
 poc/data/synthetic/
 poc/data/real/
 
+# 老板真实测评原始向量永远不进 git（脱敏 template 见 personas/_boss_self.template.json）
+poc/data/personas/_boss_self_raw.json
+poc/data/personas/*_real_raw.json
+
 # spikes intermediate
 spikes/*/.cache/
 spikes/*/checkpoints/

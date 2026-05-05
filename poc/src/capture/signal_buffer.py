@@ -33,6 +33,8 @@ class SignalBuffer:
 
     def open(self) -> None:
         """Start writer thread. / 启动异步写线程。"""
+        if self._writer_thread is not None:
+            return
         self._config.output_path.parent.mkdir(parents=True, exist_ok=True)
         self._file_handle = self._config.output_path.open("a", encoding="utf-8")
         self._stop_event.clear()
@@ -51,9 +53,8 @@ class SignalBuffer:
             self._file_handle.write(json.dumps(item, ensure_ascii=False) + "\n")
 
         if self._file_handle is not None:
-            self._file_handle.flush()
             self._file_handle.close()
-        self._file_handle = None
+            self._file_handle = None
 
     def push(self, frame_record: dict[str, Any]) -> None:
         """Push one frame record. / 推入一条帧记录。"""

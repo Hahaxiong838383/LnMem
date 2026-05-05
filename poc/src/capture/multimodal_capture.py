@@ -25,6 +25,8 @@ class MultimodalCapture:
 
     def open(self) -> None:
         """Open all capture components. / 打开采集链路组件。"""
+        if self._opened:
+            return
         self._face.open()
         self._audio.open()
         self._context.open()

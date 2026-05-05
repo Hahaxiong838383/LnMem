@@ -5,6 +5,62 @@
 
 ---
 
+## v0.11 — 2026-05-05（codex review 5 条修复 · cc + codex 并行 4 lane）
+
+老板对 v0.10 发起 codex review，命中 5 条全部成立。cc 主线 + codex 后台并行 4 lane 修复。
+
+### Lane A — main 分支测试基线（fixes review #1 + #2）
+
+| 改动 | 文件 | 验收 |
+|------|------|------|
+| 补 `evals/data/cases.jsonl` 10 条 stub（4 个 EvalCaseKind 全覆盖） | `evals/data/cases.jsonl`（新建） | `pytest evals/tests/test_smoke.py` **3 passed**（之前 1 failed） |
+| `.gitignore` 放行 `evals/data/*.jsonl` + `poc/demos/results/*.jsonl` | `.gitignore` | git tracked，不再被全局 ignore |
+| 版本统一 v0.3.1 → v0.3.3 | `pyproject.toml:7` | 与 README.md:15 一致 |
+
+### Lane B — capture 幂等保护（fixes review #5；codex gpt-5.3-codex+high 派工）
+
+| 改动 | 文件 | 验收 |
+|------|------|------|
+| `SignalBuffer.open()` 加 `if self._writer_thread is not None: return` | `poc/src/capture/signal_buffer.py:36` | 第二次 open 不重复起线程 |
+| `SignalBuffer.close()` 文件句柄回收逻辑修正 | `poc/src/capture/signal_buffer.py:55` | `_file_handle` 正确 close + 置 None |
+| `MultimodalCapture.open()` 加 `if self._opened: return` | `poc/src/capture/multimodal_capture.py:28` | 子组件不重复 open |
+| 新增 idempotent 回归测试 3 个 case | `poc/tests/test_capture_idempotent.py` | `pytest poc/tests/` **15 passed**（原 12 + 新 3） |
+
+### Lane C — 隐私脱敏（fixes review #4）
+
+| 改动 | 路径 | 说明 |
+|------|------|------|
+| 真值搬本地私有目录 | `~/.lnmem/private/_boss_self_raw.json`（chmod 700） | git 永久不可见 |
+| 仓库改用 template | `poc/data/personas/_boss_self.template.json`（225 行） | 删除 `raw_assessment_data` 全部 60+ 题原始答题向量；保留 7 层聚合画像；`is_real_person: false`；新增 `_privacy_notice` 字段说明真值位置 |
+| 删除原始文件 | `poc/data/personas/_boss_self_raw.json`（git rm） | 彻底从 working tree 移除 |
+| `.gitignore` 永久排除 | `poc/data/personas/_boss_self_raw.json` + `*_real_raw.json` | 防止以后误添加 |
+| 校验仍 PASS | `python poc/src/validate_personas.py` | **217/217 门通过**（脱敏没破坏画像层） |
+
+### Lane D — poc/README 真实性双栏（fixes review #3）
+
+| 改动 | 说明 |
+|------|------|
+| `§poc/src/ 已实现 vs 计划中` 两表 | 已实现：`capture/` + `fusion.py` + `validate_personas.py`（含实测数据）；计划中：`lnn/` + `memory/` + `ui/` + `multimodal/`（含硬门槛） |
+
+### codex review 命中清单（全部修复）
+
+| # | codex 主张 | 处理 | 状态 |
+|---|------|------|------|
+| 1 | pytest test_smoke 1 failed (缺 cases.jsonl) | Lane A | ✅ |
+| 2 | 版本号漂移 0.3.1 vs 0.3.3 | Lane A | ✅ |
+| 3 | poc/README 计划树写成已落地 | Lane D | ✅ |
+| 4 | _boss_self_raw.json 真实人原始数据 | Lane C | ✅（方案 B：本地保留真值） |
+| 5 | capture.open() 不幂等 | Lane B（codex 派工） | ✅ |
+
+### 协作模式记录（沉淀 mycc memory）
+
+- cc 主线并行 Lane A（main 分支）+ C（隐私）+ D（文档）
+- codex 后台跑 Lane B（capture 幂等 + 测试），cc 用日志监控等结束
+- 全部 4 lane 文件域不冲突（不同分支或不同模块），零 merge 冲突
+- Lane B 用 `Bash codex exec --full-auto` 直调（非 runtime 后台模式），符合 `feedback_codex_runtime_vs_exec_direct.md` 教训
+
+---
+
 ## v0.10 — 2026-05-05（Day 1-2 真实采集硬证）
 
 **老板真实环境实跑：4/4 README 硬门槛全部跑通**
