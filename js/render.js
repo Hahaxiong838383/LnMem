@@ -15,6 +15,7 @@ import { scoreAssessment } from './scoring.js';
 import { renderHexChart, renderValuesChart } from './charts.js';
 import {
   analyzeProfileWithLLM,
+  buildChineseAnalysisView,
   buildProfile,
   downloadJson,
   exportScreenshot,
@@ -447,7 +448,7 @@ function bindResult(root) {
         }
       });
       saveState();
-      output.textContent = JSON.stringify(state.fullProfile, null, 2);
+      output.textContent = buildChineseAnalysisView(state.fullProfile);
     } catch (error) {
       output.textContent = normalizeAnalysisError(error);
     } finally {
