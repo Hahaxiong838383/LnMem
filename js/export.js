@@ -38,14 +38,29 @@ function localProfileSeed(state) {
 
 export function downloadJson(name, payload) {
   const text = JSON.stringify(payload, null, 2);
-  downloadUrl(name, `data:application/json;charset=utf-8,${encodeURIComponent(text)}`);
+  const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  try {
+    downloadUrl(name, url);
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 }
 
 export function downloadUrl(name, url) {
   const link = document.createElement('a');
   link.download = name;
   link.href = url;
-  link.click();
+  link.rel = 'noopener';
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  try {
+    link.click();
+  } catch {
+    window.open(url, '_blank', 'noopener');
+  } finally {
+    document.body.removeChild(link);
+  }
 }
 
 export async function exportScreenshot(target, name = 'persona-report.png') {

@@ -63,6 +63,8 @@ function viewHtml() {
 
 function homeHtml() {
   const chapters = state.chapters.map(chapterCard).join('');
+  const hasAnswers = answeredCount() > 0;
+  const hasResult = Boolean(state.result);
   return html`
     <section class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <div class="${shell}">
@@ -87,7 +89,12 @@ function homeHtml() {
           ${modeRadio('full', '完整版：覆盖全部章节')}
           ${modeRadio('fast', '快速版：跳过价值观章节')}
         </div>
-        <button data-action="start" class="${primary} mt-6">开始测评</button>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <button data-action="start" class="${primary}">开始新测评</button>
+          <button data-action="save-config" class="${ghost}">保存 LLM 设置</button>
+          ${hasResult ? `<button data-action="go-result" class="${ghost}">返回测评结果</button>` : ''}
+          ${hasAnswers && !hasResult ? `<button data-action="go-assessment" class="${ghost}">继续未完成测评</button>` : ''}
+        </div>
       </div>
       <div class="grid gap-3">${chapters}</div>
     </section>
@@ -327,10 +334,36 @@ function bindView(root) {
 }
 
 function bindHome(root) {
-  root.querySelector('[data-action="start"]')?.addEventListener('click', () => {
+  const applyHomeConfig = () => {
     state.provider = root.querySelector('#provider')?.value || 'openai';
     state.apiKey = root.querySelector('#apiKey')?.value || '';
     state.mode = root.querySelector('input[name="mode"]:checked')?.value || 'full';
+    saveState();
+  };
+
+  root.querySelector('[data-action="save-config"]')?.addEventListener('click', () => {
+    applyHomeConfig();
+    alert('LLM 设置已保存到当前会话。');
+  });
+
+  root.querySelector('[data-action="go-result"]')?.addEventListener('click', () => {
+    applyHomeConfig();
+    state.result ||= scoreAssessment(state.questions, state.answers);
+    state.view = 'result';
+    saveState();
+    renderApp();
+  });
+
+  root.querySelector('[data-action="go-assessment"]')?.addEventListener('click', () => {
+    applyHomeConfig();
+    state.view = 'assessment';
+    alignCurrentScale();
+    saveState();
+    renderApp();
+  });
+
+  root.querySelector('[data-action="start"]')?.addEventListener('click', () => {
+    applyHomeConfig();
     state.answers = {};
     state.optionOrderSeed = makeOptionOrderSeed();
     state.result = null;
@@ -386,11 +419,17 @@ function bindResult(root) {
   if (state.view !== 'result') return;
   renderHexChart(root.querySelector('#hexChart'), state.result.hex || {});
   renderValuesChart(root.querySelector('#valuesChart'), state.result.motivation?.values || []);
+  const output = root.querySelector('#analysisStatus');
+
   root.querySelector('[data-action="export-json"]')?.addEventListener('click', () => {
-    downloadJson('profile.json', buildProfile(state));
+    try {
+      downloadJson('profile.json', buildProfile(state));
+      if (output) output.textContent = 'JSON 导出已触发。若浏览器拦截下载，请检查下载权限。';
+    } catch (error) {
+      if (output) output.textContent = `JSON 导出失败：${error.message}`;
+    }
   });
   root.querySelector('[data-action="analyze-llm"]')?.addEventListener('click', async () => {
-    const output = root.querySelector('#analysisStatus');
     output.textContent = '调用 LLM 分析中...';
     try {
       state.fullProfile = await analyzeProfileWithLLM(state);
@@ -401,7 +440,12 @@ function bindResult(root) {
     }
   });
   root.querySelector('[data-action="export-shot"]')?.addEventListener('click', async () => {
-    await exportScreenshot(root.querySelector('#report'));
+    try {
+      await exportScreenshot(root.querySelector('#report'));
+      if (output) output.textContent = '截图导出已触发。';
+    } catch (error) {
+      if (output) output.textContent = `截图导出失败：${error.message}`;
+    }
   });
   root.querySelector('[data-action="generate"]')?.addEventListener('click', () => {
     state.view = 'generate';
