@@ -105,6 +105,8 @@ check('llm_client_exists', exists('js/llm-client.js'), 'js/llm-client.js');
 check('batch_client_exists', exists('js/batch.js'), 'js/batch.js');
 check('llm_client_uses_fetch', /\bfetch\s*\(/u.test(readFile('js/llm-client.js')), 'fetch(');
 check('llm_client_supports_minimax', /MiniMax-M2\.7/u.test(readFile('js/llm-client.js')), 'MiniMax-M2.7');
+check('likert_7_uses_text_labels', !/\[\s*'1'\s*,\s*'2'\s*,\s*'3'\s*,\s*'4'\s*,\s*'5'\s*,\s*'6'\s*,\s*'7'\s*\]/u.test(readFile('js/render.js')), 'text labels');
+check('option_order_is_seeded', /stableShuffle/u.test(readFile('js/render.js')), 'stableShuffle');
 check('analysis_uses_call_llm', /callLLM\s*\(/u.test(readFile('js/export.js')), 'export.js callLLM');
 check('batch_uses_call_llm', /callLLM\s*\(/u.test(readFile('js/batch.js')), 'batch.js callLLM');
 check('modular_js_file_count_ge_6', jsFiles.length >= 6, String(jsFiles.length));

@@ -4,6 +4,7 @@ import {
   alignCurrentScale,
   answeredCount,
   chapterQuestions,
+  makeOptionOrderSeed,
   resetState,
   saveState,
   setAnswer,
@@ -177,7 +178,8 @@ function answerControl(question, meta) {
 
 function optionControl(question) {
   const current = readAnswerKey(state.answers[question.id]);
-  const rows = question.options.map((option) => html`
+  const options = stableShuffle(question.options, `${question.id}:options`);
+  const rows = options.map((option) => html`
     <label class="block rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10">
       <input type="radio" name="answer" value="${escapeAttr(option.key)}" ${checked(current === option.key)}>
       <span class="ml-2 font-semibold text-white">${escapeHtml(option.key)}.</span>
@@ -201,13 +203,12 @@ function narrativeLikertControl(question, meta) {
 function likertControl(question, meta, override) {
   const max = question.likert || question.scale_max || meta.likert || 5;
   const current = override ?? state.answers[question.id];
-  const labels = likertLabels(max);
-  const rows = labels.map((label, index) => {
-    const value = index + 1;
+  const choices = stableShuffle(likertChoices(question, meta, max), `${question.id}:likert:${max}`);
+  const rows = choices.map((choice) => {
     return html`
-      <label class="rounded-2xl border border-white/10 bg-white/5 p-3 text-center hover:bg-white/10">
-        <input type="radio" name="answer" value="${value}" ${checked(Number(current) === value)}>
-        <span class="ml-1 text-sm text-slate-100">${escapeHtml(label)}</span>
+      <label class="rounded-2xl border border-white/10 bg-white/5 p-3 text-left hover:bg-white/10">
+        <input type="radio" name="answer" value="${choice.value}" ${checked(Number(current) === choice.value)}>
+        <span class="ml-1 text-sm text-slate-100">${escapeHtml(choice.label)}</span>
       </label>
     `;
   }).join('');
@@ -331,6 +332,7 @@ function bindHome(root) {
     state.apiKey = root.querySelector('#apiKey')?.value || '';
     state.mode = root.querySelector('input[name="mode"]:checked')?.value || 'full';
     state.answers = {};
+    state.optionOrderSeed = makeOptionOrderSeed();
     state.result = null;
     state.generated = [];
     state.currentChapter = 0;
@@ -480,10 +482,41 @@ function option(value, current) {
   return `<option value="${value}" ${selected(value === current)}>${value}</option>`;
 }
 
-function likertLabels(max) {
+function likertChoices(question, meta, max) {
+  if (Array.isArray(question.anchors) && question.anchors.length === max) {
+    return question.anchors.map((label, index) => ({ value: index + 1, label }));
+  }
+  return likertLabels(question, meta, max).map((label, index) => ({ value: index + 1, label }));
+}
+
+function likertLabels(question, meta, max) {
   if (max === 5) return ['非常不同意', '不同意', '中立', '同意', '非常同意'];
-  if (max === 7) return ['1', '2', '3', '4', '5', '6', '7'];
-  return Array.from({ length: max }, (_, index) => String(index + 1));
+  if (max === 7 && question.__scale === 'values') {
+    return ['完全不像我', '很不像我', '有点不像我', '说不准', '有点像我', '比较像我', '非常像我'];
+  }
+  if (max === 7 && (question.group === 'domain' || question.scale === 'gse_domain')) {
+    return ['完全没把握', '把握很低', '有点没底', '一半一半', '有一些把握', '比较有把握', '非常有把握'];
+  }
+  if (max === 7 && meta?.id === 'motivation') {
+    return ['完全不同意', '比较不同意', '有点不同意', '说不准', '有点同意', '比较同意', '非常同意'];
+  }
+  return Array.from({ length: max }, (_, index) => `程度 ${index + 1}`);
+}
+
+function stableShuffle(items, salt) {
+  return items
+    .map((item, index) => ({ item, rank: seededHash(`${state.optionOrderSeed}:${salt}:${index}`) }))
+    .sort((left, right) => left.rank - right.rank)
+    .map((entry) => entry.item);
+}
+
+function seededHash(input) {
+  let hash = 2166136261;
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 function readAnswerKey(answer) {

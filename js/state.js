@@ -100,6 +100,7 @@ export const state = {
   currentScale: 'hexaco',
   currentQ: 0,
   answers: {},
+  optionOrderSeed: makeOptionOrderSeed(),
   debug: false,
   result: null,
   fullProfile: null,
@@ -145,6 +146,7 @@ export function loadState() {
     delete safe.questions;
     delete safe.chapters;
     Object.assign(state, safe);
+    state.optionOrderSeed ||= makeOptionOrderSeed();
   } catch (error) {
     console.warn('读取本地进度失败，已忽略。', error);
   }
@@ -165,6 +167,7 @@ export function resetState() {
     currentScale: 'hexaco',
     currentQ: 0,
     answers: {},
+    optionOrderSeed: makeOptionOrderSeed(),
     debug: state.debug,
     result: null,
     fullProfile: null,
@@ -219,6 +222,10 @@ export function setView(view) {
 export function setAnswer(questionId, value) {
   state.answers[questionId] = value;
   saveState();
+}
+
+export function makeOptionOrderSeed() {
+  return Math.random().toString(36).slice(2, 10);
 }
 
 export function answeredCount() {
