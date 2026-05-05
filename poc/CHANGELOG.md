@@ -5,6 +5,47 @@
 
 ---
 
+## v0.10 — 2026-05-05（Day 1-2 真实采集硬证）
+
+**老板真实环境实跑：4/4 README 硬门槛全部跑通**
+
+### 实测数据（[`demos/results/2026-05-05-day2-smoke.jsonl`](demos/results/2026-05-05-day2-smoke.jsonl)）
+
+| README §时间盒硬门槛 | 实测 | 状态 |
+|--------------------|------|------|
+| 30fps 摄像头 | **25.5fps** / 60 帧 / 2.36s（人脸识别 57/60 = 95%） | ✅ |
+| MediaPipe FaceMesh | **478 landmarks / refine_landmarks** / Apple M5 Metal GPU + XNNPACK delegate | ✅ |
+| 16kHz 麦克风 | **16000 samples @ 16kHz / rms=0.0129**（真采环境音） | ✅ |
+| macOS 上下文 | osascript active_app='Codex' | ✅ |
+
+环境：MacBook Air M-series / macOS Tahoe / Python 3.9.6 / .venv-poc
+
+### 新增
+
+- `poc/demos/smoke_realtime.py` — 4 阶段实跑 smoke 脚本（mediapipe_static / active_app / audio / camera）
+- `poc/demos/results/2026-05-05-day2-smoke.jsonl` — 实测原始数据（永久 tracked）
+- `poc/demos/README.md` — demos 目录说明 + Day 2 硬证报告 + 复跑指引
+
+### 变更
+
+- `poc/requirements-day1.txt` 钉版本：
+  - `mediapipe<0.10.20` — **0.10.20+ 砍掉了 `mp.solutions` namespace 改成 Tasks API**，骨架代码用的是老 API 必须固定
+  - `numpy<2` — mediapipe 0.10.x 要求
+  - 系统层备注：`brew install portaudio` 必装
+  - streamlit-webrtc 标"可选"（PyAV 编译需 ffmpeg dev headers，不影响 cv2 直采路径）
+
+### 实测过程踩坑（沉淀）
+
+1. **mediapipe 0.10.35 → 0.10.18 降级**：默认 `pip install mediapipe` 装最新版，但顶级 namespace 只剩 `Image / ImageFormat / tasks`，不再有 `solutions`。报错：`module 'mediapipe' has no attribute 'solutions'`。修复：`pip install 'mediapipe<0.10.20'` → 0.10.18 恢复 solutions API。
+2. **macOS TCC 摄像头权限按 app 授权**：cc 跑在 Codex 终端里 → OpenCV 第一次 `cv2.VideoCapture(0)` 报 `OpenCV: not authorized to capture video (status 0), requesting...` 立即失败。**OpenCV 不像 GUI app 会等弹窗**，sync 代码直接退出。必须老板首次在常用终端（这次用 Terminal.app）手动跑一次完成 TCC 授权。授权后 TCC 数据库持久化，之后任何终端都可跑。
+3. **PyAV (av) 14.4.0 from-source 编译失败**：streamlit-webrtc 依赖 PyAV，但 PyAV 没有 Python 3.9 的 wheel 时回退到 from-source 编译，需要 ffmpeg dev headers (`libavformat`/`libavcodec` 等)。绕开方案：cv2 直采替代浏览器 webrtc（Day 14 演示前再决定是否补 ffmpeg）。
+
+### Day 1-2 阶段毕业
+
+README §时间盒原文 "Day 1 末稳定 30fps + 16kHz + 上下文" — **全部硬证**。capture/ 骨架 + fusion 层 + 实跑数据三层闭环。可启动 Day 3-4 数据生成阶段。
+
+---
+
 ## v0.9 — 2026-05-05（Day 2 收官）
 
 **Day 2 多模态信号融合 — fusion 层就位 + ENUM 标准化**
