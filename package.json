@@ -1,0 +1,9 @@
+{
+  "name": "personalt-test",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate:v0.2": "node scripts/validate-v02.mjs"
+  }
+}
