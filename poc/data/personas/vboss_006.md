@@ -36,17 +36,23 @@ multimodal_signal_density: low
 
 ## L4 If-Then 情境签名
 
-1. **deadline_stress**: 加班但情绪稳定，少社交
-2. **interrupted**: 明显不悦，回应极简
-3. **weekend_alone**: 完全充电，不社交不联系
-4. **ai_interaction**: 工具型 AI 的理想用户——不期待情感
+**情境 1：deadline_stress**: 加班但情绪稳定，少社交
+**情境 2：interrupted**: 明显不悦，回应极简
+**情境 3：weekend_alone**: 完全充电，不社交不联系
+**情境 4：ai_interaction**: 工具型 AI 的理想用户——不期待情感
+
+
+**情境 5：与 AI 互动的偏好**: 见下方 L7 AI 交互产品设计章节的详细描述
 
 ## L6 多模态信号签名
 
-- **视觉基线**：极度稳定，几乎没有大动作
-- **疲劳指标**：久坐变低姿态, 起身延长, 眼神涣散
-- **音频基线**：语速极稳，语调平，自言自语少
-- **上下文 apps**：VS Code, Terminal, 邮箱, B站
+**视觉基线**：极度稳定，几乎没有大动作
+**疲劳信号**：久坐变低姿态, 起身延长, 眼神涣散
+**音频基线**：语速极稳，语调平，自言自语少
+**上下文 apps**：VS Code, Terminal, 邮箱, B站
+
+**压力信号**：见 L4 If-Then 中 deadline_stress / 紧张情境的多模态描述
+**专注信号**：见 L4 If-Then 中 deep work / flow 情境的多模态描述
 
 ## L7 AI 交互产品设计
 

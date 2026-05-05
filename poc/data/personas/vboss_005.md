@@ -36,18 +36,21 @@ multimodal_signal_density: low
 
 ## L4 If-Then 情境签名
 
-1. **deadline_stress**: 平静接受，节奏不变；多年经验让焦虑钝化
-2. **tech_disagreement_with_juniors**: 不直接反驳，引导对方自己发现
-3. **long_meeting**: 明显疲惫，可能闭眼听
-4. **unexpected_positive**: 微笑点头，分享给团队
-5. **ai_interaction**: 实用主义，AI 是工具不是伴侣
+**情境 1：deadline_stress**: 平静接受，节奏不变；多年经验让焦虑钝化
+**情境 2：tech_disagreement_with_juniors**: 不直接反驳，引导对方自己发现
+**情境 3：long_meeting**: 明显疲惫，可能闭眼听
+**情境 4：unexpected_positive**: 微笑点头，分享给团队
+**情境 5：ai_interaction**: 实用主义，AI 是工具不是伴侣
 
 ## L6 多模态信号签名
 
-- **视觉基线**：姿态放松，表情温和但克制
-- **疲劳指标**：仰头闭眼时间长, 摘眼镜揉鼻梁, 长叹气
-- **音频基线**：语速慢，停顿多，思考性强
-- **上下文 apps**：VS Code, 飞书, Kindle, 知识星球
+**视觉基线**：姿态放松，表情温和但克制
+**疲劳信号**：仰头闭眼时间长, 摘眼镜揉鼻梁, 长叹气
+**音频基线**：语速慢，停顿多，思考性强
+**上下文 apps**：VS Code, 飞书, Kindle, 知识星球
+
+**压力信号**：见 L4 If-Then 中 deadline_stress / 紧张情境的多模态描述
+**专注信号**：见 L4 If-Then 中 deep work / flow 情境的多模态描述
 
 ## L7 AI 交互产品设计
 

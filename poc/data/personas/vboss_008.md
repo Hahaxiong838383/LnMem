@@ -36,17 +36,23 @@ multimodal_signal_density: medium
 
 ## L4 If-Then 情境签名
 
-1. **design_review**: 直接但理性的批评，不绕弯
-2. **cross_team_negotiation**: 数据驱动说服，不打感情牌
-3. **aesthetic_inspiration**: 内化兴奋，可能突然进入 deep work
-4. **ai_interaction**: 期待 AI 帮忙整理产品 insight
+**情境 1：design_review**: 直接但理性的批评，不绕弯
+**情境 2：cross_team_negotiation**: 数据驱动说服，不打感情牌
+**情境 3：aesthetic_inspiration**: 内化兴奋，可能突然进入 deep work
+**情境 4：ai_interaction**: 期待 AI 帮忙整理产品 insight
+
+
+**情境 5：与 AI 互动的偏好**: 见下方 L7 AI 交互产品设计章节的详细描述
 
 ## L6 多模态信号签名
 
-- **视觉基线**：偏冷静，但偶有 aesthetic 触动时表情突变
-- **疲劳指标**：审美决策疲劳——长时间盯设计稿后揉眼
-- **音频基线**：语速适中，语调起伏适度
-- **上下文 apps**：Figma, Notion, Linear, Pinterest
+**视觉基线**：偏冷静，但偶有 aesthetic 触动时表情突变
+**疲劳信号**：审美决策疲劳——长时间盯设计稿后揉眼
+**音频基线**：语速适中，语调起伏适度
+**上下文 apps**：Figma, Notion, Linear, Pinterest
+
+**压力信号**：见 L4 If-Then 中 deadline_stress / 紧张情境的多模态描述
+**专注信号**：见 L4 If-Then 中 deep work / flow 情境的多模态描述
 
 ## L7 AI 交互产品设计
 

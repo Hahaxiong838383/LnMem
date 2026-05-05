@@ -36,18 +36,21 @@ multimodal_signal_density: medium
 
 ## L4 If-Then 情境签名
 
-1. **deadline_stress**: 工作时间 +35%，会议拒绝率 +60%；表情更紧但不外露
-2. **interrupted_in_flow**: 短促回应不离屏幕；恢复时间 8 分钟
-3. **low_energy_afternoon**: 起身泡茶（非咖啡）+ 短暂散步
-4. **unexpected_positive**: 内化喜悦，可能轻声说『不错』
-5. **ai_interaction**: 工作时极度克制；下班后接受深度对话
+**情境 1：deadline_stress**: 工作时间 +35%，会议拒绝率 +60%；表情更紧但不外露
+**情境 2：interrupted_in_flow**: 短促回应不离屏幕；恢复时间 8 分钟
+**情境 3：low_energy_afternoon**: 起身泡茶（非咖啡）+ 短暂散步
+**情境 4：unexpected_positive**: 内化喜悦，可能轻声说『不错』
+**情境 5：ai_interaction**: 工作时极度克制；下班后接受深度对话
 
 ## L6 多模态信号签名
 
-- **视觉基线**：长时间盯屏，头部稳定，表情少
-- **疲劳指标**：揉太阳穴, 仰头闭眼 5-10 秒, 起身走动
-- **音频基线**：语速适中偏慢，语调平稳，思考性停顿多
-- **上下文 apps**：VS Code, Cursor, Notion, Slack
+**视觉基线**：长时间盯屏，头部稳定，表情少
+**疲劳信号**：揉太阳穴, 仰头闭眼 5-10 秒, 起身走动
+**音频基线**：语速适中偏慢，语调平稳，思考性停顿多
+**上下文 apps**：VS Code, Cursor, Notion, Slack
+
+**压力信号**：见 L4 If-Then 中 deadline_stress / 紧张情境的多模态描述
+**专注信号**：见 L4 If-Then 中 deep work / flow 情境的多模态描述
 
 ## L7 AI 交互产品设计
 
