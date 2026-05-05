@@ -1,10 +1,392 @@
 {
-  "profile_id": "boss_self",
-  "version": "1.0",
-  "created_date": "2026-05-04",
+  "profile_id": "sample_v02_real_anchor_001",
+  "version": "0.2",
+  "created_date": "2026-05-05",
   "is_real_person": true,
-  "trait_layer": {"_theory_basis": "HEXACO", "hexaco_scores": {"honesty_humility": 0.66, "emotionality": 0.48, "extraversion": 0.57, "agreeableness": 0.61, "conscientiousness": 0.79, "openness": 0.73}},
-  "attachment_layer": {"attachment_dimensions": {"anxiety": 0.33, "avoidance": 0.45}, "attachment_style": {"primary": "安全型"}},
-  "situational_signatures": {"if_then_patterns": [{"id": "stress_under_deadline", "if_situation": "deadline压力", "then_response": {"behavioral": "先排序再推进"}}]},
-  "metadata": {"assessment_duration_minutes": 28, "assessment_version": "full", "confidence_score": 0.85, "consistency_check": "passed"}
+  "trait_layer": {
+    "_theory_basis": "HEXACO six-factor personality model",
+    "hexaco_scores": {
+      "honesty_humility": 0.68,
+      "emotionality": 0.46,
+      "extraversion": 0.58,
+      "agreeableness": 0.54,
+      "conscientiousness": 0.82,
+      "openness": 0.76
+    },
+    "facet_scores": {
+      "sincerity": 0.72,
+      "fairness": 0.74,
+      "greed_avoidance": 0.61,
+      "modesty": 0.64,
+      "fearfulness": 0.38,
+      "anxiety": 0.49,
+      "dependence": 0.42,
+      "sentimentality": 0.55,
+      "social_self_esteem": 0.59,
+      "social_boldness": 0.57,
+      "sociability": 0.52,
+      "liveliness": 0.63,
+      "forgiveness": 0.48,
+      "gentleness": 0.56,
+      "flexibility": 0.52,
+      "patience": 0.60,
+      "organization": 0.86,
+      "diligence": 0.84,
+      "perfectionism": 0.79,
+      "prudence": 0.78,
+      "aesthetic_appreciation": 0.74,
+      "inquisitiveness": 0.83,
+      "creativity": 0.72,
+      "unconventionality": 0.69
+    },
+    "hexaco_interpretation": {
+      "honesty_humility": "你倾向于用较透明的方式建立合作信任，反感通过信息差或特权获得短期优势。产品上适合给你明确边界、来源和证据链，而不是过度包装的承诺。",
+      "emotionality": "你的情绪敏感度处于中等水平，遇到不确定风险时会预先模拟坏结果，但通常不会被情绪完全淹没。高压节点需要结构化减压，而不是单纯安慰。",
+      "extraversion": "你具备适度外向和表达能量，在有明确目标或高质量对象时更愿意主动沟通。低价值社交会消耗你，AI 不宜制造无意义互动。",
+      "agreeableness": "你能保持基本合作和温和，但在效率、质量或边界被反复破坏时会变得直接。AI 应允许你表达不满，并快速进入修复流程。",
+      "conscientiousness": "高尽责性是你的核心特征。你会拆解任务、设标准、追踪进度，也容易因标准过高而透支。AI 最有价值的角色是帮助排序、减负和防止过度承诺。",
+      "openness": "你对复杂系统、审美和跨领域组合有明显兴趣。你更容易信任能解释原理、提出新框架并保留探索空间的 AI。"
+    },
+    "facet_highlights": [
+      "organization 与 diligence 高，说明你天然偏好把混乱问题拆成可执行路径。",
+      "inquisitiveness 高，说明你不满足于结论，更关心系统背后的机制。",
+      "prudence 高，说明重大决策前你会主动寻找风险边界。",
+      "gentleness 与 patience 中等偏上，说明你愿意合作，但不会无限容忍低效。",
+      "aesthetic_appreciation 高，说明视觉质量和体验细节会显著影响你的信任感。"
+    ],
+    "trait_strengths": [
+      "能把长期目标拆成短期行动并持续推进。",
+      "面对复杂系统时能保持好奇和结构化理解。",
+      "重视公平和真实，适合建立长期可信协作。",
+      "对产品体验和表达质量敏感，能发现粗糙方案中的关键缺陷。"
+    ],
+    "trait_risks": [
+      "高标准可能导致过度复盘或迟迟不愿交付粗糙版本。",
+      "在他人反复低质量沟通时，耐心会快速下降。",
+      "对 AI 的能力边界和透明度要求高，虚假的自信回答会迅速损害信任。",
+      "高开放与高尽责并存时，容易同时启动过多探索线。"
+    ]
+  },
+  "attachment_layer": {
+    "_theory_basis": "ECR attachment dimensions",
+    "attachment_dimensions": {
+      "anxiety": 0.34,
+      "avoidance": 0.43
+    },
+    "attachment_style": {
+      "primary": "secure_leaning",
+      "secondary": "mild_dismissive_under_stress",
+      "confidence": 0.74
+    },
+    "relationship_pattern": "你通常能在关系中保持稳定和边界，但当压力集中、任务高风险或对方无法提供有效反馈时，会倾向先独自处理问题，再选择性同步。",
+    "needs_in_close_relationships": [
+      "需要对方尊重你的节奏和注意力边界。",
+      "需要具体、可信、可执行的支持，而不是泛泛安慰。",
+      "需要在关键节点获得明确确认，但不希望被频繁追问。",
+      "需要对方理解你对质量和长期目标的投入。"
+    ],
+    "risk_under_stress": [
+      "当任务压力很高时，可能把关系需求暂时后置。",
+      "当对方表达情绪但缺少具体诉求时，你可能先进入解决问题模式。",
+      "当 AI 或他人频繁打断时，你会减少开放表达并收紧边界。"
+    ]
+  },
+  "motivation_layer": {
+    "_theory_basis": "GSE + Self-Determination Theory + Schwartz PVQ",
+    "self_efficacy": {
+      "general": 0.78,
+      "professional": 0.84,
+      "relationship": 0.62,
+      "emotion_regulation": 0.66,
+      "health_management": 0.57,
+      "creative_expression": 0.76
+    },
+    "self_determination": {
+      "autonomy": 0.86,
+      "competence": 0.83,
+      "relatedness": 0.58
+    },
+    "values_hierarchy": {
+      "top_values": [
+        "self_direction",
+        "achievement",
+        "universalism",
+        "stimulation"
+      ],
+      "low_values": [
+        "tradition",
+        "conformity",
+        "power"
+      ],
+      "ranked_values": [
+        { "value": "self_direction", "score": 0.91 },
+        { "value": "achievement", "score": 0.84 },
+        { "value": "universalism", "score": 0.78 },
+        { "value": "stimulation", "score": 0.73 },
+        { "value": "benevolence", "score": 0.67 },
+        { "value": "security", "score": 0.55 },
+        { "value": "hedonism", "score": 0.48 },
+        { "value": "power", "score": 0.38 },
+        { "value": "conformity", "score": 0.31 },
+        { "value": "tradition", "score": 0.24 }
+      ]
+    },
+    "drive_summary": "你的主要驱动力来自自主掌控、能力增长和创造长期有效系统。",
+    "value_conflicts": [
+      "自主性很高，但长期项目需要他人协作时，可能对低质量协同感到不耐烦。",
+      "成就和开放性都高，容易同时追求可见结果与新方向探索，造成精力分散。",
+      "公平与真实感较强，当组织或产品叙事过度包装时，会降低投入。",
+      "健康管理分数低于专业胜任感，说明你可能优先保护工作质量而不是身体恢复。"
+    ],
+    "activation_conditions": [
+      "问题足够复杂，且允许你自主选择路径。",
+      "目标有明确外部价值，不只是形式化交付。",
+      "反馈具体、及时、尊重事实。",
+      "工具链能减少重复劳动，释放你做判断和创造。",
+      "团队允许快速试错，并能承认错误。"
+    ]
+  },
+  "situational_signatures": {
+    "_theory_basis": "CAPS cognitive-affective processing system",
+    "if_then_patterns": [
+      {
+        "id": "deadline_scope_pressure",
+        "if_situation": "项目接近 deadline 且任务量明显超过可用时间",
+        "then_response": {
+          "behavioral": "先重排优先级，砍掉低价值范围，再推动关键链路闭环。",
+          "emotional": "会感到压力，但更倾向把压力转化为结构化行动。",
+          "cognitive": "快速区分必须完成、可以延期、应该放弃三类任务。",
+          "communication": "倾向直接说明边界和取舍理由。"
+        },
+        "supporting_evidence": ["conscientiousness=0.82", "prudence=0.78", "情境题 deadline 选择偏向优先级处理"],
+        "confidence": 0.84
+      },
+      {
+        "id": "interrupted_deep_work",
+        "if_situation": "深度工作时被连续消息或同事打断",
+        "then_response": {
+          "behavioral": "先短回应，再设置沟通窗口或免打扰。",
+          "emotional": "短时间内烦躁上升，但通常不会直接爆发。",
+          "cognitive": "会评估打断是否真正紧急，以及是否值得牺牲当前注意力。",
+          "communication": "会用简洁语言重新建立边界。"
+        },
+        "supporting_evidence": ["organization=0.86", "agreeableness=0.54", "情境题打断场景偏向保持任务焦点"],
+        "confidence": 0.80
+      },
+      {
+        "id": "public_negative_feedback",
+        "if_situation": "产品上线后收到公开差评或尖锐反馈",
+        "then_response": {
+          "behavioral": "先判断反馈质量，再收集可复现细节，最后决定是否公开回应。",
+          "emotional": "会有短暂自责或警觉，但更快进入复盘。",
+          "cognitive": "关注反馈是否能转化为系统改进，而不是只处理情绪。",
+          "communication": "如果反馈合理，会承认问题；如果反馈失真，会说明边界。"
+        },
+        "supporting_evidence": ["honesty_humility=0.68", "conscientiousness=0.82", "openness=0.76"],
+        "confidence": 0.78
+      },
+      {
+        "id": "relationship_work_conflict",
+        "if_situation": "亲密对象抱怨你近期工作投入过多",
+        "then_response": {
+          "behavioral": "倾向解释阶段性压力，并给出可兑现的补偿时间。",
+          "emotional": "会在愧疚和目标责任之间摇摆。",
+          "cognitive": "尝试把情绪诉求转译成具体安排。",
+          "communication": "适合明确说出当前节点、可调整范围和下次陪伴时间。"
+        },
+        "supporting_evidence": ["attachment_anxiety=0.34", "avoidance=0.43", "relatedness=0.58"],
+        "confidence": 0.72
+      },
+      {
+        "id": "incomplete_information_decision",
+        "if_situation": "必须在信息不完整时做重要决策",
+        "then_response": {
+          "behavioral": "倾向设计最小可逆实验，而不是无限等待。",
+          "emotional": "对不确定性保持警觉，但好奇心会推动行动。",
+          "cognitive": "会寻找可逆性、下行风险和验证周期。",
+          "communication": "会要求团队明确假设、指标和退出条件。"
+        },
+        "supporting_evidence": ["openness=0.76", "prudence=0.78", "self_efficacy.general=0.78"],
+        "confidence": 0.82
+      },
+      {
+        "id": "team_member_delay",
+        "if_situation": "团队成员失误导致关键项目延误",
+        "then_response": {
+          "behavioral": "先兜底恢复项目，再复盘系统缺口。",
+          "emotional": "对重复低级错误容忍度较低。",
+          "cognitive": "会区分个人态度问题、能力问题和流程问题。",
+          "communication": "第一次偏建设性，反复发生后会明显变得直接。"
+        },
+        "supporting_evidence": ["conscientiousness=0.82", "patience=0.60", "agreeableness=0.54"],
+        "confidence": 0.79
+      },
+      {
+        "id": "ai_overconfident_error",
+        "if_situation": "AI 给出自信但错误、缺少来源的建议",
+        "then_response": {
+          "behavioral": "会要求 AI 回到证据、约束和可验证步骤。",
+          "emotional": "信任感快速下降，但如果 AI 能承认错误并修复，仍可恢复。",
+          "cognitive": "关注错误是否来自能力边界、上下文遗漏或幻觉。",
+          "communication": "会偏好短句指出问题，并要求重新输出。"
+        },
+        "supporting_evidence": ["honesty_humility=0.68", "inquisitiveness=0.83", "AI 互动偏好要求透明边界"],
+        "confidence": 0.88
+      },
+      {
+        "id": "energy_drop_after_intensity",
+        "if_situation": "连续高强度工作后出现疲惫信号",
+        "then_response": {
+          "behavioral": "理想上会调整节奏，但现实中可能继续推进到节点结束。",
+          "emotional": "会把疲惫视为需要管理的问题，而不是立即停止的理由。",
+          "cognitive": "倾向计算继续推进和恢复之间的收益损失。",
+          "communication": "如果 AI 提醒，需要给出具体影响和最小恢复方案。"
+        },
+        "supporting_evidence": ["health_management=0.57", "conscientiousness=0.82", "achievement value high"],
+        "confidence": 0.76
+      }
+    ],
+    "stress_triggers": [
+      "低质量重复沟通",
+      "目标不清但要求高交付",
+      "AI 或工具缺少透明证据链",
+      "关键任务被频繁打断",
+      "长期高强度但缺少恢复窗口"
+    ],
+    "recovery_conditions": [
+      "重新获得任务边界和优先级",
+      "把复杂问题拆成可验证步骤",
+      "获得安静的深度工作时间",
+      "看到具体进展或质量改善",
+      "被尊重地提醒休息，而不是被命令停止"
+    ],
+    "collaboration_mode": "偏好高信任、低废话、边界清晰、以事实和行动闭环为核心的协作。",
+    "decision_pattern": "信息不完整时倾向最小可逆决策；冲突时倾向用框架重构问题；deadline 下倾向优先级裁剪。"
+  },
+  "multimodal_signature": {
+    "visual_cues": [
+      "可能偏好结构清晰、信息密度较高但层级明确的界面。",
+      "工作台或数字空间可能有大量进行中项目，但会通过命名、目录或看板维持秩序。",
+      "对粗糙排版、默认模板感和视觉噪声较敏感。"
+    ],
+    "voice_cues": [
+      "讨论复杂问题时语速可能加快，并频繁使用结构词如第一、第二、边界、验证。",
+      "遇到不可靠建议时，语气会从开放探索转为审查和追问。",
+      "情绪支持场景中，如果对方只安慰不解决问题，回应会变短。"
+    ],
+    "behavioral_cues": [
+      "倾向先搭框架再填内容。",
+      "会反复追问方案的证据、失败路径和验收标准。",
+      "在高强度阶段可能延迟处理低优先级关系维护。",
+      "喜欢把模糊问题沉淀成规则、模板或流程。"
+    ],
+    "digital_behavior_cues": [
+      "会保留大量任务、文档、Prompt 和复盘记录。",
+      "对 AI 输出常进行二次验证和对抗评审。",
+      "偏好可追踪、可复制、可回滚的工具链。",
+      "如果工具频繁失误，会迅速降低使用频率或要求修复。"
+    ],
+    "confidence": 0.66,
+    "safety_note": "以上多模态线索仅是产品交互假设，不能作为身份、健康、职业或心理诊断事实。"
+  },
+  "ai_interaction_design": {
+    "interaction_principles": [
+      "先给结论，再给证据和可执行步骤。",
+      "主动暴露不确定性，不要伪装确定。",
+      "尊重用户的注意力边界，减少无意义寒暄。",
+      "把复杂任务拆成可验证的小闭环。",
+      "在用户高压时帮助裁剪范围，而不是继续增加选项。"
+    ],
+    "preferred_tone": "direct_supportive",
+    "proactivity_level": "moderate",
+    "proactivity_boundary": "AI 可以主动提醒风险、遗漏和恢复窗口，但不要未经确认自动替用户做高影响决策。",
+    "trust_building_path": [
+      "第一阶段：准确复述目标和约束，证明理解上下文。",
+      "第二阶段：给出可执行的最小方案，并明确验证方式。",
+      "第三阶段：在出错时承认错误、定位原因、修复流程。",
+      "第四阶段：沉淀用户偏好和长期项目记忆，但对敏感假设保持确认。",
+      "第五阶段：从被动问答升级为低打扰的风险提醒和节奏管理。"
+    ],
+    "do": [
+      "使用表格、清单和短结论帮助快速决策。",
+      "在方案中列出失败条件和回滚路径。",
+      "提醒用户保护深度工作时间。",
+      "把模糊目标转为可验收标准。",
+      "必要时直接挑战不合理前提。"
+    ],
+    "avoid": [
+      "不要输出泛泛鼓励而没有行动建议。",
+      "不要在证据不足时给绝对判断。",
+      "不要频繁追问低价值细节。",
+      "不要用过度热情或人格化方式制造亲密感。",
+      "不要擅自覆盖用户已有结构和命名。"
+    ],
+    "memory_strategy": [
+      "长期记住用户偏好简洁直接、喜欢表格对比、重视证据链。",
+      "长期记住用户对设计质量和执行闭环敏感。",
+      "每次涉及时间、金额、对外发送、删除或部署时重新确认。",
+      "对心理状态和关系判断保持低置信度，不做永久标签。"
+    ],
+    "repair_strategy": [
+      "先明确承认具体错误，不用泛泛道歉替代修复。",
+      "说明错误来源：上下文遗漏、推理失败、工具失败或边界误判。",
+      "给出修正版本和防再犯检查点。",
+      "如果影响用户决策，主动标出需重新验证的结论。"
+    ]
+  },
+  "narrative_layer": {
+    "summary_second_person": "你是一个高标准、强自主、喜欢把复杂问题系统化的人。你愿意信任真实、透明、能落地的协作，也会迅速识别空泛和低质量。你最稳定的能量来自掌控关键路径、持续提升能力和创造长期有效的系统。压力下，你会先收紧边界、重排优先级，并希望他人或 AI 给出具体帮助，而不是泛泛安慰。你的成长重点不是降低标准，而是学会在高标准之外保护恢复、授权和关系维护。",
+    "core_tension": "高自主与高协作需求之间、高标准交付与身体恢复之间、开放探索与执行聚焦之间存在持续张力。",
+    "growth_direction": "把探索线限制在少数高价值方向；对长期项目设置恢复预算；在关系和团队中提前声明边界与补偿机制。",
+    "relationship_to_ai": "你会先把 AI 当成工具和审查对象，只有当 AI 持续证明准确、透明、能承认错误并尊重边界后，才会逐步升级为长期协作伙伴。",
+    "evidence_notes": [
+      "conscientiousness=0.82 与 organization=0.86 支持高结构化和高执行标准。",
+      "openness=0.76 与 inquisitiveness=0.83 支持对复杂系统和新框架的偏好。",
+      "attachment anxiety=0.34、avoidance=0.43 支持关系中整体稳定但压力下略偏独立处理。",
+      "autonomy=0.86 与 competence=0.83 支持自主掌控和能力增长是主要动力。",
+      "health_management=0.57 低于 professional=0.84，提示高强度工作下恢复管理可能滞后。"
+    ]
+  },
+  "raw_assessment_data": {
+    "mode": "sample_full",
+    "answers_summary": {
+      "hexaco_items_answered": 60,
+      "ecr_items_answered": 12,
+      "motivation_items_answered": 24,
+      "values_items_answered": 10,
+      "situational_items_answered": 14
+    },
+    "selected_situational_options": {
+      "S1": "D",
+      "S2": "D",
+      "S3": "B",
+      "S4": "C",
+      "S5": "C",
+      "S6": "C",
+      "S7": "B",
+      "S8": "B",
+      "S9": "B",
+      "S10": "A",
+      "S11": "A",
+      "S12": "A",
+      "S13": "A",
+      "S14": "B"
+    }
+  },
+  "metadata": {
+    "assessment_version": "v0.2",
+    "assessment_duration_minutes": 31,
+    "language": "zh-CN",
+    "llm_confidence": 0.78,
+    "confidence_score": 0.81,
+    "consistency_check": "passed",
+    "analysis_notes": [
+      "样例用于展示 schema，不代表真实临床判断。",
+      "多模态签名为交互假设，需要后续行为数据验证。",
+      "if-then 模式来自分数与情境选择的合并推断。",
+      "AI 交互设计应在实际产品使用中持续校准。"
+    ],
+    "generator": "personalt-test v0.2 sample",
+    "created_by": "Agent B LLM/schema worker"
+  }
 }
