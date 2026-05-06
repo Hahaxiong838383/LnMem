@@ -93,20 +93,19 @@ def _hint_to_fusion_input(event: ScriptEvent, ts_iso: str, frame_idx: int) -> di
         "landmarks_n": 478,
     }
 
-    audio: dict[str, Any] | None = None
     if hint.voice_present > 0.0:
-        audio = {
-            "transcript": "[hint:voice_present]" if hint.voice_present > 0 else "",
+        audio: dict[str, Any] = {
+            "transcript": "[hint:voice_present]",
             "lang": "zh",
             "duration_s": hint.utterance_density * FusionConfig().audio_long_utterance_s + 0.3,
         }
+    else:
+        audio = {"transcript": "", "lang": "zh", "duration_s": 0.0}
 
-    context: dict[str, Any] | None = None
-    if hint.active_app:
-        context = {
-            "active_app": hint.active_app,
-            "app_switch_count_5min": hint.app_switch_count_5min,
-        }
+    context: dict[str, Any] = {
+        "active_app": hint.active_app,
+        "app_switch_count_5min": hint.app_switch_count_5min,
+    }
 
     return {
         "ts": ts_iso,

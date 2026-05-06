@@ -184,6 +184,60 @@ def test_script_file_to_signals_file_roundtrip() -> None:
 # ---------- 错误输入 ----------
 
 
+def test_voice_present_zero_outputs_zero() -> None:
+    """codex F1-04 review fix: voice_present=0 必须显式输出 0.0，不能 fallback 0.5。"""
+    h = MultimodalHint(
+        voice_present=0.0,
+        utterance_density=0.9,
+        active_app="VSCode",
+        gaze_stability=0.85,
+    )
+    ev = ScriptEvent(
+        event_id="e1",
+        ts="2026-05-06T09:00:00",
+        persona_id="p",
+        day_index=0,
+        duration_s=5.0,
+        activity=Activity.WORK_FOCUS,
+        state=State.FOCUSED,
+        multimodal_hint=h,
+    )
+    s = Script(
+        persona_id="p",
+        day_index=0,
+        generated_at="2026-05-06T08:00:00",
+        events=(ev,),
+    )
+    frame = next(script_to_signals(s, frame_rate_hz=1.0, noise_sigma=0.0))
+    # vector index 8 = voice_present，必须严格 0.0
+    assert frame.vector[8] == 0.0
+    # missing 应不含 audio（因为我们显式构造了 audio dict）
+    assert "audio" not in frame.missing
+
+
+def test_voice_present_one_outputs_one() -> None:
+    """对照测试：voice_present=1 时仍正确输出 1.0。"""
+    h = MultimodalHint(voice_present=1.0, utterance_density=0.5, active_app="Slack")
+    ev = ScriptEvent(
+        event_id="e2",
+        ts="2026-05-06T09:00:00",
+        persona_id="p",
+        day_index=0,
+        duration_s=5.0,
+        activity=Activity.WORK_MEETING,
+        state=State.FOCUSED,
+        multimodal_hint=h,
+    )
+    s = Script(
+        persona_id="p",
+        day_index=0,
+        generated_at="2026-05-06T08:00:00",
+        events=(ev,),
+    )
+    frame = next(script_to_signals(s, frame_rate_hz=1.0, noise_sigma=0.0))
+    assert frame.vector[8] == 1.0
+
+
 def test_invalid_frame_rate_raises() -> None:
     s = _make_script(n_events=1, duration_s=5.0)
     with pytest.raises(ValueError):

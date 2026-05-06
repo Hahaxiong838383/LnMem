@@ -73,7 +73,10 @@ write_markdown_report(report, Path('poc/data/synthetic/dataset_report.md'))
 
 输出 9 文件（3 剧本 JSON + 3 信号 JSONL + 1 报告 MD + 86,400 帧）✅。
 
-**Guard**：`pytest poc/tests/ -q` → **65 passed**（Day 1-2 19 + Lane A 23 + Lane B 6 + Lane C 14 + Lane D 7 = 69，含 `__init__.py` 影响实际收集 65）。
+**Guard**：`PYTHONPATH=. .venv-poc/bin/python -m pytest poc/tests/ -q` → **65 passed**（Day 1-2 19 + Lane A 23 + Lane B 6 + Lane C 14 + Lane D 7 = 69，含 `__init__.py` 影响实际收集 65）。
+
+> **codex F3-05 review 落档**：直接跑 `pytest poc/tests/` 会 `ModuleNotFoundError`，
+> 必须用 `python -m pytest`（自动加 cwd 到 sys.path）或显式 `PYTHONPATH=.`。
 
 ### 协作模式沉淀
 

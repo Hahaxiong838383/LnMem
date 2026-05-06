@@ -41,6 +41,11 @@ poc/data/real/
 # 老板真实测评原始向量永远不进 git（脱敏 template 见 personas/_boss_self.template.json）
 poc/data/personas/_boss_self_raw.json
 poc/data/personas/*_real_raw.json
+# 私有派生文件统一前缀黑名单（codex F2-07 review 修复）
+poc/data/personas/_*.private.*
+poc/data/personas/*.private.*
+poc/data/personas/*_private.*
+poc/data/personas/_*_raw.json
 
 # spikes intermediate
 spikes/*/.cache/

@@ -44,6 +44,8 @@ Persona (vboss_NNN.md)  →  Script (JSON)  →  SignalFrame stream (JSONL)  →
 
 `work_focus / work_meeting / break_short / break_long / commute / leisure / sleep / transition`
 
+> **Day 3 简化（codex F1-05 review 落档）**：`HeuristicLLMClient` 当前生成 8h 工作日剧本（09:00-17:00），不覆盖 `sleep` 类。Day 8+ 真实采集或 Day 4 真 LLM 接管时会补全，schema 保留 `sleep` 类是为了 Day 5+ LNN 训练接口一致。短期内 baseline 报告里 `sleep` 列为 0 属预期。
+
 ### 1.3 State 8 类
 
 `low_energy / focused / distracted / fatigued / emotional_positive / emotional_negative / neutral / transitioning`
@@ -132,9 +134,14 @@ Persona (vboss_NNN.md)  →  Script (JSON)  →  SignalFrame stream (JSONL)  →
 | 10 | context_known | {0, 1} |
 | 11 | focus_stability | [0,1] |
 
-### 3.2 帧率
+### 3.2 帧率与采样语义
 
 PoC Day 3 默认 1Hz（与 fusion.py 取样契约一致）。Day 5+ LNN 训练可重采样 5/10Hz。
+
+**采样区间约定（codex F3-01/F3-02 review 落档）**：左闭右开。`script_to_signals` 用
+`math.ceil(duration_s * frame_rate_hz)` 帧数，第 i 帧时间 = 事件起 + `i * (1/hz)`。
+即 5s × 1Hz 事件覆盖 t=[0, 4]s（5 帧），不含 t=5s。Day 5+ LNN 训练评估
+要按此口径打标签。
 
 ### 3.3 噪声模型
 

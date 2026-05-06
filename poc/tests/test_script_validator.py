@@ -212,6 +212,20 @@ def test_validate_warns_low_state_diversity() -> None:
     assert rep.n_errors == 0  # 多样性是 warning 不是 error
 
 
+def test_validate_empty_events_is_error() -> None:
+    """codex F1-01 review fix: 空 events 必须报 error，不能 silent pass。"""
+    s = Script(
+        persona_id="vboss_001",
+        day_index=0,
+        generated_at="2026-05-06T08:00:00",
+        events=(),
+    )
+    rep = validate_script(s)
+    assert any(i.code == "EMPTY_EVENTS" for i in rep.issues)
+    assert not rep.passed
+    assert rep.n_errors >= 1
+
+
 def test_summary_line_format() -> None:
     s = _seq_script(states=[State.FOCUSED, State.NEUTRAL, State.DISTRACTED])
     rep = validate_script(s)

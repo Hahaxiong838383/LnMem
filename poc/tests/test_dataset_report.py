@@ -253,6 +253,36 @@ def test_write_markdown_report_creates_file() -> None:
         assert "vboss_a" in text
 
 
+def test_build_report_records_parse_failed() -> None:
+    """codex F1-03 review fix: 损坏 JSON 不能 silent skip，必须计入 SCRIPT_PARSE_FAILED。"""
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        scripts_dir = td_path / "synthetic"
+        scripts_dir.mkdir()
+        personas_dir = td_path / "personas"
+        personas_dir.mkdir()
+
+        _write_script(scripts_dir / "good.json", "vboss_a", [State.FOCUSED, State.NEUTRAL])
+        (scripts_dir / "bad.json").write_text(
+            '{"persona_id": "vboss_b", "events": [', encoding="utf-8"
+        )
+        report = build_report(
+            sorted(scripts_dir.glob("*.json")), personas_dir
+        )
+        assert report.n_scripts == 1
+        assert report.issue_code_counts.get("SCRIPT_PARSE_FAILED") == 1
+        assert any("SCRIPT_PARSE_FAILED" in i for i in report.issues)
+
+
+def test_build_report_records_missing_file() -> None:
+    """codex F1-03 fix: 缺失文件路径要计入 SCRIPT_FILE_MISSING。"""
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        ghost = td_path / "ghost.json"  # 不创建
+        report = build_report([ghost], td_path)
+        assert report.issue_code_counts.get("SCRIPT_FILE_MISSING") == 1
+
+
 def test_empty_script_list_yields_zero_personas() -> None:
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
