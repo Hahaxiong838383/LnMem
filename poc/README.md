@@ -1,0 +1,119 @@
+# LnMem PoC — LNN 验证项目
+
+> 12-14 天 PoC + 7 天老板自用，证明 **LNN 真的能在多模态时序数据上学到主人特征**，且学习过程对老板和团队**可见、可解释、可治理**。
+
+**分支**：`poc/lnn-validation`（长期分支，不直接合并到 main）
+**状态**：v0.1 起草中（2026-05-05 Day 0）
+**演示对象**：内部团队（含老板）
+
+---
+
+## 30 秒入口（必读）
+
+按以下顺序阅读 4 份文档即可上手：
+
+1. [`docs/poc-spec.md`](docs/poc-spec.md) — **PoC 完整规范**（目标/AC/DoD/时间盒/失败兜底/资源/归因）
+2. [`docs/data-generation-todo.md`](docs/data-generation-todo.md) — **老板 Day 0 立即用**（30-50 虚拟主人画像 schema + 范例 + 评估标准）
+3. [`docs/limitations.md`](docs/limitations.md) — PoC 诚实声明（v0.1 骨架，Day 14 末完整版）
+4. [`docs/migration-guide.md`](docs/migration-guide.md) — PoC → 主分支工程化迁移建议（v0.1 骨架，Day 14 末完整版）
+
+辅助文档：
+- [`docs/lnn-training-log.md`](docs/lnn-training-log.md) — LNN 训练实验日志 schema
+- [`CHANGELOG.md`](CHANGELOG.md) — PoC 内部变更日志
+
+---
+
+## 与主分支的关系
+
+PoC 严格遵守主分支：
+
+- **万能语法 20 槽 schema**（不修改）
+- **记忆架构定义**（不引入新概念）
+- **意图预测三层定义**（[`../docs/capability-specs/cognitive.md`](../docs/capability-specs/cognitive.md)）
+- **BRO-PDCA × 目标驱动验收**（[`../docs/development-harness.md`](../docs/development-harness.md)）
+
+PoC **不修改主分支任何 .md 文档**——所有 PoC 相关文档放在 `poc/docs/` 下。
+
+---
+
+## 目录结构
+
+```
+poc/
+├── README.md                # 入口（本文件）
+├── CHANGELOG.md             # 内部变更日志
+├── data/
+│   ├── personas/            # 虚拟主人画像 JSON（老板 Day 0 写）
+│   ├── synthetic/           # 合成多模态数据（Day 4 cc 批量生成）
+│   └── real/                # 老板自用真实数据（Day 8-12 累积）
+├── docs/
+│   ├── poc-spec.md          # 完整规范（核心）
+│   ├── data-generation-todo.md  # 画像设计 brief
+│   ├── limitations.md       # 诚实声明
+│   ├── migration-guide.md   # 主分支迁移建议
+│   └── lnn-training-log.md  # 训练实验日志
+├── src/                     # 见下方"已实现 vs 计划中"两表
+└── demos/                   # smoke 真采脚本 + Day 14 录屏
+```
+
+### `poc/src/` 已实现 vs 计划中
+
+> 文档真实性优先于"看起来完整"。下表反映 HEAD `fdc8234` 的真实落盘状态。
+
+**已实现（Day 1-2 收官）**：
+
+| 路径 | 用途 | 实测 |
+|------|------|------|
+| `capture/` | Day 1 多模态采集骨架（face/audio/context/buffer） | smoke 4/4 PASS（25.5fps + 16kHz + osascript + 478 landmarks） |
+| `fusion.py` | Day 2 12-dim FusionFrame 融合层（face4+derived4+audio2+context2） | `pytest poc/tests/test_fusion.py` 12/12 PASS |
+| `validate_personas.py` | Day 0 画像校验（HEXACO/ECR/Schwartz/SDT 30 维门） | 217/217 门通过 |
+
+**计划中（按 README §时间盒推进）**：
+
+| 路径 | 阶段 | 硬门槛 |
+|------|------|--------|
+| `lnn/` | Day 5-6 | CfC + 状态识别 + 边界检测 + 个性化 τ，60-75% accuracy |
+| `memory/` | Day 7 | 5 阶段记忆形成 pipeline + F1 SlotValue 类型收紧 |
+| `ui/` | Day 7-14 | Streamlit 主入口 + 5 可视化 + Day 14 录屏 |
+| `multimodal/` | Day 8+ | 真实采集累积（在 capture/ 之上扩 wrapper，老板自用产数据） |
+
+
+---
+
+## 4 个不可妥协原则
+
+1. **诚实优于惊艳** — LNN 30-40% / LLM 60-70% 的协作占比必须明说
+2. **架构形态优于性能数字** — 完整流程跑通 + 学习趋势可见，不追求 90%+
+3. **可解释优于黑箱** — 训练 / 个性化参数 / 长期记忆全部可视化
+4. **用户参与优于自动化** — 所有"AI 对主人的新理解"必须老板确认才进长期记忆
+
+---
+
+## 时间盒一览（详见 [`docs/poc-spec.md`](docs/poc-spec.md) §2）
+
+| Day | 阶段 | 硬门槛 |
+|-----|------|--------|
+| 0 | 老板做画像 + cc 起草规范 | 30 画像通过校验 |
+| 1-2 | 多模态信号流入 | Day 1 末稳定 30fps + 16kHz + 上下文 |
+| 3-4 | 数据生成 | Day 3 末画像就位 |
+| 5-6 | LNN 预训练 | Day 6 末状态识别 60-75% |
+| 7 | 5 阶段记忆 | 全流程跑通 |
+| 8-12 | 老板自用累积真实数据 | Day 12 末真实数据 ≥ 10h |
+| 13 | 真实数据微调 | 微调 vs 预训练对比 |
+| 14 | 演示 + 录屏 | 5 个可视化全部出片 |
+
+---
+
+## 协作纪律
+
+按 [`../CLAUDE.md`](../CLAUDE.md) §2.1 PR 三道门：
+
+1. cc 实现（代码 + 测试 + 文档）
+2. codex 对抗审查（每模块 1 次）
+3. 老板 review + 决定是否进下一天
+
+每日 retro 写入 [`CHANGELOG.md`](CHANGELOG.md)。
+
+---
+
+署名：cc（Claude Opus 4.7）| 2026-05-05

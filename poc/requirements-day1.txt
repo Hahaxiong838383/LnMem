@@ -1,0 +1,20 @@
+# Day 1-2 多模态采集骨架依赖（v0.10 钉版本，2026-05-05 实跑验证）
+#
+# 重要约束：
+# - mediapipe<0.10.20 — 0.10.20+ 砍掉了 mp.solutions namespace 改成 Tasks API。
+#   骨架代码（face_signals.py 等）用 mp.solutions.face_mesh，必须固定老版本。
+#   实测可用：mediapipe==0.10.18 (Python 3.9 + Apple M-series Metal GPU)
+# - numpy<2 — mediapipe 0.10.x 要求 numpy<2，pip 自动降级到 1.26.4
+# - opencv-python 4.13+ 抗议 numpy<2，但仍能跑（功能不受影响）
+# - 系统层依赖：brew install portaudio（sounddevice native lib）
+# - streamlit-webrtc 暂未硬要求（PyAV 编译需要 ffmpeg dev headers）；
+#   Day 2 实跑验证用 cv2 + MediaPipe 直采绕过浏览器 webrtc。
+#
+# macOS 摄像头/麦克风权限：首次运行会弹系统授权框，需要在常用终端
+# （Terminal.app / iTerm）启动一次完成 TCC 授权后续才能跑。
+streamlit
+streamlit-webrtc  # 可选；浏览器 UI 演示用。装失败不影响 cv2 直采路径
+mediapipe<0.10.20
+opencv-python
+numpy<2
+sounddevice

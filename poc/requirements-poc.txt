@@ -1,0 +1,33 @@
+# LnMem PoC 依赖清单 v0.1
+# Day 0：仅 schema 校验依赖
+# Day 1+：陆续加多模态采集依赖（streamlit-webrtc / mediapipe / whisper.cpp / pyobjc）
+
+# === Day 0 ===
+pyyaml>=6.0       # 画像 frontmatter 解析
+numpy>=1.24       # HEXACO 余弦距离计算
+
+# === Day 1 (待解封) ===
+# streamlit>=1.30
+# streamlit-webrtc>=0.47
+# mediapipe>=0.10
+# openai-whisper>=20231117  # 或本地 whisper.cpp Python binding
+# pyobjc-framework-Cocoa>=10.0   # macOS 上下文捕获
+# pyobjc-framework-Quartz>=10.0
+# sounddevice>=0.4
+# numpy-quaternion>=2023.0       # 视觉 landmark 处理
+
+# === Day 5 (LNN 训练，待解封) ===
+# torch>=2.2
+# ncps>=1.0    # CfC LNN 主路径
+# scikit-learn>=1.3   # t-SNE 可视化
+# matplotlib>=3.8
+
+# === Day 7 (LLM 精炼，待解封) ===
+# anthropic>=0.40    # Claude Opus 4.7 主路径
+# openai>=1.0        # DeepSeek-V4 兼容路径
+
+# 安装命令：
+#   cd /tmp/lnmem-fix/LnMem
+#   python3 -m venv .venv-poc
+#   source .venv-poc/bin/activate
+#   pip install -r poc/requirements-poc.txt

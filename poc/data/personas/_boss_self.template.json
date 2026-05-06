@@ -1,0 +1,225 @@
+{
+  "profile_id": "boss_self_template",
+  "version": "0.3",
+  "created_date": "2026-05-05",
+  "is_real_person": false,
+  "trait_layer": {
+    "_theory_basis": "HEXACO six-factor personality model",
+    "hexaco_scores": {
+      "honesty_humility": 0.6666666666666666,
+      "emotionality": 0.5,
+      "extraversion": 0.75,
+      "agreeableness": 0.6666666666666666,
+      "conscientiousness": 0.8333333333333334,
+      "openness": 0.9166666666666666
+    },
+    "facet_scores": {}
+  },
+  "attachment_layer": {
+    "_theory_basis": "ECR attachment dimensions",
+    "attachment_dimensions": {
+      "anxiety": 0.2916666666666667,
+      "avoidance": 0.7083333333333334
+    },
+    "attachment_style": {
+      "primary": "dismissive_avoidant",
+      "secondary": null,
+      "confidence": 0.72
+    }
+  },
+  "motivation_layer": {
+    "_theory_basis": "GSE + Self-Determination Theory + Schwartz PVQ",
+    "self_efficacy": {
+      "general": 0.5,
+      "professional": 0.5,
+      "relationship": 0.5,
+      "emotion_regulation": 0.5,
+      "health_management": 0.5,
+      "creative_expression": 0.5
+    },
+    "self_determination": {
+      "autonomy": 0.5,
+      "competence": 0.5,
+      "relatedness": 0.5
+    },
+    "values_hierarchy": {
+      "_mapping_source": "personalt-test data/values-questions.json (PVQ-10 adapted, source-of-truth verified 2026-05-05 by cc curl + agent research)",
+      "_v_to_schwartz": {
+        "V1": {
+          "value": "self-direction",
+          "score": 7
+        },
+        "V2": {
+          "value": "stimulation",
+          "score": 7
+        },
+        "V3": {
+          "value": "hedonism",
+          "score": 7
+        },
+        "V4": {
+          "value": "achievement",
+          "score": 7
+        },
+        "V5": {
+          "value": "power",
+          "score": 7
+        },
+        "V6": {
+          "value": "security",
+          "score": 5
+        },
+        "V7": {
+          "value": "conformity",
+          "score": 4
+        },
+        "V8": {
+          "value": "tradition",
+          "score": 3
+        },
+        "V9": {
+          "value": "benevolence",
+          "score": 6
+        },
+        "V10": {
+          "value": "universalism",
+          "score": 5
+        }
+      },
+      "top_values_tied_at_7": [
+        "self_direction",
+        "stimulation",
+        "hedonism",
+        "achievement",
+        "power"
+      ],
+      "top3_representative": [
+        "self_direction",
+        "achievement",
+        "power"
+      ],
+      "bottom_values_ranked": [
+        "tradition",
+        "conformity",
+        "security",
+        "universalism"
+      ],
+      "ranked_values": [
+        [
+          "self_direction",
+          7
+        ],
+        [
+          "stimulation",
+          7
+        ],
+        [
+          "hedonism",
+          7
+        ],
+        [
+          "achievement",
+          7
+        ],
+        [
+          "power",
+          7
+        ],
+        [
+          "benevolence",
+          6
+        ],
+        [
+          "security",
+          5
+        ],
+        [
+          "universalism",
+          5
+        ],
+        [
+          "conformity",
+          4
+        ],
+        [
+          "tradition",
+          3
+        ]
+      ],
+      "schwartz_4_groups": {
+        "openness_to_change": {
+          "members": [
+            "self_direction",
+            "stimulation",
+            "hedonism"
+          ],
+          "mean": 7.0,
+          "tier": "dominant"
+        },
+        "self_enhancement": {
+          "members": [
+            "achievement",
+            "power"
+          ],
+          "mean": 7.0,
+          "tier": "dominant"
+        },
+        "self_transcendence": {
+          "members": [
+            "benevolence",
+            "universalism"
+          ],
+          "mean": 5.5,
+          "tier": "neutral"
+        },
+        "conservation": {
+          "members": [
+            "security",
+            "conformity",
+            "tradition"
+          ],
+          "mean": 4.0,
+          "tier": "recessive"
+        }
+      }
+    }
+  },
+  "situational_signatures": {
+    "_theory_basis": "CAPS cognitive-affective processing system",
+    "if_then_patterns": [],
+    "stress_triggers": [],
+    "recovery_conditions": [],
+    "collaboration_mode": "insufficient_data"
+  },
+  "multimodal_signature": {
+    "visual_cues": [],
+    "voice_cues": [],
+    "behavioral_cues": [],
+    "digital_behavior_cues": [],
+    "confidence": 0.3
+  },
+  "ai_interaction_design": {
+    "interaction_principles": [],
+    "preferred_tone": "direct_supportive",
+    "proactivity_level": "moderate",
+    "trust_building_path": [],
+    "do": [],
+    "avoid": [],
+    "memory_strategy": []
+  },
+  "narrative_layer": {
+    "summary_second_person": "",
+    "core_tension": "",
+    "growth_direction": "",
+    "relationship_to_ai": "",
+    "evidence_notes": []
+  },
+  "metadata": {
+    "assessment_version": "full",
+    "generated_by": "personalt-test",
+    "confidence_score": 0.7,
+    "provider": "minimax",
+    "analysis_status": "local_only"
+  },
+  "_privacy_notice": "原始答题向量（raw_assessment_data 字段）已脱敏移除，真值仅保留在 老板本地 ~/.lnmem/private/_boss_self_raw.json （权限 700）。本文件仅作为 schema 模板与画像层聚合结果使用，可公开。Day 8+ 老板自用真实采集的画像，必须走同样的隐私边界。"
+}

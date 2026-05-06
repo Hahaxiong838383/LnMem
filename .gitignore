@@ -12,6 +12,7 @@ dist/
 
 # venv
 .venv/
+.venv-poc/
 venv/
 env/
 
@@ -31,6 +32,19 @@ day*_results.json
 !evals/data/*.jsonl
 !poc/demos/results/
 !poc/demos/results/*.jsonl
+
+# PoC personas + Day 3 合成数据骨架 + src/data/ 代码包 tracked（real/ 仍被忽略）
+!poc/src/data/
+!poc/data/
+!poc/data/synthetic/
+!poc/data/synthetic/script_*.json
+!poc/data/synthetic/*.md
+poc/data/synthetic/signals_*.jsonl
+poc/data/real/
+
+# 老板真实测评原始向量永远不进 git（脱敏 template 见 personas/_boss_self.template.json）
+poc/data/personas/_boss_self_raw.json
+poc/data/personas/*_real_raw.json
 
 # spikes intermediate
 spikes/*/.cache/
