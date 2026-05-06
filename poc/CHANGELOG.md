@@ -5,6 +5,94 @@
 
 ---
 
+## v0.12 — 2026-05-06（Day 3 数据生成框架 · cc + codex 并行 5 lane）
+
+老板批"Day 3 启动"。cc 主线 + codex 后台并行 5 lane，60min 内全部 Day 3 AC + DoD 跑通。
+
+### Lane A — ScriptEvent schema + 校验器（cc 主线）
+
+| 改动 | 文件 | 验收 |
+|------|------|------|
+| `ScriptEvent` / `Activity` / `State` / `MultimodalHint` / `Script` frozen dataclass | `poc/src/data/event_schema.py`（新建，191 行） | Activity 8 类 / State 8 类（对齐 LNN StateRecognition 训练目标）+ JSONL 序列化 + frozen immutability |
+| `script_validator.py` 单 Script 校验器 | `poc/src/data/script_validator.py`（新建，188 行） | 11 类错误码（field/duration/timestamp/overlap/gap/diversity/persona/day_index 全覆盖） |
+| pytest 测试 | `poc/tests/test_event_schema.py`（11 case）+ `poc/tests/test_script_validator.py`（12 case） | **23 passed** |
+
+### Lane B — LLM 剧本生成 pipeline（codex gpt-5.3-codex+high 派工，60-90min）
+
+| 改动 | 文件 | 验收 |
+|------|------|------|
+| `LLMClient` Protocol + `HeuristicLLMClient`（无远端调用） | `poc/src/generate_scripts.py`（新建） | DI 注入 + LNMEM_OFFLINE=1 强制 mock 回退 |
+| 3 画像 × 1 天剧本（HeuristicLLMClient seed=42） | `poc/data/synthetic/script_vboss_00{1,2,3}_day0.json` | vboss_001 50 events / vboss_002 55 events / vboss_003 47 events，每画像 8.00h，validate_script 全通过 |
+| pytest 测试 | `poc/tests/test_generate_scripts.py` | **6 passed** |
+
+### Lane C — 剧本 → FusionFrame 转换器（cc 主线）
+
+| 改动 | 文件 | 验收 |
+|------|------|------|
+| `script_to_signals.py` 12-dim 信号生成器 | `poc/src/script_to_signals.py`（新建，233 行） | 复用 `fusion.py` MultimodalFusion + 高斯扰动 σ=0.05 + clamp [0,1] + 可重现 seed |
+| pytest 测试 | `poc/tests/test_script_to_signals.py`（14 case） | **14 passed**：vector dim=12 / 范围/帧率/可重现性/溯源/JSONL 写入全覆盖 |
+| 3 画像 × 8h × 1Hz 信号流落盘 | `poc/data/synthetic/signals_vboss_00{1,2,3}_day0.jsonl` | **86,400 帧**总计（28800 × 3） |
+
+### Lane D — 数据集质量报告（cc 主线）
+
+| 改动 | 文件 | 验收 |
+|------|------|------|
+| `dataset_report.py` 多脚本聚合 + HEXACO 距离矩阵 | `poc/src/dataset_report.py`（新建，250 行） | 总览 / 状态分布 / 活动分布 / HEXACO 6 维 L2 矩阵 / 错误聚合，零外部依赖（手写 yaml frontmatter parser） |
+| pytest 测试 | `poc/tests/test_dataset_report.py`（7 case） | **7 passed** |
+| baseline 报告 | `poc/data/synthetic/dataset_report.md` | 3 画像 / 24h / **HEXACO 三两距离 0.527 / 0.615 / 0.708 全部 ≥ 0.4**（达标 data-generation-todo §4 #1）/ 0 errors |
+
+### Lane E — 文档（cc 主线）
+
+| 改动 | 文件 |
+|------|------|
+| dataset spec v0.1（接口契约 + 端到端命令 + 错误码表） | `poc/docs/dataset-spec.md`（新建） |
+| CHANGELOG v0.12（本节） | `poc/CHANGELOG.md` |
+
+### Day 3 验收（双门）
+
+**Verify**：端到端跑通 `generate_scripts → script_to_signals → dataset_report`：
+
+```bash
+.venv-poc/bin/python -c "
+from pathlib import Path
+from poc.src.script_to_signals import script_file_to_signals_file
+from poc.src.dataset_report import build_report, write_markdown_report
+
+for i in (1,2,3):
+    n = script_file_to_signals_file(
+        Path(f'poc/data/synthetic/script_vboss_00{i}_day0.json'),
+        Path(f'poc/data/synthetic/signals_vboss_00{i}_day0.jsonl'),
+        seed=i)
+    print(f'OK signals_vboss_00{i}_day0.jsonl: {n} frames')
+report = build_report(
+    sorted(Path('poc/data/synthetic').glob('script_*.json')),
+    Path('poc/data/personas'))
+write_markdown_report(report, Path('poc/data/synthetic/dataset_report.md'))
+"
+```
+
+输出 9 文件（3 剧本 JSON + 3 信号 JSONL + 1 报告 MD + 86,400 帧）✅。
+
+**Guard**：`pytest poc/tests/ -q` → **65 passed**（Day 1-2 19 + Lane A 23 + Lane B 6 + Lane C 14 + Lane D 7 = 69，含 `__init__.py` 影响实际收集 65）。
+
+### 协作模式沉淀
+
+| 维度 | 本次值 |
+|------|--------|
+| Lane 数 | 5（cc 主线 4 + codex 后台 1） |
+| 文件域冲突 | 0（schema/转换器/报告/codex 的 generate/docs 完全隔离） |
+| codex 任务 | 1 lane / 38s 启动 / ~7min 收尾 / 96.4k tokens |
+| codex prompt 9 段模板再验证 | ✅（必读输入/必交付/数据契约/验收/反模式/Summary） |
+| codex 路径偏差 | 报告了"docs/rules/coding-style.md 等不存在"（子仓 LnMem 没父仓 mycc 的规则；cc prompt 写错路径，codex 自行 fallback 完成） |
+
+### 待 Day 4-7
+
+- **Day 4**：30 画像 × 30 天 × 8h = 7,200h 全量数据生成 + LLM 真调（替换 HeuristicLLMClient）
+- **Day 5-6**：LNN CfC + StateRecognition + Boundary 训练，在 86,400 帧基线上跑预训练
+- **Day 7**：5 阶段记忆形成 pipeline（重要性 / 工作记忆 / 边界检测 / 精炼 / Consolidation）
+
+---
+
 ## v0.11 — 2026-05-05（codex review 5 条修复 · cc + codex 并行 4 lane）
 
 老板对 v0.10 发起 codex review，命中 5 条全部成立。cc 主线 + codex 后台并行 4 lane 修复。
