@@ -1,0 +1,411 @@
+{
+  "persona_id": "vboss_030",
+  "day_index": 9,
+  "generated_at": "2026-05-08T03:46:43",
+  "events": [
+    {
+      "event_id": "vboss_030_d9_e000",
+      "ts": "2026-05-15T09:00:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 1800.0,
+      "activity": "transition",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.55,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.45,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "在大理家中醒来，开始晨间冥想",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e001",
+      "ts": "2026-05-15T09:30:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 1200.0,
+      "activity": "break_long",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "在阳台面向洱海做瑜伽体式练习",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e002",
+      "ts": "2026-05-15T09:50:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 1200.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "在洱海边享用早餐，欣赏日出",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e003",
+      "ts": "2026-05-15T10:10:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "收拾教具，准备出门前往瑜伽工作室",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e004",
+      "ts": "2026-05-15T10:25:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 1200.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "骑电动车从家中穿过洱海廊道到工作室",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e005",
+      "ts": "2026-05-15T10:45:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.82,
+        "voice_present": 0.2,
+        "utterance_density": 0.15,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "抵达工作室，整理教室并播放晨间音乐",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e006",
+      "ts": "2026-05-15T10:50:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.88,
+        "voice_present": 0.78,
+        "utterance_density": 0.62,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "教授晨间哈他瑜伽课，指导学员呼吸与体式",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e007",
+      "ts": "2026-05-15T11:50:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.78,
+        "voice_present": 0.55,
+        "utterance_density": 0.4,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "与学员交流课程感受，解答练习问题",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e008",
+      "ts": "2026-05-15T11:55:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.13,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.9,
+        "voice_present": 0.42,
+        "utterance_density": 0.28,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "为学员进行一对一禅修指导与身体调整",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e009",
+      "ts": "2026-05-15T12:25:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "在工作室小院品茶，远眺苍山放松身心",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e010",
+      "ts": "2026-05-15T12:55:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "个人瑜伽练习与冥想修行",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e011",
+      "ts": "2026-05-15T13:55:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 900.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "在笔记本上记录修行感悟与教学灵感",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e012",
+      "ts": "2026-05-15T14:10:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.09,
+        "gaze_stability": 0.8,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息后准备下午课程资料",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e013",
+      "ts": "2026-05-15T14:15:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.72,
+        "voice_present": 0.68,
+        "utterance_density": 0.52,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "通过视频与外地瑜伽同行交流教学心得",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e014",
+      "ts": "2026-05-15T15:15:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 1200.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.78,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "步行穿过大理古城，漫步洋人街放松",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e015",
+      "ts": "2026-05-15T15:35:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "查看学员练习反馈，更新课程计划",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e016",
+      "ts": "2026-05-15T15:50:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.78,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "回复学员消息，沟通下次课程安排",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e017",
+      "ts": "2026-05-15T16:20:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.4,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息，整理思绪准备下午课程",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d9_e018",
+      "ts": "2026-05-15T16:25:00",
+      "persona_id": "vboss_030",
+      "day_index": 9,
+      "duration_s": 2100.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.16,
+        "gaze_stability": 0.86,
+        "voice_present": 0.75,
+        "utterance_density": 0.58,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "教授下午阴瑜伽课，讲解经络与气血",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 972,
+    "target_hours": 8.0
+  }
+}

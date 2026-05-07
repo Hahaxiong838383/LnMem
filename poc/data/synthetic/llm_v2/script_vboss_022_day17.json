@@ -1,0 +1,390 @@
+{
+  "persona_id": "vboss_022",
+  "day_index": 17,
+  "generated_at": "2026-05-08T02:37:19",
+  "events": [
+    {
+      "event_id": "vboss_022_d17_e000",
+      "ts": "2026-05-23T09:00:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 1200.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.8,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床洗漱整理仪表",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e001",
+      "ts": "2026-05-23T09:20:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 1200.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.78,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 3
+      },
+      "description": "浏览财经资讯和隔夜美股行情",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e002",
+      "ts": "2026-05-23T09:40:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.06,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "换装整理准备出门",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e003",
+      "ts": "2026-05-23T09:45:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 1800.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "驱车前往陆家嘴写字楼",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e004",
+      "ts": "2026-05-23T10:15:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.88,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "抵达公司打卡并启动交易系统",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e005",
+      "ts": "2026-05-23T10:30:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.07,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "查看隔夜持仓和外围市场表现",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e006",
+      "ts": "2026-05-23T11:00:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.93,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "分析A股集合竞价情况和资金流向",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e007",
+      "ts": "2026-05-23T11:30:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "处理风控报告和保证金检查",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e008",
+      "ts": "2026-05-23T12:00:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息活动肩颈",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e009",
+      "ts": "2026-05-23T12:05:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.72,
+        "voice_present": 0.7,
+        "utterance_density": 0.55,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "晨会汇报持仓与当日交易计划",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e010",
+      "ts": "2026-05-23T12:50:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.09,
+        "gaze_stability": 0.94,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "开盘后快速分析盘面并执行交易",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e011",
+      "ts": "2026-05-23T13:35:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.91,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "板块轮动分析寻找交易机会",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e012",
+      "ts": "2026-05-23T14:20:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "distracted",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 5
+      },
+      "description": "盯盘操作根据行情快速下单",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e013",
+      "ts": "2026-05-23T14:50:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.45,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息喝水并远眺",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e014",
+      "ts": "2026-05-23T14:55:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.75,
+        "voice_present": 0.65,
+        "utterance_density": 0.5,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "交易策略复盘与下午布局讨论",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e015",
+      "ts": "2026-05-23T15:40:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.55,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "午餐休息外卖并观看财经节目",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e016",
+      "ts": "2026-05-23T16:40:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.07,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "午后回到工位重启系统",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d17_e017",
+      "ts": "2026-05-23T16:45:00",
+      "persona_id": "vboss_022",
+      "day_index": 17,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.09,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "午后快速复盘分析板块机会",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 1764,
+    "target_hours": 8.0
+  }
+}

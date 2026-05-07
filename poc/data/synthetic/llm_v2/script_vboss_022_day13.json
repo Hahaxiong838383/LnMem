@@ -1,0 +1,348 @@
+{
+  "persona_id": "vboss_022",
+  "day_index": 13,
+  "generated_at": "2026-05-08T02:35:34",
+  "events": [
+    {
+      "event_id": "vboss_022_d13_e000",
+      "ts": "2026-05-19T09:00:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 2700.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "驱车前往陆家嘴金融中心",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e001",
+      "ts": "2026-05-19T09:45:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "刷卡进入写字楼大堂",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e002",
+      "ts": "2026-05-19T09:55:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.93,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "查看隔夜美股收盘与宏观要闻",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e003",
+      "ts": "2026-05-19T10:25:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.06,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.91,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Bloomberg",
+        "app_switch_count_5min": 2
+      },
+      "description": "浏览亚太市场开盘行情",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e004",
+      "ts": "2026-05-19T10:55:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.89,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Excel",
+        "app_switch_count_5min": 1
+      },
+      "description": "复盘隔夜外盘持仓盈亏",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e005",
+      "ts": "2026-05-19T11:10:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.52,
+        "voice_present": 0.18,
+        "utterance_density": 0.12,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "冲咖啡，和邻座同事简短交流",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e006",
+      "ts": "2026-05-19T11:25:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.04,
+        "head_yaw_norm": 0.03,
+        "gaze_stability": 0.96,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Wind",
+        "app_switch_count_5min": 1
+      },
+      "description": "执行A股开盘集合竞价",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e007",
+      "ts": "2026-05-19T12:25:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.58,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起身活动舒展身体",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e008",
+      "ts": "2026-05-19T12:35:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.95,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Bloomberg",
+        "app_switch_count_5min": 1
+      },
+      "description": "盘中交易执行与仓位调整",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e009",
+      "ts": "2026-05-19T13:35:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "low_energy",
+      "multimodal_hint": {
+        "eye_closure": 0.38,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.38,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂闭眼休息缓解眼疲劳",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e010",
+      "ts": "2026-05-19T13:45:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Excel",
+        "app_switch_count_5min": 2
+      },
+      "description": "记录上午交易台账",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e011",
+      "ts": "2026-05-19T14:15:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.76,
+        "voice_present": 0.55,
+        "utterance_density": 0.35,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "参加投资部晨会汇报观点",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e012",
+      "ts": "2026-05-19T14:45:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.52,
+        "voice_present": 0.08,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午休下楼吃饭放松",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e013",
+      "ts": "2026-05-19T15:45:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.62,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "从食堂返回工位准备下午",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e014",
+      "ts": "2026-05-19T16:00:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.06,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.94,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Bloomberg",
+        "app_switch_count_5min": 1
+      },
+      "description": "分析下午盘面结构与机会",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_022_d13_e015",
+      "ts": "2026-05-19T16:45:00",
+      "persona_id": "vboss_022",
+      "day_index": 13,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.04,
+        "head_yaw_norm": 0.03,
+        "gaze_stability": 0.97,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Wind",
+        "app_switch_count_5min": 1
+      },
+      "description": "执行下午交易时段操作",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 1364,
+    "target_hours": 8.0
+  }
+}

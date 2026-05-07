@@ -1,0 +1,642 @@
+{
+  "persona_id": "vboss_026",
+  "day_index": 20,
+  "generated_at": "2026-05-08T03:16:30",
+  "events": [
+    {
+      "event_id": "vboss_026_d20_e000",
+      "ts": "2026-05-26T09:00:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "剪映",
+        "app_switch_count_5min": 2
+      },
+      "description": "筛选昨日视频素材准备发布",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e001",
+      "ts": "2026-05-26T09:30:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "洗漱整理准备今日外出拍摄",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e002",
+      "ts": "2026-05-26T09:40:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "剪映",
+        "app_switch_count_5min": 3
+      },
+      "description": "剪辑昨晚直播回放精华片段",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e003",
+      "ts": "2026-05-26T09:55:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.4,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.45,
+        "voice_present": 0.0,
+        "utterance_density": 0.1,
+        "active_app": "小红书",
+        "app_switch_count_5min": 8
+      },
+      "description": "刷小红书看同行动态找灵感",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e004",
+      "ts": "2026-05-26T10:05:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "撰写今日探店脚本大纲",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e005",
+      "ts": "2026-05-26T10:25:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "高德地图",
+        "app_switch_count_5min": 1
+      },
+      "description": "打车前往今日探店餐厅",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e006",
+      "ts": "2026-05-26T10:40:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.75,
+        "voice_present": 0.3,
+        "utterance_density": 0.15,
+        "active_app": "相机",
+        "app_switch_count_5min": 0
+      },
+      "description": "餐厅内拍摄美食特写镜头",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e007",
+      "ts": "2026-05-26T11:10:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.7,
+        "voice_present": 0.7,
+        "utterance_density": 0.45,
+        "active_app": "相机",
+        "app_switch_count_5min": 0
+      },
+      "description": "品尝美食并录制试吃点评",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e008",
+      "ts": "2026-05-26T11:25:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.35,
+        "gaze_stability": 0.65,
+        "voice_present": 0.8,
+        "utterance_density": 0.7,
+        "active_app": "微信",
+        "app_switch_count_5min": 2
+      },
+      "description": "和朋友视频通话分享探店体验",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e009",
+      "ts": "2026-05-26T11:35:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.4,
+        "gaze_stability": 0.8,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "相机",
+        "app_switch_count_5min": 0
+      },
+      "description": "补拍餐厅环境空镜素材",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e010",
+      "ts": "2026-05-26T11:45:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 1200.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.78,
+        "voice_present": 0.75,
+        "utterance_density": 0.6,
+        "active_app": "腾讯会议",
+        "app_switch_count_5min": 4
+      },
+      "description": "与品牌方视频会议沟通合作细节",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e011",
+      "ts": "2026-05-26T12:05:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.32,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.52,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "高德地图",
+        "app_switch_count_5min": 1
+      },
+      "description": "前往下一个景点继续拍摄",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e012",
+      "ts": "2026-05-26T12:15:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.35,
+        "gaze_stability": 0.72,
+        "voice_present": 0.4,
+        "utterance_density": 0.25,
+        "active_app": "相机",
+        "app_switch_count_5min": 0
+      },
+      "description": "景点打卡拍摄短视频素材",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e013",
+      "ts": "2026-05-26T12:35:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.38,
+        "head_pitch_norm": 0.4,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.48,
+        "voice_present": 0.0,
+        "utterance_density": 0.05,
+        "active_app": "小红书",
+        "app_switch_count_5min": 6
+      },
+      "description": "景点咖啡厅休息浏览粉丝留言",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e014",
+      "ts": "2026-05-26T12:50:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.15,
+        "active_app": "小红书",
+        "app_switch_count_5min": 5
+      },
+      "description": "回复粉丝评论和私信互动",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e015",
+      "ts": "2026-05-26T13:00:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "distracted",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "邮箱",
+        "app_switch_count_5min": 4
+      },
+      "description": "处理工作邮件和商务对接",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e016",
+      "ts": "2026-05-26T13:20:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.7,
+        "voice_present": 0.6,
+        "utterance_density": 0.4,
+        "active_app": "相机",
+        "app_switch_count_5min": 0
+      },
+      "description": "简单午餐并录制吃播片段",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e017",
+      "ts": "2026-05-26T13:30:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.42,
+        "head_pitch_norm": 0.45,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.4,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "抖音",
+        "app_switch_count_5min": 10
+      },
+      "description": "刷短视频放松消遣时光",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e018",
+      "ts": "2026-05-26T13:45:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "高德地图",
+        "app_switch_count_5min": 1
+      },
+      "description": "前往今日最后拍摄地点",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e019",
+      "ts": "2026-05-26T13:55:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 1500.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.78,
+        "voice_present": 0.2,
+        "utterance_density": 0.1,
+        "active_app": "相机",
+        "app_switch_count_5min": 0
+      },
+      "description": "海边日落拍摄氛围感视频",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e020",
+      "ts": "2026-05-26T14:20:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.05,
+        "active_app": "微信",
+        "app_switch_count_5min": 3
+      },
+      "description": "海边散步拍照发朋友圈",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e021",
+      "ts": "2026-05-26T14:30:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.58,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "剪映",
+        "app_switch_count_5min": 3
+      },
+      "description": "返回酒店快速剪辑今日素材",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e022",
+      "ts": "2026-05-26T14:45:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.45,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.45,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "冲澡更换衣物整理状态",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e023",
+      "ts": "2026-05-26T14:55:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "剪映",
+        "app_switch_count_5min": 2
+      },
+      "description": "正式剪辑探店完整视频",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e024",
+      "ts": "2026-05-26T15:25:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.75,
+        "voice_present": 0.8,
+        "utterance_density": 0.65,
+        "active_app": "电话",
+        "app_switch_count_5min": 0
+      },
+      "description": "和MCN运营电话沟通下周计划",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e025",
+      "ts": "2026-05-26T15:40:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.55,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.35,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息补充体力精力",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e026",
+      "ts": "2026-05-26T15:50:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.82,
+        "voice_present": 0.5,
+        "utterance_density": 0.3,
+        "active_app": "剪映",
+        "app_switch_count_5min": 2
+      },
+      "description": "完成视频配音和字幕校对",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e027",
+      "ts": "2026-05-26T16:10:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "distracted",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.62,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "小红书",
+        "app_switch_count_5min": 5
+      },
+      "description": "上传发布视频并设置话题",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e028",
+      "ts": "2026-05-26T16:25:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 1200.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.8,
+        "voice_present": 0.4,
+        "utterance_density": 0.25,
+        "active_app": "腾讯会议",
+        "app_switch_count_5min": 3
+      },
+      "description": "受邀参加品牌方线上发布会",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d20_e029",
+      "ts": "2026-05-26T16:45:00",
+      "persona_id": "vboss_026",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "小红书",
+        "app_switch_count_5min": 4
+      },
+      "description": "查看视频数据和分析反馈",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2068,
+    "target_hours": 8.0
+  }
+}

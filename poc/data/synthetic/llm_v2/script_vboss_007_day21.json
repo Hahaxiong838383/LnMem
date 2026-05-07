@@ -1,0 +1,474 @@
+{
+  "persona_id": "vboss_007",
+  "day_index": 21,
+  "generated_at": "2026-05-08T00:49:06",
+  "events": [
+    {
+      "event_id": "vboss_007_d21_e000",
+      "ts": "2026-05-27T09:00:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床穿衣整理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e001",
+      "ts": "2026-05-27T09:10:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1500.0,
+      "activity": "leisure",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.65,
+        "voice_present": 0.4,
+        "utterance_density": 0.25,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "吃早餐陪家人",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e002",
+      "ts": "2026-05-27T09:35:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1200.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "开车去公司路上",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e003",
+      "ts": "2026-05-27T09:55:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 4
+      },
+      "description": "处理邮件和 Slack 消息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e004",
+      "ts": "2026-05-27T10:40:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.75,
+        "voice_present": 0.8,
+        "utterance_density": 0.65,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "团队站会同步进度",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e005",
+      "ts": "2026-05-27T11:10:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 2
+      },
+      "description": "代码评审和 PR 审查",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e006",
+      "ts": "2026-05-27T11:25:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1500.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.7,
+        "voice_present": 0.75,
+        "utterance_density": 0.6,
+        "active_app": "Notion",
+        "app_switch_count_5min": 3
+      },
+      "description": "技术方案评审讨论",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e007",
+      "ts": "2026-05-27T11:50:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "撰写技术文档",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e008",
+      "ts": "2026-05-27T12:00:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.78,
+        "voice_present": 0.7,
+        "utterance_density": 0.55,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "和 CTO 对齐战略规划",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e009",
+      "ts": "2026-05-27T12:30:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "站起来活动休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e010",
+      "ts": "2026-05-27T12:40:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 2100.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.55,
+        "voice_present": 0.3,
+        "utterance_density": 0.15,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐时间",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e011",
+      "ts": "2026-05-27T13:15:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.73,
+        "voice_present": 0.72,
+        "utterance_density": 0.58,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "产品需求评审会议",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e012",
+      "ts": "2026-05-27T13:45:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "深入排查生产环境 bug",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e013",
+      "ts": "2026-05-27T14:05:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.89,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "系统架构设计图更新",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e014",
+      "ts": "2026-05-27T14:20:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.32,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.52,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "喝茶休息恢复精力",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e015",
+      "ts": "2026-05-27T14:30:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1500.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.76,
+        "voice_present": 0.78,
+        "utterance_density": 0.62,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "面试候选工程师",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e016",
+      "ts": "2026-05-27T14:55:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.07,
+        "gaze_stability": 0.86,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 2
+      },
+      "description": "代码评审和团队 PR review",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e017",
+      "ts": "2026-05-27T15:15:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.93,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 3
+      },
+      "description": "处理紧急技术决策",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e018",
+      "ts": "2026-05-27T15:45:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.17,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.72,
+        "voice_present": 0.65,
+        "utterance_density": 0.5,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "和 HR 对齐团队招聘计划",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e019",
+      "ts": "2026-05-27T16:00:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.4,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.45,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息活动身体",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e020",
+      "ts": "2026-05-27T16:10:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.58,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "开车去健身房",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_007_d21_e021",
+      "ts": "2026-05-27T16:40:00",
+      "persona_id": "vboss_007",
+      "day_index": 21,
+      "duration_s": 1200.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.45,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.4,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "健身房锻炼身体",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2149,
+    "target_hours": 8.0
+  }
+}

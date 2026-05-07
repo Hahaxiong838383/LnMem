@@ -1,0 +1,411 @@
+{
+  "persona_id": "vboss_025",
+  "day_index": 29,
+  "generated_at": "2026-05-08T03:12:59",
+  "events": [
+    {
+      "event_id": "vboss_025_d29_e000",
+      "ts": "2026-06-04T09:00:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 1500.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.45,
+        "gaze_stability": 0.55,
+        "voice_present": 0.05,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "地铁通勤，边听播客",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e001",
+      "ts": "2026-06-04T09:25:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "刷卡入楼，电梯上楼",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e002",
+      "ts": "2026-06-04T09:30:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "整理桌面，打开电脑查邮件",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e003",
+      "ts": "2026-06-04T09:50:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 2400.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "起草项目进展报告文档",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e004",
+      "ts": "2026-06-04T10:30:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.78,
+        "voice_present": 0.75,
+        "utterance_density": 0.6,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "项目组晨会同步进展",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e005",
+      "ts": "2026-06-04T11:00:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "跟进捐赠方材料反馈",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e006",
+      "ts": "2026-06-04T11:30:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.45,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起身倒水，活动颈椎",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e007",
+      "ts": "2026-06-04T11:40:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.91,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "撰写捐赠方报告初稿",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e008",
+      "ts": "2026-06-04T12:10:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "收拾桌面，准备结束上午工作",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e009",
+      "ts": "2026-06-04T12:25:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.8,
+        "voice_present": 0.8,
+        "utterance_density": 0.65,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "与合作伙伴线上视频会议",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e010",
+      "ts": "2026-06-04T13:25:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "完善捐赠方报告终稿",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e011",
+      "ts": "2026-06-04T13:55:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.42,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "休息片刻，整理思路",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e012",
+      "ts": "2026-06-04T14:05:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 2700.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.5,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.45,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐时间，园区散步",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e013",
+      "ts": "2026-06-04T14:50:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 2100.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.87,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "审阅项目组现场报告",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e014",
+      "ts": "2026-06-04T15:25:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.78,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "准备下午会议材料",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e015",
+      "ts": "2026-06-04T15:40:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.13,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.89,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "继续完善现场报告",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e016",
+      "ts": "2026-06-04T16:10:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.17,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.26,
+        "gaze_stability": 0.79,
+        "voice_present": 0.78,
+        "utterance_density": 0.62,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "国际合作交流线上会议",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e017",
+      "ts": "2026-06-04T16:40:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.44,
+        "head_pitch_norm": 0.06,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.52,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息，伸展身体",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_025_d29_e018",
+      "ts": "2026-06-04T16:50:00",
+      "persona_id": "vboss_025",
+      "day_index": 29,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "起草下一期拨款提案",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2967,
+    "target_hours": 8.0
+  }
+}

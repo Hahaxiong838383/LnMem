@@ -1,0 +1,453 @@
+{
+  "persona_id": "vboss_017",
+  "day_index": 20,
+  "generated_at": "2026-05-08T02:01:33",
+  "events": [
+    {
+      "event_id": "vboss_017_d20_e000",
+      "ts": "2026-05-26T09:00:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 1800.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "开车从家到学校，途中听学术播客",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e001",
+      "ts": "2026-05-26T09:30:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "到达办公室，放包整理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e002",
+      "ts": "2026-05-26T09:45:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.88,
+        "voice_present": 0.1,
+        "utterance_density": 0.12,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "查看邮件和日历，整理今日任务",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e003",
+      "ts": "2026-05-26T10:00:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.94,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "VSCode 编写论文实验代码",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e004",
+      "ts": "2026-05-26T10:30:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.95,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "深度工作：调试模型参数",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e005",
+      "ts": "2026-05-26T11:15:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "办公室短暂休息，泡茶",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e006",
+      "ts": "2026-05-26T11:30:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.93,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 0
+      },
+      "description": "继续实验数据分析",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e007",
+      "ts": "2026-05-26T11:45:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.07,
+        "gaze_stability": 0.85,
+        "voice_present": 0.15,
+        "utterance_density": 0.1,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "查看学生周报，给予反馈",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e008",
+      "ts": "2026-05-26T11:55:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "work_meeting",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.62,
+        "voice_present": 0.45,
+        "utterance_density": 0.28,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "参加系部例会，讨论项目进度",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e009",
+      "ts": "2026-05-26T12:05:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 480.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.52,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "会议后休息，浏览学术资讯",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e010",
+      "ts": "2026-05-26T12:13:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.94,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "专注写作：论文引言部分",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e011",
+      "ts": "2026-05-26T12:58:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.06,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "收拾东西，准备去食堂",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e012",
+      "ts": "2026-05-26T13:03:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 2700.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.42,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐后在校园散步思考",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e013",
+      "ts": "2026-05-26T13:48:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 0
+      },
+      "description": "下午回到办公室，整理工作思路",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e014",
+      "ts": "2026-05-26T13:58:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.95,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "深度工作：论文数据分析与可视化",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e015",
+      "ts": "2026-05-26T14:58:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.48,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息，起身活动",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e016",
+      "ts": "2026-05-26T15:03:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.93,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "继续数据分析，优化实验代码",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e017",
+      "ts": "2026-05-26T15:48:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 600.0,
+      "activity": "work_meeting",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.7,
+        "voice_present": 0.55,
+        "utterance_density": 0.32,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "指导学生实验，讨论研究问题",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e018",
+      "ts": "2026-05-26T15:58:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 0
+      },
+      "description": "学生讨论后的深度思考与总结",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e019",
+      "ts": "2026-05-26T16:13:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.45,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.3,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "下午疲劳，短暂闭眼休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_017_d20_e020",
+      "ts": "2026-05-26T16:18:00",
+      "persona_id": "vboss_017",
+      "day_index": 20,
+      "duration_s": 2520.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.91,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "撰写论文方法论部分",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2059,
+    "target_hours": 8.0
+  }
+}

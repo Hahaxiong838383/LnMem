@@ -1,0 +1,264 @@
+{
+  "persona_id": "vboss_030",
+  "day_index": 13,
+  "generated_at": "2026-05-08T03:48:23",
+  "events": [
+    {
+      "event_id": "vboss_030_d13_e000",
+      "ts": "2026-05-19T09:00:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床整理内务",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d13_e001",
+      "ts": "2026-05-19T09:10:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.88,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.95,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "晨间冥想修习",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d13_e002",
+      "ts": "2026-05-19T10:10:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "清晨瑜伽自我练习",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d13_e003",
+      "ts": "2026-05-19T11:10:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 1800.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "简单早餐与整理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d13_e004",
+      "ts": "2026-05-19T11:40:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 900.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "步行前往瑜伽馆",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d13_e005",
+      "ts": "2026-05-19T11:55:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.85,
+        "voice_present": 0.92,
+        "utterance_density": 0.85,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "上午瑜伽课程教学",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d13_e006",
+      "ts": "2026-05-19T12:55:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.4,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.4,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "课间短暂休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d13_e007",
+      "ts": "2026-05-19T13:10:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "编写下午课程大纲",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d13_e008",
+      "ts": "2026-05-19T14:10:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.6,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "洱海边素食午餐",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d13_e009",
+      "ts": "2026-05-19T15:10:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 900.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "步行返回工作室",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d13_e010",
+      "ts": "2026-05-19T15:25:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.88,
+        "voice_present": 0.88,
+        "utterance_density": 0.8,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "下午私教瑜伽课",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d13_e011",
+      "ts": "2026-05-19T16:25:00",
+      "persona_id": "vboss_030",
+      "day_index": 13,
+      "duration_s": 2100.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.82,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.3,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "洱海边冥想静心",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 1372,
+    "target_hours": 8.0
+  }
+}
