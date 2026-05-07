@@ -1,0 +1,306 @@
+{
+  "persona_id": "vboss_026",
+  "day_index": 0,
+  "generated_at": "2026-05-07T22:30:56",
+  "events": [
+    {
+      "event_id": "vboss_026_d0_e000",
+      "ts": "2026-05-06T09:00:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.45,
+        "head_pitch_norm": 0.5,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 6
+      },
+      "description": "睡醒赖床刷手机",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e001",
+      "ts": "2026-05-06T09:15:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "洗漱换装收拾",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e002",
+      "ts": "2026-05-06T09:25:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 1200.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.65,
+        "voice_present": 0.5,
+        "utterance_density": 0.25,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 5
+      },
+      "description": "民宿吃早餐边直播吃播",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e003",
+      "ts": "2026-05-06T09:45:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.72,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 7
+      },
+      "description": "查看数据回复评论",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e004",
+      "ts": "2026-05-06T10:00:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.68,
+        "voice_present": 0.75,
+        "utterance_density": 0.55,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 5
+      },
+      "description": "和 MCN 团队线上选题会",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e005",
+      "ts": "2026-05-06T11:00:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 3
+      },
+      "description": "在 Notion 写脚本大纲",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e006",
+      "ts": "2026-05-06T11:30:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.35,
+        "gaze_stability": 0.7,
+        "voice_present": 0.6,
+        "utterance_density": 0.35,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "探店拍摄美食视频",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e007",
+      "ts": "2026-05-06T12:30:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.6,
+        "voice_present": 0.2,
+        "utterance_density": 0.1,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 6
+      },
+      "description": "边吃边和粉丝微信聊天",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e008",
+      "ts": "2026-05-06T12:45:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.72,
+        "voice_present": 0.8,
+        "utterance_density": 0.6,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "品牌方视频会议沟通",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e009",
+      "ts": "2026-05-06T13:15:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.4,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.58,
+        "voice_present": 0.3,
+        "utterance_density": 0.15,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "外出觅食享受当地美食",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e010",
+      "ts": "2026-05-06T14:15:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 5
+      },
+      "description": "午后在咖啡馆剪辑上午素材",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e011",
+      "ts": "2026-05-06T15:15:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 3
+      },
+      "description": "添加字幕和特效",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e012",
+      "ts": "2026-05-06T15:45:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "散步晒太阳休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_026_d0_e013",
+      "ts": "2026-05-06T16:00:00",
+      "persona_id": "vboss_026",
+      "day_index": 0,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.32,
+        "gaze_stability": 0.68,
+        "voice_present": 0.85,
+        "utterance_density": 0.7,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 4
+      },
+      "description": "直播聊探店和粉丝互动",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 68,
+    "target_hours": 8.0
+  }
+}

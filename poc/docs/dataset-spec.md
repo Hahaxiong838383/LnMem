@@ -2,7 +2,7 @@
 name: PoC 数据集 Spec — 剧本 schema + 信号转换契约
 audience: cc + codex（实现/审查）+ 老板（验收）
 purpose: Day 3 数据生成框架的接口规范——ScriptEvent + Script JSON + SignalFrame JSONL + 报告
-status: v0.1（2026-05-06 cc 起草）
+status: v0.2（2026-05-07 cc 升级 — 加 Day 4 真 LLM 接入章节）
 parent: poc/docs/poc-spec.md
 ---
 
@@ -222,6 +222,67 @@ write_markdown_report(report, Path('poc/data/synthetic/dataset_report.md'))
 | error | DAY_INDEX_MISMATCH | 事件 day_index 与 Script 不一致 |
 | warning | LARGE_TIME_GAP | 相邻事件间隔 > 30s |
 | warning | LOW_STATE_DIVERSITY | 出现 < 3 类状态 |
+
+---
+
+## 6.5 Day 4 真 LLM 接入（v0.2 新增）
+
+Day 3 用 `HeuristicLLMClient`（启发式确定性生成）跑通 schema 闭环；Day 4 替换为真 LLM。
+
+### 6.5.1 LLM 客户端接口
+
+定义在 [`poc/src/data/llm_clients.py`](../src/data/llm_clients.py)，三个实现：
+
+| 类 | 用途 | endpoint | 模型 |
+|---|------|----------|------|
+| `MiniMaxLLMClient` | 主路径 | `https://api.minimaxi.com/v1/chat/completions` | `MiniMax-M2.7-highspeed` |
+| `GeminiProxyLLMClient` | 备选 | `http://23.226.135.149:4000/v1/chat/completions` | `gemini-2.5-pro` |
+| `FallbackLLMClient` | 三级链 | primary → fallback → final（HeuristicLLMClient） | — |
+
+### 6.5.2 多轮补全（fillin）+ truncate
+
+**问题**：单次调用 LLM 经常只生成 5-6h 剧本（达不到 8h target）。
+**方案**：多轮补全 + 末轮 truncate，保证累计时长落在 [target, target+1200s]。
+
+```
+1. 第 1 轮：发 _USER_PROMPT_TEMPLATE，要求生成 8h
+2. 累计 < 0.95 × target → 发 _FILLIN_PROMPT_TEMPLATE 续写（最多 2 轮）
+3. fillin 失败（空 content/HTTPError）→ 接受现有 events，跳出
+4. 末轮 truncate：把多余 events 裁掉（cum > target+1200 时）
+```
+
+详见 `_truncate_to_target()` 的 4 条策略。
+
+### 6.5.3 LLM JSON 输出契约
+
+LLM 必须输出 `{"events": [...]}`，每个 event 含字段：
+
+```json
+{
+  "duration_s": 600,
+  "activity": "work_focus",        // 8 类枚举
+  "state": "focused",               // 8 类枚举
+  "description": "写代码 ≤30字",
+  "multimodal_hint": { /* 8 字段，[0,1] 数值 */ }
+}
+```
+
+`event_id` + `ts` 由 cc 客户端拼装（不由 LLM 算），避免 LLM 算时间戳出错。
+
+### 6.5.4 实测延迟（MiniMax-M2.7-highspeed）
+
+| 阶段 | 单画像延迟 | 累计时长 |
+|------|----------|---------|
+| Phase 1 smoke (1 轮) | ~52s | 8.57h（无 truncate）|
+| Phase 2.5 (含 fillin) | 77-137s | 8.00h（truncate 命中）|
+| Phase 3 (5 并发) | wall 9-14min for 30 画像 | 各 8.00h |
+
+### 6.5.5 失败兜底
+
+Day 4 实战经验：
+- MiniMax 偶发空 content（reasoning mode token 用尽）→ fillin 容错降级到"接受现有"
+- 服务器超时（>480s）→ 重试 2 次后 raise
+- 全部失败 → `FallbackLLMClient` 切到 Gemini Proxy；再失败切 HeuristicLLMClient（保 PoC 不被外部服务卡住）
 
 ---
 

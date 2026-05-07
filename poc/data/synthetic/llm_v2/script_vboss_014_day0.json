@@ -1,0 +1,516 @@
+{
+  "persona_id": "vboss_014",
+  "day_index": 0,
+  "generated_at": "2026-05-07T22:22:13",
+  "events": [
+    {
+      "event_id": "vboss_014_d0_e000",
+      "ts": "2026-05-06T09:00:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 1800.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.7,
+        "voice_present": 0.3,
+        "utterance_density": 0.2,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "从家中出发前往国际学校",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e001",
+      "ts": "2026-05-06T09:30:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.8,
+        "voice_present": 0.2,
+        "utterance_density": 0.15,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 3
+      },
+      "description": "到达学校签到并查看邮件",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e002",
+      "ts": "2026-05-06T09:40:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.85,
+        "voice_present": 0.8,
+        "utterance_density": 0.7,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "参加年级组晨会分享教学计划",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e003",
+      "ts": "2026-05-06T09:55:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "批改学生提交的数学作业",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e004",
+      "ts": "2026-05-06T10:05:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.88,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "PowerPoint",
+        "app_switch_count_5min": 2
+      },
+      "description": "准备上午第一节课的课件",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e005",
+      "ts": "2026-05-06T10:15:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.35,
+        "gaze_stability": 0.92,
+        "voice_present": 0.9,
+        "utterance_density": 0.8,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "教授三年级数学课A班",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e006",
+      "ts": "2026-05-06T11:00:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.4,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.6,
+        "voice_present": 0.2,
+        "utterance_density": 0.1,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "教室内短暂休息喝水",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e007",
+      "ts": "2026-05-06T11:10:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.32,
+        "gaze_stability": 0.9,
+        "voice_present": 0.85,
+        "utterance_density": 0.75,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "教授四年级数学课B班",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e008",
+      "ts": "2026-05-06T11:55:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.78,
+        "voice_present": 0.7,
+        "utterance_density": 0.6,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 1
+      },
+      "description": "与同事在休息室交流",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e009",
+      "ts": "2026-05-06T12:05:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Excel",
+        "app_switch_count_5min": 2
+      },
+      "description": "批改课堂小测验并记录成绩",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e010",
+      "ts": "2026-05-06T12:20:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.82,
+        "voice_present": 0.75,
+        "utterance_density": 0.65,
+        "active_app": "Zoom",
+        "app_switch_count_5min": 3
+      },
+      "description": "与外籍教师讨论跨学科项目",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e011",
+      "ts": "2026-05-06T12:30:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.4,
+        "gaze_stability": 0.75,
+        "voice_present": 0.85,
+        "utterance_density": 0.7,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐时间与老师们社交",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e012",
+      "ts": "2026-05-06T13:30:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.33,
+        "gaze_stability": 0.92,
+        "voice_present": 0.88,
+        "utterance_density": 0.78,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "教授五年级数学实验班",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e013",
+      "ts": "2026-05-06T14:15:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.65,
+        "voice_present": 0.15,
+        "utterance_density": 0.1,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "办公室短暂休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e014",
+      "ts": "2026-05-06T14:25:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.85,
+        "voice_present": 0.82,
+        "utterance_density": 0.72,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "参加教学研讨会分享经验",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e015",
+      "ts": "2026-05-06T14:40:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.88,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "Word",
+        "app_switch_count_5min": 3
+      },
+      "description": "为下周课程准备教案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e016",
+      "ts": "2026-05-06T15:10:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.8,
+        "voice_present": 0.9,
+        "utterance_density": 0.75,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 1
+      },
+      "description": "与学生家长进行电话沟通",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e017",
+      "ts": "2026-05-06T15:25:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "更新班级学生的学习档案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e018",
+      "ts": "2026-05-06T15:35:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.85,
+        "voice_present": 0.8,
+        "utterance_density": 0.65,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "课后辅导学生数学难题",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e019",
+      "ts": "2026-05-06T15:50:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.82,
+        "voice_present": 0.78,
+        "utterance_density": 0.68,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "与班主任交流学生情况",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e020",
+      "ts": "2026-05-06T16:00:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.32,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.68,
+        "voice_present": 0.2,
+        "utterance_density": 0.12,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "在办公室喝茶休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e021",
+      "ts": "2026-05-06T16:10:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.26,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "批改学生周末作业",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e022",
+      "ts": "2026-05-06T16:25:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 600.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.85,
+        "voice_present": 0.76,
+        "utterance_density": 0.65,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "参加年级备课组活动",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d0_e023",
+      "ts": "2026-05-06T16:35:00",
+      "persona_id": "vboss_014",
+      "day_index": 0,
+      "duration_s": 1500.0,
+      "activity": "work_focus",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.8,
+        "voice_present": 0.05,
+        "utterance_density": 0.02,
+        "active_app": "Word",
+        "app_switch_count_5min": 3
+      },
+      "description": "制作下周的数学测评卷",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 56,
+    "target_hours": 8.0
+  }
+}

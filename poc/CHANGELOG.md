@@ -5,6 +5,67 @@
 
 ---
 
+## v0.13 — 2026-05-07（Day 4 真 LLM 接管 · MiniMax-M2.7 主路径 + Gemini 备选）
+
+老板批"Day 4 启动，先用 MiniMax 模型，自建 Gemini api 备选"。cc 主线在 4-6 小时内把 Day 3 留下的
+HeuristicLLM 替换为真 LLM，并跑通 30 画像 baseline。
+
+### Lane A — LLM 客户端适配层（cc 主线）
+
+| 改动 | 文件 | 验收 |
+|------|------|------|
+| `MiniMaxLLMClient` + `GeminiProxyLLMClient` + `FallbackLLMClient` 三件套 | `poc/src/data/llm_clients.py`（新建） | OpenAI 兼容路径，frozen dataclass，零 SDK 依赖（仅 stdlib `urllib`） |
+| 多轮补全 (`min_coverage_ratio=0.95` / `max_fillin_rounds=2`) + truncate 工具 | 同上 | 单次 LLM 输出不达 8h 时再追问，超量后裁剪 [target, target+1200s] |
+| Fillin 容错（空 content / HTTPError → 接受现有 events） | 同上 | MiniMax 偶发空 content 不会让整批失败 |
+| 单测 28 case | `poc/tests/test_llm_clients.py`（新建） | strip_thinking / extract_json / coerce / events_from_payload / multi-round / truncate / Fallback 全覆盖 |
+
+### Lane B — Phase 1 Smoke：1 画像 × 8h（真 LLM 调用）
+
+| 验收 | 数值 |
+|------|------|
+| MiniMax-M2.7-highspeed 单画像延迟 | 51.9s |
+| events 数 | 35 |
+| 累计时长 | 8.57h（首次未触发 truncate） |
+| 12-dim signals 转换 | 通 |
+
+### Lane C — Phase 2.5：3 画像 × 8h（多轮补全 + truncate）
+
+| 画像 | events | 累计时长 | 延迟 |
+|------|--------|---------|------|
+| vboss_001 | 34 | 8.00h | 76.9s |
+| vboss_002 | 24 | 8.00h | 98.2s |
+| vboss_003 | 40 | 8.00h | 137.3s |
+
+> baseline 报告：3 画像 / 24.00h / 86,400 frames / 0 errors / HEXACO L2 0.527/0.615/0.708（≥0.4 全过）。
+> vs Day 3 HeuristicLLM baseline：状态分布更"贴近真实"（vboss_002 emotional_positive=12，vboss_003=16），活动分布更丰富（vboss_003 leisure=14 反映高 openness）。
+
+### Lane D — Phase 3：30 画像 × 1 天（5 并发 baseline）
+
+详细数据见 `poc/data/synthetic/llm_v2/dataset_report.md`（运行后落档）。
+
+### Day 4 验收（双门）
+
+**Verify**：30 画像 × 1 天 baseline 全部 events 通过 validate_script + HEXACO 30×30 距离矩阵 ≥ 0.4 比例 ≥ 90%。
+
+**Guard**：`PYTHONPATH=. .venv-poc/bin/python -m pytest poc/tests/ -q` → **100 passed**（Day 3 72 + LLM clients 28）。
+
+### 协作模式沉淀
+
+| 维度 | 本次值 |
+|------|--------|
+| Lane 数 | 4（cc 全主线，无 codex 派工——Day 4 是接口适配 + 集成测试，不适合并行） |
+| 文件域冲突 | 0 |
+| LLM API 调用累计 | Phase 1+2.5 共 ~7 次 / Phase 3 30+ 次 |
+| 关键决策 | (a) 用 highspeed 版本（普通 M2.7 单画像 >180s 超时）（b) 多轮补全 + truncate 双保险（c) fillin 失败容错 |
+
+### 已知偏差 / 后续
+
+- Day 4 baseline 是**单天**（30 画像 × 1 天），距 7,200h 全量目标差 30 倍。Phase 4 用成本评估决定是否进 30 天。
+- HEXACO 距离矩阵基于画像 frontmatter，与 Day 3 完全一致（不依赖 LLM 输出）。
+- v0.12 延后的 10 条 codex F2-x/F3-x finding，部分（F2-06 HeuristicLLM long break 不稳）已自然消除——Day 4 真 LLM 接管。
+
+---
+
 ## v0.12 — 2026-05-06（Day 3 数据生成框架 · cc + codex 并行 5 lane）
 
 老板批"Day 3 启动"。cc 主线 + codex 后台并行 5 lane，60min 内全部 Day 3 AC + DoD 跑通。

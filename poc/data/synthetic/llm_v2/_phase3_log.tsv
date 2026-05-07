@@ -1,0 +1,31 @@
+pid	ok	events	coverage_h	secs	err
+vboss_001	True	26	7.92	73.7	
+vboss_002	True	30	7.72	47.6	
+vboss_003	True	21	8.00	200.0	
+vboss_004	True	33	8.03	47.6	
+vboss_005	True	22	7.92	149.9	
+vboss_006	True	45	8.00	64.4	
+vboss_007	True	18	8.00	134.0	
+vboss_008	True	35	8.32	50.2	
+vboss_009	True	57	8.00	63.7	
+vboss_010	False	0	0.00	197.0	LLMOutputError: no JSON object found in output (head): ''
+vboss_011	True	51	7.97	77.7	
+vboss_012	True	40	7.93	56.9	
+vboss_013	True	43	8.00	95.9	
+vboss_014	True	24	8.00	94.2	
+vboss_015	True	34	7.92	62.3	
+vboss_016	True	42	7.97	62.2	
+vboss_017	True	65	7.98	79.8	
+vboss_018	True	13	8.00	121.1	
+vboss_019	True	47	7.97	69.6	
+vboss_020	True	36	8.00	75.1	
+vboss_021	False	0	0.00	223.9	LLMOutputError: no JSON object found in output (head): ''
+vboss_022	True	23	8.00	92.1	
+vboss_023	True	24	8.00	57.2	
+vboss_024	True	40	8.17	151.2	
+vboss_025	True	33	7.92	95.1	
+vboss_026	False	0	0.00	176.2	LLMOutputError: event[0] state='transition' not in ('low_energy', 'focused', 'distracted', 'fatigued', 'emotional_positive', 'emotional_negative', 'neutral', 'transitioning')
+vboss_027	False	0	0.00	144.9	LLMOutputError: no JSON object found in output (head): ''
+vboss_028	True	50	8.00	89.0	
+vboss_029	True	33	8.00	48.4	
+vboss_030	True	26	8.00	64.9	
