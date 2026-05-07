@@ -1,0 +1,411 @@
+{
+  "persona_id": "vboss_003",
+  "day_index": 4,
+  "generated_at": "2026-05-07T23:07:53",
+  "events": [
+    {
+      "event_id": "vboss_003_d4_e000",
+      "ts": "2026-05-10T09:00:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "low_energy",
+      "multimodal_hint": {
+        "eye_closure": 0.45,
+        "head_pitch_norm": 0.55,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.25,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "赖床、撸猫、起床",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e001",
+      "ts": "2026-05-10T09:30:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "简单早餐、咖啡、发呆",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e002",
+      "ts": "2026-05-10T10:00:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "整理桌面、打开创作软件",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e003",
+      "ts": "2026-05-10T10:15:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 2400.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.95,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "清晨创作，灵感清晰",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e004",
+      "ts": "2026-05-10T10:55:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.45,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.4,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "喝茶、望向窗外",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e005",
+      "ts": "2026-05-10T11:05:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 2400.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.03,
+        "gaze_stability": 0.97,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "继续上午创作",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e006",
+      "ts": "2026-05-10T11:45:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.6,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.2,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "眼睛疲劳、闭目养神",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e007",
+      "ts": "2026-05-10T11:55:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "修改段落、润色句子",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e008",
+      "ts": "2026-05-10T12:15:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 900.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Pinterest",
+        "app_switch_count_5min": 2
+      },
+      "description": "浏览收藏的灵感图片",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e009",
+      "ts": "2026-05-10T12:30:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.72,
+        "voice_present": 0.0,
+        "utterance_density": 0.1,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "回复品牌合作邮件",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e010",
+      "ts": "2026-05-10T13:00:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起身伸展、倒水",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e011",
+      "ts": "2026-05-10T13:15:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.52,
+        "voice_present": 0.2,
+        "utterance_density": 0.1,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "简单午餐、听播客",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e012",
+      "ts": "2026-05-10T14:15:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "午休后重新进入状态",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e013",
+      "ts": "2026-05-10T14:25:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.96,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Procreate",
+        "app_switch_count_5min": 0
+      },
+      "description": "下午深度插画创作",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e014",
+      "ts": "2026-05-10T15:10:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.4,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.42,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "喂猫、短暂休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e015",
+      "ts": "2026-05-10T15:20:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.94,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Procreate",
+        "app_switch_count_5min": 0
+      },
+      "description": "继续插画上色",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e016",
+      "ts": "2026-05-10T16:05:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.58,
+        "head_pitch_norm": 0.38,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.22,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "揉太阳穴、闭眼五分钟",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e017",
+      "ts": "2026-05-10T16:20:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.93,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Procreate",
+        "app_switch_count_5min": 1
+      },
+      "description": "细节调整、导出作品",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d4_e018",
+      "ts": "2026-05-10T16:50:00",
+      "persona_id": "vboss_003",
+      "day_index": 4,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.48,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.38,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "阳台透气、看云",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 445,
+    "target_hours": 8.0
+  }
+}

@@ -1,0 +1,579 @@
+{
+  "persona_id": "vboss_029",
+  "day_index": 6,
+  "generated_at": "2026-05-07T23:58:07",
+  "events": [
+    {
+      "event_id": "vboss_029_d6_e000",
+      "ts": "2026-05-12T09:00:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 1500.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.7,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "驱车从住所前往深圳CBD写字楼",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e001",
+      "ts": "2026-05-12T09:25:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.65,
+        "voice_present": 0.05,
+        "utterance_density": 0.05,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "在办公室快速用早餐并翻阅财经资讯",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e002",
+      "ts": "2026-05-12T09:40:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 1200.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.85,
+        "voice_present": 0.85,
+        "utterance_density": 0.75,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 5
+      },
+      "description": "主持高管晨会汇报KPI完成情况",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e003",
+      "ts": "2026-05-12T10:00:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "审批各部门提交的季度预算报告",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e004",
+      "ts": "2026-05-12T10:15:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂走动伸展并整理思路",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e005",
+      "ts": "2026-05-12T10:25:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.88,
+        "voice_present": 0.8,
+        "utterance_density": 0.7,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "与董事会成员进行年度战略方向讨论",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e006",
+      "ts": "2026-05-12T10:55:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.8,
+        "voice_present": 0.6,
+        "utterance_density": 0.4,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "会议间隙与同事闲聊行业动态",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e007",
+      "ts": "2026-05-12T11:00:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "审阅并批注集团季度财务分析报告",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e008",
+      "ts": "2026-05-12T11:20:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.35,
+        "gaze_stability": 0.78,
+        "voice_present": 0.75,
+        "utterance_density": 0.55,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "商务午宴与投资方就合作事宜深度交流",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e009",
+      "ts": "2026-05-12T12:20:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "返回办公室查阅午餐后未读的战略邮件",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e010",
+      "ts": "2026-05-12T12:35:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.86,
+        "voice_present": 0.82,
+        "utterance_density": 0.72,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 5
+      },
+      "description": "主持业务部门季度复盘及下季度目标制定会议",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e011",
+      "ts": "2026-05-12T13:05:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.4,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.55,
+        "voice_present": 0.05,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "在茶水间短暂休息并补充咖啡",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e012",
+      "ts": "2026-05-12T13:10:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.93,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "专注撰写致董事会的年度经营建议书",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e013",
+      "ts": "2026-05-12T13:30:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.84,
+        "voice_present": 0.78,
+        "utterance_density": 0.65,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "与法务团队讨论重大并购项目的合规事项",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e014",
+      "ts": "2026-05-12T13:45:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.62,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "由会议室返回个人办公室的途中整理思绪",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e015",
+      "ts": "2026-05-12T13:55:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 1500.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.07,
+        "gaze_stability": 0.91,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "通过内部系统查阅各区域子公司的运营数据",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e016",
+      "ts": "2026-05-12T14:20:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.87,
+        "voice_present": 0.72,
+        "utterance_density": 0.6,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "与HR讨论高管团队绩效激励方案并获共识",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e017",
+      "ts": "2026-05-12T14:35:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.5,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Slack",
+        "app_switch_count_5min": 3
+      },
+      "description": "短暂查看个人手机信息并回复紧急消息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e018",
+      "ts": "2026-05-12T14:40:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 1200.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.26,
+        "gaze_stability": 0.89,
+        "voice_present": 0.8,
+        "utterance_density": 0.68,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "组织专题会议研判海外市场拓展可行性",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e019",
+      "ts": "2026-05-12T15:00:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.17,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "起草致监管机构的年度合规自查报告",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e020",
+      "ts": "2026-05-12T15:30:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "整理办公桌面并准备结束今日工作",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e021",
+      "ts": "2026-05-12T15:40:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.68,
+        "voice_present": 0.05,
+        "utterance_density": 0.02,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "晚高峰驱车由CBD返回深圳住所",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e022",
+      "ts": "2026-05-12T16:10:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.75,
+        "voice_present": 0.5,
+        "utterance_density": 0.35,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "到家后与家人共进晚餐并进行轻松交流",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e023",
+      "ts": "2026-05-12T16:20:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 1200.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "在家中书房阅读管理类书籍并做笔记",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e024",
+      "ts": "2026-05-12T16:40:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.07,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "在家处理当日遗留的重要邮件并做出决策",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e025",
+      "ts": "2026-05-12T16:55:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "观看财经频道了解当晚全球市场动态",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_029_d6_e026",
+      "ts": "2026-05-12T17:05:00",
+      "persona_id": "vboss_029",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.55,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.3,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "洗漱并进行睡前简短冥想放松身心",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 671,
+    "target_hours": 8.0
+  }
+}
