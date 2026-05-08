@@ -32,7 +32,7 @@ class LLMClient(Protocol):
 
 
 class HeuristicLLMClient:
-    """Deterministic heuristic generator; 基于画像特征生成可复现事件流。"""
+    """Deterministic heuristic generator; 6维HEXACO jointly drives activity/state/hints."""
 
     def generate_script(
         self,
@@ -59,7 +59,7 @@ class HeuristicLLMClient:
             if activity == Activity.BREAK_LONG:
                 long_break_used = True
             state = _pick_state(profile, activity, rng)
-            duration_s = _pick_duration(activity, remaining_s, rng)
+            duration_s = _pick_duration(profile, activity, remaining_s, rng)
             hint = _hint_from_state(profile, state, activity, rng)
             event = ScriptEvent(
                 event_id=f"{persona_id}_d{day_index}_e{event_idx:03d}",
@@ -190,6 +190,7 @@ def _extract_layer_section(body: str, layer_no: int) -> str:
 
 
 def _profile_from_brief(persona_brief: str) -> dict[str, Any]:
+    """Parse profile with HEXACO 6D; H/E/X/A/C/O -> consistency/emotion/social/co-op/focus/exploration."""
     match = re.search(r"\[frontmatter\]\n(.*?)(?:\n\[layer4_if_then\]|\Z)", persona_brief, re.DOTALL)
     if not match:
         raise ValueError("brief frontmatter block missing")
@@ -207,9 +208,12 @@ def _profile_from_brief(persona_brief: str) -> dict[str, Any]:
         "profession": profession,
         "density": density,
         "hexaco": {
+            "honesty_humility": float(hexaco.get("honesty_humility", 0.5)),
             "emotionality": float(hexaco.get("emotionality", 0.5)),
             "extraversion": float(hexaco.get("extraversion", 0.5)),
+            "agreeableness": float(hexaco.get("agreeableness", 0.5)),
             "conscientiousness": float(hexaco.get("conscientiousness", 0.5)),
+            "openness": float(hexaco.get("openness", 0.5)),
         },
         "attachment_anxiety": float(attachment.get("anxiety", 0.5)),
         "commute_minutes": int((fm.get("demographics") or {}).get("commute_minutes", 0)),
@@ -238,7 +242,11 @@ def _pick_activity(
     long_break_used: bool,
 ) -> Activity:
     profession = profile["profession"]
-    ext = profile["hexaco"]["extraversion"]
+    hx = profile["hexaco"]
+    ext = hx["extraversion"]
+    honesty = hx["honesty_humility"]
+    agree = hx["agreeableness"]
+    openness = hx["openness"]
     commute_minutes = profile["commute_minutes"]
     if 3 * 3600 <= elapsed_s <= 4 * 3600 and not long_break_used:
         return Activity.BREAK_LONG
@@ -265,11 +273,36 @@ def _pick_activity(
     if ext > 0.65:
         weights[Activity.WORK_MEETING] += 0.8
         weights[Activity.WORK_FOCUS] -= 0.4
+    # honesty_humility: high => less social-posture switching; low => more meeting/transition drift.
+    weights[Activity.TRANSITION] *= max(0.7, 1.05 - 0.4 * honesty)
+    if honesty < 0.45:
+        drift = 0.45 - honesty
+        weights[Activity.WORK_MEETING] += 0.4 + 2.0 * drift
+        weights[Activity.TRANSITION] += 0.3 + 1.8 * drift
+    else:
+        calm = honesty - 0.45
+        weights[Activity.WORK_MEETING] -= 0.4 * calm
+    # agreeableness: high => collaborative/social; low => solo focus.
+    weights[Activity.WORK_MEETING] += 1.0 * (agree - 0.5)
+    weights[Activity.LEISURE] += 0.8 * (agree - 0.5)
+    weights[Activity.WORK_FOCUS] += 1.1 * (0.5 - agree)
+    # openness: high => exploration/rest spectrum wider; low => narrower spectrum.
+    weights[Activity.LEISURE] += 1.2 * (openness - 0.5)
+    weights[Activity.BREAK_LONG] += 0.9 * (openness - 0.5)
+    if openness < 0.45:
+        narrow = 0.45 - openness
+        weights[Activity.LEISURE] -= 0.6 * narrow
+        weights[Activity.BREAK_LONG] -= 0.5 * narrow
+        weights[Activity.WORK_FOCUS] += 0.9 * narrow
+        weights[Activity.WORK_MEETING] += 0.4 * narrow
+    for key, val in list(weights.items()):
+        weights[key] = max(0.0, val)
     return _weighted_choice(weights, rng)
 
 
 def _pick_state(profile: dict[str, Any], activity: Activity, rng: random.Random) -> State:
     hx = profile["hexaco"]
+    h = hx["honesty_humility"]
     c = hx["conscientiousness"]
     e = hx["emotionality"]
     x = hx["extraversion"]
@@ -284,6 +317,10 @@ def _pick_state(profile: dict[str, Any], activity: Activity, rng: random.Random)
         State.LOW_ENERGY: 0.5 + (1.0 - x) * 0.5,
         State.TRANSITIONING: 0.4,
     }
+    if h < 0.5:
+        weights[State.EMOTIONAL_NEGATIVE] += (0.5 - h) * 0.8
+    else:
+        weights[State.EMOTIONAL_NEGATIVE] -= (h - 0.5) * 0.3
     if activity == Activity.WORK_FOCUS:
         weights[State.FOCUSED] += 2.0
         weights[State.DISTRACTED] -= 0.3
@@ -299,7 +336,12 @@ def _pick_state(profile: dict[str, Any], activity: Activity, rng: random.Random)
     return _weighted_choice(weights, rng)
 
 
-def _pick_duration(activity: Activity, remaining_s: int, rng: random.Random) -> int:
+def _pick_duration(
+    profile: dict[str, Any],
+    activity: Activity,
+    remaining_s: int,
+    rng: random.Random,
+) -> int:
     duration_options = {
         Activity.WORK_FOCUS: (420, 600, 720, 900),
         Activity.WORK_MEETING: (300, 600, 900),
@@ -310,7 +352,11 @@ def _pick_duration(activity: Activity, remaining_s: int, rng: random.Random) -> 
         Activity.TRANSITION: (120, 180, 300),
         Activity.SLEEP: (900, 1200),
     }
-    preferred = rng.choice(duration_options[activity])
+    options = duration_options[activity]
+    c = profile["hexaco"]["conscientiousness"]
+    if activity == Activity.WORK_FOCUS and c >= 0.75:
+        options = (420, 600, 720)
+    preferred = rng.choice(options)
     if remaining_s <= 900:
         return max(5, remaining_s)
     return min(preferred, remaining_s)
@@ -333,6 +379,9 @@ def _hint_from_state(
         State.TRANSITIONING: (0.20, 0.14, 0.20, 0.52, 0.18, 0.18, 5),
     }[state]
     eye, pitch, yaw, gaze, voice, utter, switch = base
+    hx = profile["hexaco"]
+    honesty = hx["honesty_humility"]
+    openness = hx["openness"]
     density = profile["density"]
     if density == "low":
         voice *= 0.8
@@ -346,6 +395,12 @@ def _hint_from_state(
         eye = min(1.0, eye + 0.12)
         gaze = max(0.0, gaze - 0.08)
         switch = int(round(switch * 1.3))
+    # honesty_humility: high consistency => fewer short-window app switches.
+    switch_scale = 1.0 + (0.5 - honesty) * 0.6
+    switch = int(round(switch * max(0.65, switch_scale)))
+    # openness: high => wider utterance-density variance.
+    utter_jitter = (rng.random() - 0.5) * (0.06 + 0.22 * openness)
+    utter += utter_jitter
     jitter = (rng.random() - 0.5) * 0.04
     eye = _clamp01(eye + jitter)
     gaze = _clamp01(gaze - jitter)

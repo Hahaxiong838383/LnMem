@@ -1,0 +1,369 @@
+{
+  "persona_id": "vboss_030",
+  "day_index": 22,
+  "generated_at": "2026-05-08T03:52:12",
+  "events": [
+    {
+      "event_id": "vboss_030_d22_e000",
+      "ts": "2026-05-28T09:00:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 360.0,
+      "activity": "work_focus",
+      "state": "low_energy",
+      "multimodal_hint": {
+        "eye_closure": 0.4,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.03,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "清晨静坐冥想调息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e001",
+      "ts": "2026-05-28T09:06:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "个人瑜伽体式练习",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e002",
+      "ts": "2026-05-28T09:21:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "沐浴更衣整理仪容",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e003",
+      "ts": "2026-05-28T09:36:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 1800.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "准备早餐享受慢食",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e004",
+      "ts": "2026-05-28T10:06:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 2100.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.82,
+        "voice_present": 0.9,
+        "utterance_density": 0.8,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "上午瑜伽课程教学",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e005",
+      "ts": "2026-05-28T10:41:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "课后休息补充水分",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e006",
+      "ts": "2026-05-28T10:56:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 1500.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.8,
+        "voice_present": 0.85,
+        "utterance_density": 0.75,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "上午瑜伽课程续",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e007",
+      "ts": "2026-05-28T11:21:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 3
+      },
+      "description": "整理教案编排体式",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e008",
+      "ts": "2026-05-28T11:36:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.78,
+        "voice_present": 0.88,
+        "utterance_density": 0.78,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "上午瑜伽课程续二",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e009",
+      "ts": "2026-05-28T12:21:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 2700.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐及洱海边漫步",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e010",
+      "ts": "2026-05-28T13:06:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "low_energy",
+      "multimodal_hint": {
+        "eye_closure": 0.45,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.4,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午后休憩伸展冥想",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e011",
+      "ts": "2026-05-28T14:06:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.8,
+        "voice_present": 0.92,
+        "utterance_density": 0.82,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "下午瑜伽课程教学",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e012",
+      "ts": "2026-05-28T14:51:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "课后短暂休息拉伸",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e013",
+      "ts": "2026-05-28T15:06:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.78,
+        "voice_present": 0.88,
+        "utterance_density": 0.78,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "下午瑜伽课程续",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e014",
+      "ts": "2026-05-28T15:51:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.72,
+        "voice_present": 0.85,
+        "utterance_density": 0.7,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "一对一瑜伽辅导课",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e015",
+      "ts": "2026-05-28T16:36:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 5
+      },
+      "description": "处理微信回复通知",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_030_d22_e016",
+      "ts": "2026-05-28T16:51:00",
+      "persona_id": "vboss_030",
+      "day_index": 22,
+      "duration_s": 540.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.7,
+        "voice_present": 0.3,
+        "utterance_density": 0.2,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "晚餐及家庭时光",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2272,
+    "target_hours": 8.0
+  }
+}

@@ -42,9 +42,25 @@ day*_results.json
 poc/data/synthetic/signals_*.jsonl
 poc/data/real/
 
+# Day 4 真 LLM baseline (llm_v2/) — track scripts + report，signals 体量太大不入库
+!poc/data/synthetic/llm_v2/
+!poc/data/synthetic/llm_v2/script_*.json
+!poc/data/synthetic/llm_v2/*.md
+!poc/data/synthetic/llm_v2/_*.tsv
+poc/data/synthetic/llm_v2/signals_*.jsonl
+
+# Day 4 中间产物（Phase 1 smoke + Phase 2.5 多轮试验），不入库
+poc/data/synthetic/_smoke_minimax/
+poc/data/synthetic/llm_v1/
+
 # 老板真实测评原始向量永远不进 git（脱敏 template 见 personas/_boss_self.template.json）
 poc/data/personas/_boss_self_raw.json
 poc/data/personas/*_real_raw.json
+# 私有派生文件统一前缀黑名单（codex F2-07 review 修复）
+poc/data/personas/_*.private.*
+poc/data/personas/*.private.*
+poc/data/personas/*_private.*
+poc/data/personas/_*_raw.json
 
 # spikes intermediate
 spikes/*/.cache/

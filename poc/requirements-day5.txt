@@ -1,0 +1,8 @@
+# Day 5-6 LNN 训练依赖（v0.14）
+# Air M3 macOS：torch 走 MPS；CPU 也能跑（数据小）
+
+torch>=2.1           # MPS 支持
+ncps>=1.0            # mlech26l/ncps，LTC/CfC PyTorch 实现（PyPI 当前最新 1.0.1）
+numpy>=1.24
+scikit-learn>=1.3    # t-SNE + 分类指标（accuracy / f1）
+matplotlib>=3.7      # loss + accuracy 曲线

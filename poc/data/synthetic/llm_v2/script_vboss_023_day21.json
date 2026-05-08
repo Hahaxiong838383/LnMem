@@ -1,0 +1,474 @@
+{
+  "persona_id": "vboss_023",
+  "day_index": 21,
+  "generated_at": "2026-05-08T02:47:01",
+  "events": [
+    {
+      "event_id": "vboss_023_d21_e000",
+      "ts": "2026-05-27T09:00:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.65,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "整理桌面，准备开始一天工作",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e001",
+      "ts": "2026-05-27T09:10:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 3
+      },
+      "description": "构思798新展概念方案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e002",
+      "ts": "2026-05-27T09:40:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 480.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 4
+      },
+      "description": "刷手机看艺术圈动态放松一下",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e003",
+      "ts": "2026-05-27T09:48:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 2
+      },
+      "description": "绘制展览空间布局草图",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e004",
+      "ts": "2026-05-27T10:18:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "活动肩颈，喝水补充能量",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e005",
+      "ts": "2026-05-27T10:28:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 2400.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 4
+      },
+      "description": "撰写策展人导览词初稿",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e006",
+      "ts": "2026-05-27T11:08:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 3
+      },
+      "description": "浏览当代艺术新闻获取灵感",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e007",
+      "ts": "2026-05-27T11:18:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 1920.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.72,
+        "voice_present": 0.78,
+        "utterance_density": 0.62,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 6
+      },
+      "description": "与艺术家线上讨论作品呈现",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e008",
+      "ts": "2026-05-27T11:50:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 3000.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.35,
+        "gaze_stability": 0.45,
+        "voice_present": 0.05,
+        "utterance_density": 0.02,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "在798园区散步享受阳光",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e009",
+      "ts": "2026-05-27T12:40:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.68,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "回工作室准备下午工作",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e010",
+      "ts": "2026-05-27T12:50:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.84,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 3
+      },
+      "description": "整理展览图录资料文献",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e011",
+      "ts": "2026-05-27T13:20:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.6,
+        "voice_present": 0.5,
+        "utterance_density": 0.35,
+        "active_app": "",
+        "app_switch_count_5min": 2
+      },
+      "description": "和同事闲聊几句放松心情",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e012",
+      "ts": "2026-05-27T13:25:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 2400.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.24,
+        "gaze_stability": 0.7,
+        "voice_present": 0.82,
+        "utterance_density": 0.68,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 7
+      },
+      "description": "策展团队讨论布展方案细节",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e013",
+      "ts": "2026-05-27T14:05:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.55,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息整理会议思路",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e014",
+      "ts": "2026-05-27T14:10:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 2
+      },
+      "description": "撰写展览图录中英文文案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e015",
+      "ts": "2026-05-27T14:40:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.58,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 4
+      },
+      "description": "刷艺术资讯激发创意灵感",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e016",
+      "ts": "2026-05-27T14:45:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.86,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 3
+      },
+      "description": "筛选对比展品采购方案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e017",
+      "ts": "2026-05-27T15:15:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.35,
+        "gaze_stability": 0.68,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "参观园区其他画廊寻找策展思路",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e018",
+      "ts": "2026-05-27T15:45:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.09,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 2
+      },
+      "description": "完善策展方案排版设计",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e019",
+      "ts": "2026-05-27T16:15:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 600.0,
+      "activity": "work_meeting",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.74,
+        "voice_present": 0.72,
+        "utterance_density": 0.55,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "与布展团队确认时间节点",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e020",
+      "ts": "2026-05-27T16:25:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.68,
+        "voice_present": 0.05,
+        "utterance_density": 0.02,
+        "active_app": "Notion",
+        "app_switch_count_5min": 3
+      },
+      "description": "整理一天的工作记录和笔记",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d21_e021",
+      "ts": "2026-05-27T16:35:00",
+      "persona_id": "vboss_023",
+      "day_index": 21,
+      "duration_s": 1500.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.26,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.38,
+        "gaze_stability": 0.42,
+        "voice_present": 0.05,
+        "utterance_density": 0.02,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "798艺术区傍晚漫步放松身心",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2165,
+    "target_hours": 8.0
+  }
+}

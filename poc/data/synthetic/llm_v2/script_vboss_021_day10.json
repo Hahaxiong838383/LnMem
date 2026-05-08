@@ -1,0 +1,348 @@
+{
+  "persona_id": "vboss_021",
+  "day_index": 10,
+  "generated_at": "2026-05-08T02:27:32",
+  "events": [
+    {
+      "event_id": "vboss_021_d10_e000",
+      "ts": "2026-05-16T09:00:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.78,
+        "voice_present": 0.75,
+        "utterance_density": 0.58,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "白班夜班交接，听取患者夜间情况",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e001",
+      "ts": "2026-05-16T09:30:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.85,
+        "voice_present": 0.42,
+        "utterance_density": 0.32,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "逐一床旁查看患者，询问夜间主诉",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e002",
+      "ts": "2026-05-16T10:00:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "遵医嘱为患者逐一执行静脉输液",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e003",
+      "ts": "2026-05-16T10:30:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.9,
+        "voice_present": 0.18,
+        "utterance_density": 0.1,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "测量并记录各患者生命体征数据",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e004",
+      "ts": "2026-05-16T11:00:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.72,
+        "voice_present": 0.62,
+        "utterance_density": 0.48,
+        "active_app": "",
+        "app_switch_count_5min": 2
+      },
+      "description": "与同事协同讨论分管患者护理方案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e005",
+      "ts": "2026-05-16T11:30:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "完成各患者护理记录单的书写录入",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e006",
+      "ts": "2026-05-16T12:00:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.78,
+        "voice_present": 0.22,
+        "utterance_density": 0.15,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "为卧床患者进行床上擦浴与皮肤护理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e007",
+      "ts": "2026-05-16T12:30:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.91,
+        "voice_present": 0.12,
+        "utterance_density": 0.08,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "为术后患者更换伤口敷料并观察愈合",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e008",
+      "ts": "2026-05-16T13:00:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.93,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "测量午餐前血糖并记录于电子病历",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e009",
+      "ts": "2026-05-16T13:30:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.82,
+        "voice_present": 0.58,
+        "utterance_density": 0.44,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "参与医生查房，汇报分管患者护理进展",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e010",
+      "ts": "2026-05-16T14:00:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.13,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.89,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "接收并核对医生当日新开医嘱内容",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e011",
+      "ts": "2026-05-16T14:30:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.94,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "遵新医嘱为患者更换输液种类与滴速",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e012",
+      "ts": "2026-05-16T15:00:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_negative",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.06,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.76,
+        "voice_present": 0.68,
+        "utterance_density": 0.52,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "安抚情绪焦虑患者并进行情绪疏导沟通",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e013",
+      "ts": "2026-05-16T15:30:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.19,
+        "head_pitch_norm": 0.07,
+        "head_yaw_norm": 0.16,
+        "gaze_stability": 0.8,
+        "voice_present": 0.65,
+        "utterance_density": 0.5,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "向家属解释患者当日检查安排与预期",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e014",
+      "ts": "2026-05-16T16:00:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.45,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息，喝水并简单活动伸展",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d10_e015",
+      "ts": "2026-05-16T16:30:00",
+      "persona_id": "vboss_021",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.62,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.35,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午休用餐，在值班室进餐并短暂午睡",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 1063,
+    "target_hours": 8.0
+  }
+}

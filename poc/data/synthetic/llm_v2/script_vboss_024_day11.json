@@ -1,0 +1,327 @@
+{
+  "persona_id": "vboss_024",
+  "day_index": 11,
+  "generated_at": "2026-05-08T02:54:58",
+  "events": [
+    {
+      "event_id": "vboss_024_d11_e000",
+      "ts": "2026-05-17T09:00:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.72,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床穿衣洗漱",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e001",
+      "ts": "2026-05-17T09:15:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.45,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.65,
+        "voice_present": 0.35,
+        "utterance_density": 0.28,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "陪3岁孩子吃早餐送幼儿园",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e002",
+      "ts": "2026-05-17T09:30:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 2700.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.55,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "地铁通勤浏览手机消息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e003",
+      "ts": "2026-05-17T10:15:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.78,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "到办公室整理桌面",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e004",
+      "ts": "2026-05-17T10:30:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "VSCode写体制内汇报材料",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e005",
+      "ts": "2026-05-17T11:30:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "emotional_negative",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.58,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "查看Feishu消息担心遗漏",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e006",
+      "ts": "2026-05-17T11:40:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "Notion更新考公辅导教案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e007",
+      "ts": "2026-05-17T12:40:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.4,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息揉眼睛",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e008",
+      "ts": "2026-05-17T12:55:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.8,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "Chrome查阅政策文件整理要点",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e009",
+      "ts": "2026-05-17T13:55:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.7,
+        "voice_present": 0.6,
+        "utterance_density": 0.5,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "部门内部简短工作对接",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e010",
+      "ts": "2026-05-17T14:10:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 2700.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.4,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.72,
+        "voice_present": 0.05,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "食堂午餐并短暂休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e011",
+      "ts": "2026-05-17T14:55:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "从食堂返回办公室",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e012",
+      "ts": "2026-05-17T15:10:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.75,
+        "voice_present": 0.55,
+        "utterance_density": 0.42,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "Feishu与考公学员家长沟通",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e013",
+      "ts": "2026-05-17T15:55:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.38,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.58,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "休息揉眼活动肩颈",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d11_e014",
+      "ts": "2026-05-17T16:10:00",
+      "persona_id": "vboss_024",
+      "day_index": 11,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "VSCode整理学员学习档案",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 1166,
+    "target_hours": 8.0
+  }
+}

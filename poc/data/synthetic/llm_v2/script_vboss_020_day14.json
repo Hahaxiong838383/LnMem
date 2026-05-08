@@ -1,0 +1,474 @@
+{
+  "persona_id": "vboss_020",
+  "day_index": 14,
+  "generated_at": "2026-05-08T02:23:25",
+  "events": [
+    {
+      "event_id": "vboss_020_d14_e000",
+      "ts": "2026-05-20T09:00:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 1800.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "从公寓步行至中环办公室",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e001",
+      "ts": "2026-05-20T09:30:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.8,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "整理办公桌并启动电脑",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e002",
+      "ts": "2026-05-20T09:45:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.03,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "为金融客户撰写战略报告第三章",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e003",
+      "ts": "2026-05-20T10:30:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.4,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "冲泡黑咖啡并远眺维港",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e004",
+      "ts": "2026-05-20T10:40:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.94,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Excel",
+        "app_switch_count_5min": 0
+      },
+      "description": "继续完善市场竞争力分析模型",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e005",
+      "ts": "2026-05-20T10:55:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.85,
+        "voice_present": 0.2,
+        "utterance_density": 0.15,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "查看邮件并回复客户紧急询问",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e006",
+      "ts": "2026-05-20T11:00:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.95,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "PowerPoint",
+        "app_switch_count_5min": 1
+      },
+      "description": "优化战略框架PPT的数据可视化",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e007",
+      "ts": "2026-05-20T11:30:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "站立伸展并查看手机资讯",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e008",
+      "ts": "2026-05-20T11:40:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.03,
+        "gaze_stability": 0.96,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Word",
+        "app_switch_count_5min": 0
+      },
+      "description": "完成客户交付物的最终整合与校对",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e009",
+      "ts": "2026-05-20T12:40:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.72,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 0
+      },
+      "description": "中环茶餐厅独用午餐并阅读行业报告",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e010",
+      "ts": "2026-05-20T13:10:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "返回办公室并整理下午工作计划",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e011",
+      "ts": "2026-05-20T13:15:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.24,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.93,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "为新项目进行竞品深度调研",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e012",
+      "ts": "2026-05-20T14:00:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 600.0,
+      "activity": "work_meeting",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.78,
+        "voice_present": 0.6,
+        "utterance_density": 0.45,
+        "active_app": "Zoom",
+        "app_switch_count_5min": 2
+      },
+      "description": "与客户进行线上项目进度同步会议",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e013",
+      "ts": "2026-05-20T14:10:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.03,
+        "gaze_stability": 0.94,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Word",
+        "app_switch_count_5min": 1
+      },
+      "description": "根据会议反馈修改战略建议框架",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e014",
+      "ts": "2026-05-20T14:25:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.45,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息并补充水分",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e015",
+      "ts": "2026-05-20T14:35:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.19,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.95,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Excel",
+        "app_switch_count_5min": 0
+      },
+      "description": "完善财务预测模型与敏感性分析",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e016",
+      "ts": "2026-05-20T15:05:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 900.0,
+      "activity": "leisure",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.74,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "浏览科技与金融新闻网站",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e017",
+      "ts": "2026-05-20T15:20:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.21,
+        "head_yaw_norm": 0.03,
+        "gaze_stability": 0.94,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "撰写行业趋势分析备忘录",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e018",
+      "ts": "2026-05-20T15:40:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.5,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "在窗边短暂冥想放松",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e019",
+      "ts": "2026-05-20T15:50:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 2400.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.17,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.93,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "整理项目文档并更新云端知识库",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e020",
+      "ts": "2026-05-20T16:30:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.84,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "整理桌面并关闭工作系统",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_020_d14_e021",
+      "ts": "2026-05-20T16:40:00",
+      "persona_id": "vboss_020",
+      "day_index": 14,
+      "duration_s": 1800.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "从中环步行返回公寓",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 1462,
+    "target_hours": 8.0
+  }
+}

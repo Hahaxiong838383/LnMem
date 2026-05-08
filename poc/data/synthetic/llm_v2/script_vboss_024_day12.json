@@ -1,0 +1,495 @@
+{
+  "persona_id": "vboss_024",
+  "day_index": 12,
+  "generated_at": "2026-05-08T02:55:10",
+  "events": [
+    {
+      "event_id": "vboss_024_d12_e000",
+      "ts": "2026-05-18T09:00:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.95,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.0,
+        "gaze_stability": 0.95,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "sleep alarm goes off, light stretching",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e001",
+      "ts": "2026-05-18T09:30:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "transition to morning routine",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e002",
+      "ts": "2026-05-18T09:40:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "low_energy",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.72,
+        "voice_present": 0.05,
+        "utterance_density": 0.02,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "morning routine, shower, breakfast",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e003",
+      "ts": "2026-05-18T10:10:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "wrap up morning routine",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e004",
+      "ts": "2026-05-18T10:20:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 1800.0,
+      "activity": "commute",
+      "state": "low_energy",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "evening commute home by bus",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e005",
+      "ts": "2026-05-18T10:50:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "arrive home, settle in",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e006",
+      "ts": "2026-05-18T11:00:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 3000.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "review overnight emails, plan morning tasks",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e007",
+      "ts": "2026-05-18T11:50:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "brief transition before deep work",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e008",
+      "ts": "2026-05-18T12:00:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 3000.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.07,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "WPS",
+        "app_switch_count_5min": 1
+      },
+      "description": "write administrative documents, format reports",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e009",
+      "ts": "2026-05-18T12:50:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "stand up, stretch, pour tea",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e010",
+      "ts": "2026-05-18T12:55:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "brief transition to next task",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e011",
+      "ts": "2026-05-18T13:05:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_negative",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.75,
+        "voice_present": 0.65,
+        "utterance_density": 0.5,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "sprint meeting, express concerns about timeline",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e012",
+      "ts": "2026-05-18T13:35:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "low_energy",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.58,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "short rest after meeting",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e013",
+      "ts": "2026-05-18T13:40:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "prepare for afternoon tasks",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e014",
+      "ts": "2026-05-18T13:50:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "lunch break, eat at canteen",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e015",
+      "ts": "2026-05-18T14:20:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "transition to afternoon work",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e016",
+      "ts": "2026-05-18T14:30:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.72,
+        "voice_present": 0.6,
+        "utterance_density": 0.45,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "coordination meeting with partner departments",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e017",
+      "ts": "2026-05-18T15:00:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "short rest after coordination meeting",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e018",
+      "ts": "2026-05-18T15:05:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "settle back to desk",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e019",
+      "ts": "2026-05-18T15:15:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 3000.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.06,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "WPS",
+        "app_switch_count_5min": 1
+      },
+      "description": "complete administrative tasks, file management",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e020",
+      "ts": "2026-05-18T16:05:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.72,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "wrap up work, pack bag",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e021",
+      "ts": "2026-05-18T16:15:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 1800.0,
+      "activity": "commute",
+      "state": "low_energy",
+      "multimodal_hint": {
+        "eye_closure": 0.32,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "evening commute home by bus",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_024_d12_e022",
+      "ts": "2026-05-18T16:45:00",
+      "persona_id": "vboss_024",
+      "day_index": 12,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "arrive home, change clothes",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 1266,
+    "target_hours": 8.0
+  }
+}

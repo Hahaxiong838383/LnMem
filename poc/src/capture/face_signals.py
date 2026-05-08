@@ -19,6 +19,17 @@ except ImportError:
     mediapipe = None  # type: ignore[assignment]
     _MEDIAPIPE_AVAILABLE = False
 
+_AU_SCALE = 12.0
+_CHEEK_BASELINE_FACE_RATIO = 0.40
+_EXPRESSION_DEFAULTS = {
+    "smile_intensity": 0.0,
+    "brow_furrow": 0.0,
+    "cheek_raise": 0.0,
+    "lip_corner_depress": 0.0,
+    "jaw_drop": 0.0,
+    "mouth_open_ratio": 0.0,
+}
+
 
 @dataclass
 class FaceSignalConfig:
@@ -46,6 +57,7 @@ class FaceSignalExtractor:
             max_num_faces=self._config.max_num_faces,
             min_detection_confidence=self._config.min_detection_confidence,
             min_tracking_confidence=self._config.min_tracking_confidence,
+            refine_landmarks=True,
         )
 
     def close(self) -> None:
@@ -95,12 +107,14 @@ class FaceSignalExtractor:
         head_yaw_deg = (nose.x - center_x) / width * 45.0
         head_pitch_deg = (nose.y - center_y) / height * 35.0
         gaze_stability = _clamp01(1.0 - min(1.0, (abs(head_yaw_deg) + abs(head_pitch_deg)) / 120.0))
+        expression = _extract_expression_features(landmarks=landmarks, landmarks_n=landmarks_n)
 
         return {
             "eye_closure": eye_closure,
             "head_pitch_deg": round(float(head_pitch_deg), 3),
             "head_yaw_deg": round(float(head_yaw_deg), 3),
             "gaze_stability": round(float(gaze_stability), 3),
+            **expression,
             "landmarks_n": landmarks_n,
         }
 
@@ -108,3 +122,57 @@ class FaceSignalExtractor:
 def _clamp01(value: float) -> float:
     """Clamp float to [0,1]. / 将浮点裁剪到 0-1。"""
     return max(0.0, min(1.0, float(value)))
+
+
+def _extract_expression_features(landmarks: list[Any], landmarks_n: int) -> dict[str, float]:
+    """Extract AU features from landmarks. / 从 landmarks 提取 AU 表情特征。"""
+    required_idx = [10, 13, 14, 55, 61, 112, 152, 234, 285, 291, 341, 454]
+    if landmarks_n <= max(required_idx):
+        return dict(_EXPRESSION_DEFAULTS)
+
+    left = landmarks[234]
+    right = landmarks[454]
+    up = landmarks[10]
+    down = landmarks[152]
+    mouth_up = landmarks[13]
+    mouth_down = landmarks[14]
+    mouth_left = landmarks[61]
+    mouth_right = landmarks[291]
+    brow_left = landmarks[55]
+    brow_right = landmarks[285]
+    lid_left = landmarks[112]
+    lid_right = landmarks[341]
+
+    face_w = max(1e-6, abs(right.x - left.x))
+    face_h = max(1e-6, abs(down.y - up.y))
+    mouth_center_y = float(mouth_up.y)
+    corners_avg_y = (float(mouth_left.y) + float(mouth_right.y)) / 2.0
+
+    smile_intensity = _clamp01((mouth_center_y - corners_avg_y) / face_h * _AU_SCALE)
+    lip_corner_depress = _clamp01((corners_avg_y - mouth_center_y) / face_h * _AU_SCALE)
+    brow_dist = abs(float(brow_right.x) - float(brow_left.x))
+    brow_furrow = _clamp01(1.0 - brow_dist / face_w * _AU_SCALE)
+
+    lip_gap = abs(float(mouth_down.y) - float(mouth_up.y))
+    jaw_drop = _clamp01(lip_gap / face_h * _AU_SCALE)
+    mouth_w = max(1e-6, abs(float(mouth_right.x) - float(mouth_left.x)))
+    mouth_open_ratio = _clamp01(lip_gap / mouth_w * _AU_SCALE)
+
+    cheek_base = max(1e-6, face_h * _CHEEK_BASELINE_FACE_RATIO)
+    if landmarks_n > 473:
+        pupil_left_y = float(landmarks[468].y)
+        pupil_right_y = float(landmarks[473].y)
+    else:
+        pupil_left_y = (float(landmarks[159].y) + float(landmarks[145].y)) / 2.0 if landmarks_n > 159 else float(mouth_up.y)
+        pupil_right_y = (float(landmarks[386].y) + float(landmarks[374].y)) / 2.0 if landmarks_n > 386 else float(mouth_up.y)
+    lower_lid_dist = (abs(float(lid_left.y) - pupil_left_y) + abs(float(lid_right.y) - pupil_right_y)) / 2.0
+    cheek_raise = _clamp01(1.0 - (lower_lid_dist / cheek_base) * _AU_SCALE)
+
+    return {
+        "smile_intensity": round(float(smile_intensity), 3),
+        "brow_furrow": round(float(brow_furrow), 3),
+        "cheek_raise": round(float(cheek_raise), 3),
+        "lip_corner_depress": round(float(lip_corner_depress), 3),
+        "jaw_drop": round(float(jaw_drop), 3),
+        "mouth_open_ratio": round(float(mouth_open_ratio), 3),
+    }

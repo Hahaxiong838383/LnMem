@@ -225,6 +225,15 @@ def validate_script(script: Script) -> ScriptValidationReport:
     """对单个 Script 跑全量校验。"""
     issues: list[ValidationIssue] = []
 
+    if len(script.events) == 0:
+        issues.append(
+            ValidationIssue(
+                "error",
+                "EMPTY_EVENTS",
+                f"script {script.persona_id} day{script.day_index} 事件列表为空",
+            )
+        )
+
     for ev in script.events:
         issues.extend(_validate_event(ev))
 

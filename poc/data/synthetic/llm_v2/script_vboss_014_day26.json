@@ -1,0 +1,390 @@
+{
+  "persona_id": "vboss_014",
+  "day_index": 26,
+  "generated_at": "2026-05-08T01:37:55",
+  "events": [
+    {
+      "event_id": "vboss_014_d26_e000",
+      "ts": "2026-06-01T09:00:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 1800.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.85,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床洗漱整理仪容",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e001",
+      "ts": "2026-06-01T09:30:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 1200.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.78,
+        "voice_present": 0.65,
+        "utterance_density": 0.48,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "和家人一起吃早餐",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e002",
+      "ts": "2026-06-01T09:50:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 1500.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.72,
+        "voice_present": 0.3,
+        "utterance_density": 0.25,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "开车送孩子去学校",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e003",
+      "ts": "2026-06-01T10:15:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.9,
+        "voice_present": 0.05,
+        "utterance_density": 0.02,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "到达学校准备一天工作",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e004",
+      "ts": "2026-06-01T10:30:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "备课检查教学材料",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e005",
+      "ts": "2026-06-01T11:00:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.75,
+        "voice_present": 0.72,
+        "utterance_density": 0.58,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "与同事进行教学研讨",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e006",
+      "ts": "2026-06-01T11:45:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.8,
+        "voice_present": 0.25,
+        "utterance_density": 0.15,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "教师休息室喝咖啡",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e007",
+      "ts": "2026-06-01T11:55:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.82,
+        "voice_present": 0.68,
+        "utterance_density": 0.52,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "上午第一节国际课程",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e008",
+      "ts": "2026-06-01T12:40:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.76,
+        "voice_present": 0.55,
+        "utterance_density": 0.42,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "课间与学生交流",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e009",
+      "ts": "2026-06-01T12:55:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.16,
+        "gaze_stability": 0.85,
+        "voice_present": 0.7,
+        "utterance_density": 0.55,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "上午第二节课程教学",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e010",
+      "ts": "2026-06-01T13:40:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.78,
+        "voice_present": 0.35,
+        "utterance_density": 0.28,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐时间休息放松",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e011",
+      "ts": "2026-06-01T14:10:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 1200.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.7,
+        "voice_present": 0.58,
+        "utterance_density": 0.45,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "与同事散步聊天",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e012",
+      "ts": "2026-06-01T14:30:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.86,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "批改学生作业",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e013",
+      "ts": "2026-06-01T14:45:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.82,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息补充能量",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e014",
+      "ts": "2026-06-01T14:55:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.88,
+        "voice_present": 0.72,
+        "utterance_density": 0.58,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "下午第一节语言课",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e015",
+      "ts": "2026-06-01T15:40:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.84,
+        "voice_present": 0.15,
+        "utterance_density": 0.08,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "课程间整理教室",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e016",
+      "ts": "2026-06-01T15:55:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.78,
+        "voice_present": 0.75,
+        "utterance_density": 0.62,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "下午第二节小组活动",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d26_e017",
+      "ts": "2026-06-01T16:40:00",
+      "persona_id": "vboss_014",
+      "day_index": 26,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.09,
+        "gaze_stability": 0.87,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "准备明天课程内容",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2656,
+    "target_hours": 8.0
+  }
+}

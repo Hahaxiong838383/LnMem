@@ -1,0 +1,495 @@
+{
+  "persona_id": "vboss_002",
+  "day_index": 28,
+  "generated_at": "2026-05-08T00:17:11",
+  "events": [
+    {
+      "event_id": "vboss_002_d28_e000",
+      "ts": "2026-06-03T09:00:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床穿衣整理仪容",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e001",
+      "ts": "2026-06-03T09:10:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "low_energy",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "洗漱整理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e002",
+      "ts": "2026-06-03T09:20:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 900.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 3
+      },
+      "description": "化妆同时查看手机消息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e003",
+      "ts": "2026-06-03T09:35:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "出门前往地铁站",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e004",
+      "ts": "2026-06-03T09:45:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 900.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 4
+      },
+      "description": "地铁通勤刷社交媒体",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e005",
+      "ts": "2026-06-03T10:00:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 5
+      },
+      "description": "浏览邮件处理Slack消息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e006",
+      "ts": "2026-06-03T10:30:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 600.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.65,
+        "voice_present": 0.6,
+        "utterance_density": 0.5,
+        "active_app": "Slack",
+        "app_switch_count_5min": 2
+      },
+      "description": "与同事聊昨晚的剧",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e007",
+      "ts": "2026-06-03T10:40:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.65,
+        "voice_present": 0.7,
+        "utterance_density": 0.6,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "团队站立会议同步进度",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e008",
+      "ts": "2026-06-03T11:10:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 1500.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "专注写PRD文档前半小时",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e009",
+      "ts": "2026-06-03T11:35:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息喝咖啡",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e010",
+      "ts": "2026-06-03T11:45:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "继续写PRD文档后半小时",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e011",
+      "ts": "2026-06-03T12:00:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.6,
+        "voice_present": 0.65,
+        "utterance_density": 0.55,
+        "active_app": "Slack",
+        "app_switch_count_5min": 3
+      },
+      "description": "与同事闲聊需求细节",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e012",
+      "ts": "2026-06-03T12:10:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.78,
+        "voice_present": 0.75,
+        "utterance_density": 0.65,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "产品需求评审会议",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e013",
+      "ts": "2026-06-03T13:10:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 900.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.62,
+        "voice_present": 0.55,
+        "utterance_density": 0.45,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "茶水间休息与同事聊天",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e014",
+      "ts": "2026-06-03T13:25:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 900.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.5,
+        "voice_present": 0.3,
+        "utterance_density": 0.2,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "午餐看视频放松",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e015",
+      "ts": "2026-06-03T13:40:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "low_energy",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.45,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息恢复精力",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e016",
+      "ts": "2026-06-03T13:55:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "写技术方案设计文档",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e017",
+      "ts": "2026-06-03T14:25:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.65,
+        "voice_present": 0.7,
+        "utterance_density": 0.6,
+        "active_app": "Slack",
+        "app_switch_count_5min": 3
+      },
+      "description": "与设计师单独沟通需求",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e018",
+      "ts": "2026-06-03T14:35:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.55,
+        "voice_present": 0.5,
+        "utterance_density": 0.4,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息与同事闲聊",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e019",
+      "ts": "2026-06-03T14:50:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "distracted",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.1,
+        "active_app": "Slack",
+        "app_switch_count_5min": 8
+      },
+      "description": "处理消息切换多个应用",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e020",
+      "ts": "2026-06-03T15:20:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.75,
+        "voice_present": 0.72,
+        "utterance_density": 0.62,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "跨部门对齐会议",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e021",
+      "ts": "2026-06-03T16:20:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "会议间短暂休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_002_d28_e022",
+      "ts": "2026-06-03T16:30:00",
+      "persona_id": "vboss_002",
+      "day_index": 28,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "整理会议记录更新周报",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2844,
+    "target_hours": 8.0
+  }
+}

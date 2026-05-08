@@ -1,0 +1,432 @@
+{
+  "persona_id": "vboss_013",
+  "day_index": 27,
+  "generated_at": "2026-05-08T01:30:49",
+  "events": [
+    {
+      "event_id": "vboss_013_d27_e000",
+      "ts": "2026-06-02T09:00:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 1800.0,
+      "activity": "leisure",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.85,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.02,
+        "gaze_stability": 0.25,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "早起冥想与正念呼吸练习",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e001",
+      "ts": "2026-06-02T09:30:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.82,
+        "voice_present": 0.2,
+        "utterance_density": 0.1,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "洗漱整理准备开启工作日",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e002",
+      "ts": "2026-06-02T09:40:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 900.0,
+      "activity": "leisure",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.78,
+        "voice_present": 0.0,
+        "utterance_density": 0.05,
+        "active_app": "Kindle",
+        "app_switch_count_5min": 1
+      },
+      "description": "阳台品茶阅读心理学文献",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e003",
+      "ts": "2026-06-02T09:55:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "整理今日咨询日程与准备",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e004",
+      "ts": "2026-06-02T10:05:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 3300.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.85,
+        "voice_present": 0.85,
+        "utterance_density": 0.65,
+        "active_app": "Zoom",
+        "app_switch_count_5min": 1
+      },
+      "description": "线上心理咨询来访者A（50分钟）",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e005",
+      "ts": "2026-06-02T11:00:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.1,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "咨询间隔休息与个案记录",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e006",
+      "ts": "2026-06-02T11:15:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 3300.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.88,
+        "voice_present": 0.8,
+        "utterance_density": 0.6,
+        "active_app": "Zoom",
+        "app_switch_count_5min": 0
+      },
+      "description": "线上心理咨询来访者B（50分钟）",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e007",
+      "ts": "2026-06-02T12:10:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "简短伸展与呼吸调整",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e008",
+      "ts": "2026-06-02T12:20:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 1200.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.75,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "洱海边散步拍照放松",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e009",
+      "ts": "2026-06-02T12:40:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "个案咨询记录与反思笔记",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e010",
+      "ts": "2026-06-02T12:55:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 3300.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.86,
+        "voice_present": 0.82,
+        "utterance_density": 0.62,
+        "active_app": "Zoom",
+        "app_switch_count_5min": 1
+      },
+      "description": "线上心理咨询来访者C（50分钟）",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e011",
+      "ts": "2026-06-02T13:50:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.68,
+        "voice_present": 0.05,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐准备与轻度休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e012",
+      "ts": "2026-06-02T14:05:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 1500.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.6,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.35,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐与短暂午休",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e013",
+      "ts": "2026-06-02T14:30:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.78,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "下午工作状态启动",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e014",
+      "ts": "2026-06-02T14:40:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 3300.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.13,
+        "gaze_stability": 0.87,
+        "voice_present": 0.78,
+        "utterance_density": 0.58,
+        "active_app": "Zoom",
+        "app_switch_count_5min": 0
+      },
+      "description": "线上心理咨询来访者D（50分钟）",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e015",
+      "ts": "2026-06-02T15:35:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "情绪调适与自我关怀",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e016",
+      "ts": "2026-06-02T15:50:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "专业督导学习笔记整理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e017",
+      "ts": "2026-06-02T16:05:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.88,
+        "voice_present": 0.15,
+        "utterance_density": 0.15,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "专业督导学习课程（认知行为流派进阶）",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e018",
+      "ts": "2026-06-02T16:35:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.72,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "工作模式切换与准备",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d27_e019",
+      "ts": "2026-06-02T16:45:00",
+      "persona_id": "vboss_013",
+      "day_index": 27,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.06,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.89,
+        "voice_present": 0.8,
+        "utterance_density": 0.6,
+        "active_app": "Zoom",
+        "app_switch_count_5min": 1
+      },
+      "description": "线上心理咨询来访者E（50分钟）",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2755,
+    "target_hours": 8.0
+  }
+}

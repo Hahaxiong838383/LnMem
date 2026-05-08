@@ -1,0 +1,369 @@
+{
+  "persona_id": "vboss_013",
+  "day_index": 2,
+  "generated_at": "2026-05-07T23:27:30",
+  "events": [
+    {
+      "event_id": "vboss_013_d2_e000",
+      "ts": "2026-05-08T09:00:00",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 450.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床洗漱整理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e001",
+      "ts": "2026-05-08T09:07:30",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 300.0,
+      "activity": "leisure",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "慢节奏早餐时间",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e002",
+      "ts": "2026-05-08T09:12:30",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 900.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.02,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "步行前往工作室",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e003",
+      "ts": "2026-05-08T09:27:30",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 450.0,
+      "activity": "transition",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.8,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "打开Notion准备今日咨询记录",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e004",
+      "ts": "2026-05-08T09:35:00",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.9,
+        "voice_present": 0.45,
+        "utterance_density": 0.55,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 1
+      },
+      "description": "第一场心理咨询会话",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e005",
+      "ts": "2026-05-08T10:35:00",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 450.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "喝温水短暂休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e006",
+      "ts": "2026-05-08T10:42:30",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.04,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.92,
+        "voice_present": 0.5,
+        "utterance_density": 0.6,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "第二场心理咨询会话",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e007",
+      "ts": "2026-05-08T11:42:30",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 450.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起身活动拉伸",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e008",
+      "ts": "2026-05-08T11:50:00",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.88,
+        "voice_present": 0.48,
+        "utterance_density": 0.58,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 1
+      },
+      "description": "第三场心理咨询会话",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e009",
+      "ts": "2026-05-08T12:50:00",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 450.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "记录咨询笔记要点",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e010",
+      "ts": "2026-05-08T12:57:30",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.62,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐及户外散步",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e011",
+      "ts": "2026-05-08T13:57:30",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 450.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.72,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "返回工作室准备下午工作",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e012",
+      "ts": "2026-05-08T14:05:00",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.04,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.91,
+        "voice_present": 0.52,
+        "utterance_density": 0.62,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "第四场心理咨询会话",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e013",
+      "ts": "2026-05-08T15:05:00",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 450.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.58,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂闭眼休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e014",
+      "ts": "2026-05-08T15:12:30",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.09,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.93,
+        "voice_present": 0.55,
+        "utterance_density": 0.65,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 1
+      },
+      "description": "第五场心理咨询会话",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e015",
+      "ts": "2026-05-08T16:12:30",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 450.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "喝茶放松片刻",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d2_e016",
+      "ts": "2026-05-08T16:20:00",
+      "persona_id": "vboss_013",
+      "day_index": 2,
+      "duration_s": 2400.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.89,
+        "voice_present": 0.46,
+        "utterance_density": 0.56,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 1
+      },
+      "description": "第六场心理咨询会话",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 255,
+    "target_hours": 8.0
+  }
+}

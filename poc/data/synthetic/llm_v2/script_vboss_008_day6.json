@@ -1,0 +1,516 @@
+{
+  "persona_id": "vboss_008",
+  "day_index": 6,
+  "generated_at": "2026-05-07T23:17:47",
+  "events": [
+    {
+      "event_id": "vboss_008_d6_e000",
+      "ts": "2026-05-12T09:00:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1200.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.58,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "地铁通勤前往公司",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e001",
+      "ts": "2026-05-12T09:20:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "进入办公室整理工位",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e002",
+      "ts": "2026-05-12T09:25:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "产品架构图绘制",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e003",
+      "ts": "2026-05-12T09:55:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.42,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.52,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息喝杯水",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e004",
+      "ts": "2026-05-12T10:05:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.09,
+        "gaze_stability": 0.89,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "需求文档撰写与完善",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e005",
+      "ts": "2026-05-12T10:35:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.11,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "准备进入会议状态",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e006",
+      "ts": "2026-05-12T10:45:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.73,
+        "voice_present": 0.62,
+        "utterance_density": 0.48,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "与研发团队对齐技术方案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e007",
+      "ts": "2026-05-12T11:15:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "会议结束记录要点",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e008",
+      "ts": "2026-05-12T11:25:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "API 接口设计文档",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e009",
+      "ts": "2026-05-12T11:55:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.43,
+        "head_pitch_norm": 0.32,
+        "head_yaw_norm": 0.16,
+        "gaze_stability": 0.52,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息伸展身体",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e010",
+      "ts": "2026-05-12T12:05:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "竞品分析与方案设计",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e011",
+      "ts": "2026-05-12T12:35:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "准备午休",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e012",
+      "ts": "2026-05-12T12:45:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.65,
+        "voice_present": 0.12,
+        "utterance_density": 0.15,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐及休息时间",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e013",
+      "ts": "2026-05-12T13:15:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "用户旅程地图梳理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e014",
+      "ts": "2026-05-12T13:25:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.43,
+        "head_pitch_norm": 0.32,
+        "head_yaw_norm": 0.16,
+        "gaze_stability": 0.52,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午休后简短休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e015",
+      "ts": "2026-05-12T13:40:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "功能优先级排序讨论",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e016",
+      "ts": "2026-05-12T14:10:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.11,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "准备参加产品周会",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e017",
+      "ts": "2026-05-12T14:20:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.26,
+        "gaze_stability": 0.74,
+        "voice_present": 0.65,
+        "utterance_density": 0.5,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "产品周会与进展分享",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e018",
+      "ts": "2026-05-12T14:50:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "周会后整理笔记",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e019",
+      "ts": "2026-05-12T15:00:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.09,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "数据指标体系设计",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e020",
+      "ts": "2026-05-12T15:30:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.42,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.52,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息远眺放松",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e021",
+      "ts": "2026-05-12T15:45:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "产品路线图更新",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e022",
+      "ts": "2026-05-12T16:15:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "收尾当天工作",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_008_d6_e023",
+      "ts": "2026-05-12T16:25:00",
+      "persona_id": "vboss_008",
+      "day_index": 6,
+      "duration_s": 1200.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.58,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "下班通勤回家",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 650,
+    "target_hours": 8.0
+  }
+}

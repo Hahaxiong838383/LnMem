@@ -5,6 +5,226 @@
 
 ---
 
+## v0.15 — 2026-05-08（Day 6 P0: feature_dim 12→18 · AU 表情特征扩展）
+
+Day 5 真人验证暴露核心缺陷：12 维全认知特征，无表情信号 → 模型不能检测安静的积极。
+Day 6 P0 用 agent team（cc 主线 + codex）并行完成 6 维 AU 表情特征扩展。
+
+### 变更清单
+
+| 文件 | 变更 | Agent |
+|------|------|-------|
+| `contracts.py` | `feature_dim: 12 → 18` | cc |
+| `event_schema.py` | `MultimodalHint` +6 表情字段（smile/brow/cheek/lip/jaw/mouth） | cc |
+| `fusion.py` | `FEATURE_DIM 18` + `_expression_features()` 6 维新函数 | cc |
+| `script_to_signals.py` | 新 hint 字段 → face dict 透传 | cc |
+| `face_signals.py` | `_extract_expression_features()` mediapipe 478 landmarks → 6 AU | codex |
+| 测试 | 138/138 PASS（+8 新测试，4 索引修正） | cc + codex |
+
+### 18 维向量布局
+
+```
+[0-3]   face:       eye_closure / pitch_norm / yaw_norm / gaze_stability
+[4-7]   derived:    fatigue / attention / pose_steadiness / blink_burst
+[8-13]  expression: smile_intensity / brow_furrow / cheek_raise / lip_corner_depress / jaw_drop / mouth_open_ratio
+[14-15] audio:      voice_present / utterance_density
+[16-17] context:    context_known / focus_stability
+```
+
+### AU 特征 → mediapipe landmark 映射
+
+| 特征 | AU | 关键 Landmarks | 归一化 |
+|------|----|----|------|
+| smile_intensity | AU6+AU12 | 13(上唇), 61/291(嘴角) | (center_y - corners_y) / face_h × 12 |
+| brow_furrow | AU4 | 55/285(内眉) | 1 - inner_brow_dist / face_w × 12 |
+| cheek_raise | AU6 | 112/341(下眼睑), 468/473(瞳孔) | 1 - lower_lid_dist / baseline × 12 |
+| lip_corner_depress | AU15 | 13, 61/291 | (corners_y - center_y) / face_h × 12 |
+| jaw_drop | AU26 | 13(上唇), 14(下唇) | lip_gap / face_h × 12 |
+| mouth_open_ratio | — | 13, 14, 61, 291 | lip_gap / mouth_w × 12 |
+
+### 后续 P1（待启动）
+- 合成数据去偏：LLM prompt 约束"积极状态必须包含独处/安静场景"
+- 重新生成 30×30 训练数据（18 维）
+- 重训 LNN + live_verify v3 验证"安静的积极"可检测
+
+---
+
+## v0.14 — 2026-05-08（Day 5 LNN 训练 pipeline · agent team 三路并行）
+
+老板批"Day 5 启动 + agent team 并行"。cc 主线 + codex（model/personalization）+ gemini（dataset/viz 任务接管）。
+
+### 协作分工
+
+| Lane | Agent | 文件 | 状态 |
+|------|-------|------|------|
+| contracts (frozen) | cc | `poc/src/lnn/contracts.py` | ✅ Day 5 起始已冻结 |
+| model + personalization | codex (gpt-5.4) | `poc/src/lnn/model.py` + `personalization.py` | ✅ 119 tests passed |
+| dataset + viz | gemini → **cc 接管** | `poc/src/lnn/dataset.py` + `viz.py` | ✅ gemini sandbox 失败，cc 主线写完 |
+| train + 集成 | cc | `poc/src/lnn/train.py` | ✅ end-to-end pipeline |
+
+### 模块摘要
+
+| 模块 | 行数 | 关键设计 |
+|------|------|---------|
+| `contracts.py` | 227 | LNNTrainConfig frozen + 4 Protocol（SignalsLoader/LNNModelFactory/PersonalizationAdapter/TrainingViz） |
+| `model.py` | 120 | CfC step-by-step + τ 偏置注入（timespans）+ FiLM 调制 hidden + StateRecognitionLNN(8类) + BoundaryDetectionLNN(1) |
+| `personalization.py` | 43 | nn.Embedding(30, 8) → 3 路线性投影（tau/gamma/beta），disabled → zeros |
+| `dataset.py` | 300 | 一次性 numpy 预处理（~1.5GB）+ FileGroupedSampler（文件间 shuffle + 文件内顺序）+ sliding window + (persona,day) 80/20 split |
+| `viz.py` | 115 | 双 Y 轴 loss curve + t-SNE persona 散点图 |
+| `train.py` | 261 | 端到端: data → model → optimizer → epoch loop → checkpoint → viz |
+
+### 测试覆盖
+
+| 文件 | case 数 | 覆盖 |
+|------|---------|------|
+| `test_lnn_contracts.py` | 7 | 配置一致性/frozen/设备/异常 |
+| `test_lnn_model.py` | 8 | shape/backward/shared adapter/persona 区分/tau 禁用/FiLM 禁用/全禁用 |
+| `test_lnn_dataset.py` | 8 | persona_to_idx 确定性/shape/state 范围/boundary 正确性/短文件跳过/JSON 错误/空目录/split 比例 |
+| `test_lnn_viz.py` | 3 | loss curve PNG/tsne PNG/few personas |
+| **total** | **130** | 111 Day 3-4 + 19 Day 5 新增 |
+
+### 训练运行
+
+- 设备: MPS (Apple M4 Max)
+- 配置: epochs=20, batch_size=32, seq_len=60, stride=600, lr=1e-3
+- 数据: 1082 train + 271 val batches, 30 personas
+- 模型参数: 105,257
+- 预处理: 900 JSONL → numpy arrays (~1.5GB), ~100s 一次性开销
+- AC 目标: StateRecognition acc 60-75%, BoundaryDetection F1 > 0.5
+- 结果:
+  - **State Acc (val): 70.2%** ← AC 60-75% ✅
+  - **Boundary F1: 0.313** ← AC 0.5 未达标（pos_weight=5.0 不足，需调至 15-20）
+  - Train Acc: 72.1%（健康 overfitting gap ~2%）
+  - t-SNE: 30 persona embedding 均匀散布，个性化生效
+  - Day 6 gate: 70.2% >> 30% 安全线 ✅
+
+### 验证三件套（v0.14.1）
+
+| 脚本 | 产出方 | 用途 |
+|------|--------|------|
+| `verify_confusion_matrix.py` | codex | 8×8 混淆矩阵 + per-class F1 |
+| `verify_threshold_sweep.py` | cc（gemini sandbox 失败后接管） | boundary sigmoid 阈值扫描 |
+| `human_verify.py` v2 | cc | 人工验证：专挑状态切换段落对比预测 |
+| `live_verify.py` v2 | cc | **真人实时验证**：摄像头+麦克风+当前应用→模型预测 |
+
+### 真人实时验证发现（关键洞察）
+
+**现象**：live_verify v1 只接摄像头（12 维中 4 维锁死 0.5），模型永远预测 neutral/focused，不出 emotional_positive。
+
+**根因分析**（两层）：
+
+1. **训练数据偏见**：合成数据中 emotional_positive 的 voice_present 均值=0.83，
+   模型学到"积极≈在说话"。但现实中安静地看到好消息、听音乐也是积极状态。
+2. **特征维度缺失（更根本）**：12 维向量全是认知特征（eye/pitch/yaw/gaze + 派生），
+   **没有情绪表情特征**（微笑/皱眉/惊讶）。mediapipe 478 landmarks 完全能算出
+   AU6（苹果肌）+AU12（嘴角上扬）= Duchenne 真笑，但 fusion.py 设计时未提取。
+
+**v2 修复**：补齐麦克风 VAD + osascript 应用检测，12/12 维全部真实采集。
+但情绪表情维度仍然缺失，需 Day 6+ 扩展。
+
+### Day 6+ 改进方向
+
+#### P0: 特征维度扩展（feature_dim 12→16~18）
+
+| 新增维度 | 来源 | 检测能力 |
+|---------|------|---------|
+| smile_intensity | mediapipe AU12 嘴角上扬 | 安静的积极（笑着看屏幕） |
+| cheek_raise | mediapipe AU6 苹果肌上抬 | 真笑 vs 假笑（Duchenne marker） |
+| brow_furrow | mediapipe AU4 皱眉 | 困惑/消极/专注思考 |
+| lip_corner_depress | mediapipe AU15 嘴角下拉 | 消极/不满 |
+| jaw_drop | mediapipe AU26 张嘴 | 惊讶/大笑 |
+| mouth_open_ratio | mediapipe 嘴部 landmark 比 | 说话 vs 打哈欠区分 |
+
+需要同步改动：fusion.py FEATURE_DIM / contracts.py feature_dim / 训练数据重新生成
+
+#### P1: 训练数据去偏
+
+- 数据生成 prompt 加约束："积极状态不一定在说话，独处看书/听音乐/收到好消息也是积极"
+- emotional_positive 样本中 voice_present 分布应 50/50（说话/安静各半）
+- 同理 emotional_negative 不应只绑定"沉默不语"
+
+#### P2: Boundary 改进
+
+- pos_weight 从 5.0 调至 50-100（正样本仅 0.3%）
+- 或换 focal loss（γ=2.0）处理极端类别不平衡
+- 最优阈值从 0.50 调至 0.45（+5.9% F1）
+
+#### P3: transitioning 状态
+
+- 当前 F1≈0.01，完全被 neutral 吞掉
+- 需要 class weight 或 label smoothing
+- 或重新定义：transitioning 不作为独立状态，改为 boundary 信号的一部分
+
+### 待调研（Day 6+）
+
+- [ ] mediapipe FACS AU 提取：从 478 landmarks 计算 AU6/AU12/AU4/AU15/AU26 的成熟方案
+- [ ] 表情特征归一化：微笑强度如何标定到 [0,1]，个体差异大（有人嘴角天然上翘）
+- [ ] 训练数据重生成成本评估：feature_dim 变更需要重跑 30画像×30天，预估 ~4h MiniMax API
+- [ ] CfC 模型对新维度的适配：hidden_dim 是否需要同步扩大
+
+---
+
+## v0.13 — 2026-05-07（Day 4 真 LLM 接管 · MiniMax-M2.7 主路径 + Gemini 备选）
+
+老板批"Day 4 启动，先用 MiniMax 模型，自建 Gemini api 备选"。cc 主线在 4-6 小时内把 Day 3 留下的
+HeuristicLLM 替换为真 LLM，并跑通 30 画像 baseline。
+
+### Lane A — LLM 客户端适配层（cc 主线）
+
+| 改动 | 文件 | 验收 |
+|------|------|------|
+| `MiniMaxLLMClient` + `GeminiProxyLLMClient` + `FallbackLLMClient` 三件套 | `poc/src/data/llm_clients.py`（新建） | OpenAI 兼容路径，frozen dataclass，零 SDK 依赖（仅 stdlib `urllib`） |
+| 多轮补全 (`min_coverage_ratio=0.95` / `max_fillin_rounds=2`) + truncate 工具 | 同上 | 单次 LLM 输出不达 8h 时再追问，超量后裁剪 [target, target+1200s] |
+| Fillin 容错（空 content / HTTPError → 接受现有 events） | 同上 | MiniMax 偶发空 content 不会让整批失败 |
+| 单测 28 case | `poc/tests/test_llm_clients.py`（新建） | strip_thinking / extract_json / coerce / events_from_payload / multi-round / truncate / Fallback 全覆盖 |
+
+### Lane B — Phase 1 Smoke：1 画像 × 8h（真 LLM 调用）
+
+| 验收 | 数值 |
+|------|------|
+| MiniMax-M2.7-highspeed 单画像延迟 | 51.9s |
+| events 数 | 35 |
+| 累计时长 | 8.57h（首次未触发 truncate） |
+| 12-dim signals 转换 | 通 |
+
+### Lane C — Phase 2.5：3 画像 × 8h（多轮补全 + truncate）
+
+| 画像 | events | 累计时长 | 延迟 |
+|------|--------|---------|------|
+| vboss_001 | 34 | 8.00h | 76.9s |
+| vboss_002 | 24 | 8.00h | 98.2s |
+| vboss_003 | 40 | 8.00h | 137.3s |
+
+> baseline 报告：3 画像 / 24.00h / 86,400 frames / 0 errors / HEXACO L2 0.527/0.615/0.708（≥0.4 全过）。
+> vs Day 3 HeuristicLLM baseline：状态分布更"贴近真实"（vboss_002 emotional_positive=12，vboss_003=16），活动分布更丰富（vboss_003 leisure=14 反映高 openness）。
+
+### Lane D — Phase 3：30 画像 × 1 天（5 并发 baseline）
+
+详细数据见 `poc/data/synthetic/llm_v2/dataset_report.md`（运行后落档）。
+
+### Day 4 验收（双门）
+
+**Verify**：30 画像 × 1 天 baseline 全部 events 通过 validate_script + HEXACO 30×30 距离矩阵 ≥ 0.4 比例 ≥ 90%。
+
+**Guard**：`PYTHONPATH=. .venv-poc/bin/python -m pytest poc/tests/ -q` → **100 passed**（Day 3 72 + LLM clients 28）。
+
+### 协作模式沉淀
+
+| 维度 | 本次值 |
+|------|--------|
+| Lane 数 | 4（cc 全主线，无 codex 派工——Day 4 是接口适配 + 集成测试，不适合并行） |
+| 文件域冲突 | 0 |
+| LLM API 调用累计 | Phase 1+2.5 共 ~7 次 / Phase 3 30+ 次 |
+| 关键决策 | (a) 用 highspeed 版本（普通 M2.7 单画像 >180s 超时）（b) 多轮补全 + truncate 双保险（c) fillin 失败容错 |
+
+### 已知偏差 / 后续
+
+- Day 4 baseline 是**单天**（30 画像 × 1 天），距 7,200h 全量目标差 30 倍。Phase 4 用成本评估决定是否进 30 天。
+- HEXACO 距离矩阵基于画像 frontmatter，与 Day 3 完全一致（不依赖 LLM 输出）。
+- v0.12 延后的 10 条 codex F2-x/F3-x finding，部分（F2-06 HeuristicLLM long break 不稳）已自然消除——Day 4 真 LLM 接管。
+
+---
+
 ## v0.12 — 2026-05-06（Day 3 数据生成框架 · cc + codex 并行 5 lane）
 
 老板批"Day 3 启动"。cc 主线 + codex 后台并行 5 lane，60min 内全部 Day 3 AC + DoD 跑通。
@@ -73,7 +293,10 @@ write_markdown_report(report, Path('poc/data/synthetic/dataset_report.md'))
 
 输出 9 文件（3 剧本 JSON + 3 信号 JSONL + 1 报告 MD + 86,400 帧）✅。
 
-**Guard**：`pytest poc/tests/ -q` → **65 passed**（Day 1-2 19 + Lane A 23 + Lane B 6 + Lane C 14 + Lane D 7 = 69，含 `__init__.py` 影响实际收集 65）。
+**Guard**：`PYTHONPATH=. .venv-poc/bin/python -m pytest poc/tests/ -q` → **65 passed**（Day 1-2 19 + Lane A 23 + Lane B 6 + Lane C 14 + Lane D 7 = 69，含 `__init__.py` 影响实际收集 65）。
+
+> **codex F3-05 review 落档**：直接跑 `pytest poc/tests/` 会 `ModuleNotFoundError`，
+> 必须用 `python -m pytest`（自动加 cwd 到 sys.path）或显式 `PYTHONPATH=.`。
 
 ### 协作模式沉淀
 

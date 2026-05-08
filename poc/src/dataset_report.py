@@ -141,22 +141,34 @@ def build_report(
     script_paths: list[Path],
     personas_dir: Path,
 ) -> DatasetReport:
-    """聚合多个 Script JSON → DatasetReport。"""
+    """聚合多个 Script JSON → DatasetReport。
+
+    损坏/缺失的脚本不会静默 skip，会以 ``SCRIPT_PARSE_FAILED`` /
+    ``SCRIPT_FILE_MISSING`` 错误码计入 ``issue_code_counts``，并在 ``issues``
+    列表中以 ``"<code>: <path>: <reason>"`` 形式落档。
+    """
     persona_scripts: dict[str, list[Script]] = {}
     persona_validations: dict[str, list[ScriptValidationReport]] = {}
+    issue_counter: Counter[str] = Counter()
+    ingestion_issues: list[str] = []
 
     for path in script_paths:
         if not path.exists():
+            issue_counter["SCRIPT_FILE_MISSING"] += 1
+            ingestion_issues.append(f"SCRIPT_FILE_MISSING: {path}: not found")
             continue
         try:
             s = Script.from_json(path.read_text(encoding="utf-8"))
-        except (ValueError, KeyError):
+        except (ValueError, KeyError) as exc:
+            issue_counter["SCRIPT_PARSE_FAILED"] += 1
+            ingestion_issues.append(
+                f"SCRIPT_PARSE_FAILED: {path}: {type(exc).__name__}: {exc}"
+            )
             continue
         persona_scripts.setdefault(s.persona_id, []).append(s)
         persona_validations.setdefault(s.persona_id, []).append(validate_script(s))
 
     per_persona: list[PersonaScriptStats] = []
-    issue_counter: Counter[str] = Counter()
     total_duration_s = 0.0
     n_total_scripts = 0
 
@@ -215,6 +227,7 @@ def build_report(
         per_persona=tuple(per_persona),
         hexaco_pairwise_l2=pairwise,
         issue_code_counts=dict(issue_counter),
+        issues=tuple(ingestion_issues),
     )
 
 

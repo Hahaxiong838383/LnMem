@@ -1,0 +1,306 @@
+{
+  "persona_id": "vboss_003",
+  "day_index": 11,
+  "generated_at": "2026-05-08T00:19:36",
+  "events": [
+    {
+      "event_id": "vboss_003_d11_e000",
+      "ts": "2026-05-17T09:00:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.5,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.45,
+        "voice_present": 0.05,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床整理床铺洗漱喝水",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e001",
+      "ts": "2026-05-17T09:15:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 1500.0,
+      "activity": "leisure",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.62,
+        "voice_present": 0.32,
+        "utterance_density": 0.28,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "慢节奏早餐浏览社交媒体",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e002",
+      "ts": "2026-05-17T09:40:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.78,
+        "voice_present": 0.08,
+        "utterance_density": 0.1,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "翻阅灵感笔记准备创作",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e003",
+      "ts": "2026-05-17T09:55:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.92,
+        "voice_present": 0.02,
+        "utterance_density": 0.05,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "VSCode深度写小说章节",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e004",
+      "ts": "2026-05-17T10:55:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.52,
+        "voice_present": 0.05,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起身伸展泡茶看窗外",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e005",
+      "ts": "2026-05-17T11:10:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.88,
+        "voice_present": 0.05,
+        "utterance_density": 0.08,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "继续写作灵感涌现顺畅",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e006",
+      "ts": "2026-05-17T11:55:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.48,
+        "voice_present": 0.1,
+        "utterance_density": 0.08,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "听音乐短暂休息发呆",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e007",
+      "ts": "2026-05-17T12:10:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "emotional_negative",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.65,
+        "voice_present": 0.08,
+        "utterance_density": 0.12,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "创作遇阻皱眉停顿思考",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e008",
+      "ts": "2026-05-17T12:40:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.72,
+        "voice_present": 0.12,
+        "utterance_density": 0.15,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "整理灵感碎片化思考",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e009",
+      "ts": "2026-05-17T12:55:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.9,
+        "voice_present": 0.02,
+        "utterance_density": 0.05,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "写作渐入佳境全神贯注",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e010",
+      "ts": "2026-05-17T13:40:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 2700.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.6,
+        "voice_present": 0.35,
+        "utterance_density": 0.3,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "准备简单午餐听播客",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e011",
+      "ts": "2026-05-17T14:25:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 2700.0,
+      "activity": "break_long",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.45,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.4,
+        "voice_present": 0.15,
+        "utterance_density": 0.18,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "午餐看视频后轻度困倦",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e012",
+      "ts": "2026-05-17T15:10:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 2700.0,
+      "activity": "break_long",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.82,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.25,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午休闭眼小憩恢复精力",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_003_d11_e013",
+      "ts": "2026-05-17T15:55:00",
+      "persona_id": "vboss_003",
+      "day_index": 11,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.92,
+        "voice_present": 0.02,
+        "utterance_density": 0.05,
+        "active_app": "Procreate",
+        "app_switch_count_5min": 0
+      },
+      "description": "Procreate插画创作全神贯注",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 1145,
+    "target_hours": 8.0
+  }
+}

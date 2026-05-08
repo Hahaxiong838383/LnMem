@@ -1,0 +1,663 @@
+{
+  "persona_id": "vboss_021",
+  "day_index": 6,
+  "generated_at": "2026-05-07T23:42:00",
+  "events": [
+    {
+      "event_id": "vboss_021_d6_e000",
+      "ts": "2026-05-12T09:00:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "从家步行前往医院",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e001",
+      "ts": "2026-05-12T09:10:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.65,
+        "voice_present": 0.3,
+        "utterance_density": 0.15,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "换护士服整理仪容",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e002",
+      "ts": "2026-05-12T09:25:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.8,
+        "voice_present": 0.65,
+        "utterance_density": 0.55,
+        "active_app": "",
+        "app_switch_count_5min": 2
+      },
+      "description": "参加早班集体交接班会",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e003",
+      "ts": "2026-05-12T09:40:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.85,
+        "voice_present": 0.55,
+        "utterance_density": 0.45,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "与夜班护士一对一交接",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e004",
+      "ts": "2026-05-12T09:55:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.78,
+        "voice_present": 0.4,
+        "utterance_density": 0.35,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "巡视负责病区全部患者",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e005",
+      "ts": "2026-05-12T10:10:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "核查患者夜间体征记录",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e006",
+      "ts": "2026-05-12T10:25:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "核对并准备上午药品",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e007",
+      "ts": "2026-05-12T10:40:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.75,
+        "voice_present": 0.5,
+        "utterance_density": 0.4,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "为患者A做晨间护理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e008",
+      "ts": "2026-05-12T10:55:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.76,
+        "voice_present": 0.5,
+        "utterance_density": 0.38,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "为患者B做晨间护理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e009",
+      "ts": "2026-05-12T11:10:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.26,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.77,
+        "voice_present": 0.48,
+        "utterance_density": 0.36,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "为患者C做晨间护理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e010",
+      "ts": "2026-05-12T11:25:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.72,
+        "voice_present": 0.7,
+        "utterance_density": 0.6,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "与患者及家属进行沟通",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e011",
+      "ts": "2026-05-12T11:40:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.32,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.86,
+        "voice_present": 0.3,
+        "utterance_density": 0.22,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "上午第一轮静脉输液",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e012",
+      "ts": "2026-05-12T11:55:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.84,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "记录上午第一轮输液",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e013",
+      "ts": "2026-05-12T12:10:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.78,
+        "voice_present": 0.6,
+        "utterance_density": 0.5,
+        "active_app": "",
+        "app_switch_count_5min": 2
+      },
+      "description": "与责任医生交流患者情况",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e014",
+      "ts": "2026-05-12T12:25:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.5,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息喝热茶",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e015",
+      "ts": "2026-05-12T12:40:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.07,
+        "gaze_stability": 0.8,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "完成护理电子文书",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e016",
+      "ts": "2026-05-12T12:55:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.26,
+        "head_yaw_norm": 0.09,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "核对下午药品准备",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e017",
+      "ts": "2026-05-12T13:10:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.76,
+        "voice_present": 0.58,
+        "utterance_density": 0.48,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "护士长查房听取汇报",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e018",
+      "ts": "2026-05-12T13:25:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.8,
+        "voice_present": 0.45,
+        "utterance_density": 0.35,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "午餐前患者情况复盘",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e019",
+      "ts": "2026-05-12T13:40:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 2700.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.6,
+        "voice_present": 0.65,
+        "utterance_density": 0.55,
+        "active_app": "",
+        "app_switch_count_5min": 2
+      },
+      "description": "午休回家陪伴家人和孩子",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e020",
+      "ts": "2026-05-12T14:25:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.68,
+        "voice_present": 0.2,
+        "utterance_density": 0.1,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "返回医院并更换工作服",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e021",
+      "ts": "2026-05-12T14:35:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.17,
+        "head_pitch_norm": 0.33,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.83,
+        "voice_present": 0.3,
+        "utterance_density": 0.22,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "下午第一轮静脉输液",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e022",
+      "ts": "2026-05-12T14:50:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "记录下午输液执行",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e023",
+      "ts": "2026-05-12T15:05:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.24,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.75,
+        "voice_present": 0.25,
+        "utterance_density": 0.18,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "下午第二轮静脉输液",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e024",
+      "ts": "2026-05-12T15:20:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.32,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.78,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "记录下午第二轮输液",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e025",
+      "ts": "2026-05-12T15:35:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.48,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息补充能量",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e026",
+      "ts": "2026-05-12T15:50:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.7,
+        "voice_present": 0.38,
+        "utterance_density": 0.3,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "进行下午患者巡视",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e027",
+      "ts": "2026-05-12T16:05:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.72,
+        "voice_present": 0.72,
+        "utterance_density": 0.65,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "与患者进行心理疏导",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e028",
+      "ts": "2026-05-12T16:20:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.76,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "整理并核对当天护理记录",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e029",
+      "ts": "2026-05-12T16:35:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.78,
+        "voice_present": 0.6,
+        "utterance_density": 0.52,
+        "active_app": "",
+        "app_switch_count_5min": 2
+      },
+      "description": "与接班护士详细交接",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_021_d6_e030",
+      "ts": "2026-05-12T16:50:00",
+      "persona_id": "vboss_021",
+      "day_index": 6,
+      "duration_s": 600.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.8,
+        "voice_present": 0.5,
+        "utterance_density": 0.42,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "参加科室夕会总结",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 663,
+    "target_hours": 8.0
+  }
+}

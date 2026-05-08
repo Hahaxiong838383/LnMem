@@ -1,0 +1,453 @@
+{
+  "persona_id": "vboss_011",
+  "day_index": 10,
+  "generated_at": "2026-05-08T01:11:22",
+  "events": [
+    {
+      "event_id": "vboss_011_d10_e000",
+      "ts": "2026-05-16T09:00:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 900.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "步行通勤至联合办公空间",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e001",
+      "ts": "2026-05-16T09:15:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.75,
+        "voice_present": 0.85,
+        "utterance_density": 0.65,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "团队 standup 对齐当天优先事项",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e002",
+      "ts": "2026-05-16T09:45:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 1500.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.8,
+        "voice_present": 0.78,
+        "utterance_density": 0.6,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "消费品牌联名活动内容评审",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e003",
+      "ts": "2026-05-16T10:10:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 420.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "WeChat",
+        "app_switch_count_5min": 4
+      },
+      "description": "短暂休息拉伸并查看手机消息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e004",
+      "ts": "2026-05-16T10:17:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.07,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "撰写品牌联名活动核心策划案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e005",
+      "ts": "2026-05-16T11:02:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 720.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.07,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "分析联名活动转化漏斗与渠道策略",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e006",
+      "ts": "2026-05-16T11:14:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.78,
+        "voice_present": 0.88,
+        "utterance_density": 0.7,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "与联名方视频会议确认方案细节",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e007",
+      "ts": "2026-05-16T11:29:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 480.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.52,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 5
+      },
+      "description": "下午茶休息并查看 Instagram",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e008",
+      "ts": "2026-05-16T11:37:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.48,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "WeChat",
+        "app_switch_count_5min": 3
+      },
+      "description": "午餐并在附近商圈散步放松",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e009",
+      "ts": "2026-05-16T12:37:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 2400.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.07,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.89,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "完成 campaign 全链路策划文档",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e010",
+      "ts": "2026-05-16T13:17:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.74,
+        "voice_present": 0.82,
+        "utterance_density": 0.62,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "抖音 campaign 内容选题讨论",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e011",
+      "ts": "2026-05-16T13:47:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 3000.0,
+      "activity": "work_focus",
+      "state": "distracted",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.72,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "分析 campaign 预算分配与 ROI 预期",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e012",
+      "ts": "2026-05-16T14:37:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 1200.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.16,
+        "gaze_stability": 0.76,
+        "voice_present": 0.9,
+        "utterance_density": 0.72,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "投资人与合作方项目进展同步",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e013",
+      "ts": "2026-05-16T14:57:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.62,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 3
+      },
+      "description": "审阅社交媒体舆情监控报告",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e014",
+      "ts": "2026-05-16T15:07:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 720.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.7,
+        "voice_present": 0.8,
+        "utterance_density": 0.62,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 5
+      },
+      "description": "品牌联名第二期方案快速对齐",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e015",
+      "ts": "2026-05-16T15:19:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 2
+      },
+      "description": "从会议室转移回工位切换状态",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e016",
+      "ts": "2026-05-16T15:24:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 2100.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.07,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.91,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 1
+      },
+      "description": "深度撰写联名产品用户故事与卖点",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e017",
+      "ts": "2026-05-16T15:59:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 480.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.5,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 2
+      },
+      "description": "短暂休息补充咖啡提神",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e018",
+      "ts": "2026-05-16T16:07:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.77,
+        "voice_present": 0.85,
+        "utterance_density": 0.68,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "核心团队战略目标季度复盘",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e019",
+      "ts": "2026-05-16T16:37:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "会议结束短暂放空整理思路",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_011_d10_e020",
+      "ts": "2026-05-16T16:42:00",
+      "persona_id": "vboss_011",
+      "day_index": 10,
+      "duration_s": 1080.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.87,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "最终 campaign 方案全面审阅",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 1053,
+    "target_hours": 8.0
+  }
+}

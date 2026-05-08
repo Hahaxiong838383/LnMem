@@ -1,0 +1,516 @@
+{
+  "persona_id": "vboss_014",
+  "day_index": 10,
+  "generated_at": "2026-05-08T01:33:59",
+  "events": [
+    {
+      "event_id": "vboss_014_d10_e000",
+      "ts": "2026-05-16T09:00:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 1200.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.45,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床洗漱收拾准备出门",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e001",
+      "ts": "2026-05-16T09:20:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 300.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "步行前往地铁站",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e002",
+      "ts": "2026-05-16T09:25:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 1200.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.6,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "地铁通勤看新闻",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e003",
+      "ts": "2026-05-16T09:45:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.78,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "到达学校放包打卡",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e004",
+      "ts": "2026-05-16T09:50:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.75,
+        "voice_present": 0.6,
+        "utterance_density": 0.55,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "早自习班级管理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e005",
+      "ts": "2026-05-16T10:05:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.7,
+        "voice_present": 0.15,
+        "utterance_density": 0.1,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "课间收拾准备上课",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e006",
+      "ts": "2026-05-16T10:15:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.88,
+        "voice_present": 0.65,
+        "utterance_density": 0.58,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "第一节课教授英文阅读",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e007",
+      "ts": "2026-05-16T11:00:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.62,
+        "voice_present": 0.2,
+        "utterance_density": 0.15,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "课间休息喝水伸展",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e008",
+      "ts": "2026-05-16T11:10:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.82,
+        "voice_present": 0.7,
+        "utterance_density": 0.62,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "第二节课小组讨论活动",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e009",
+      "ts": "2026-05-16T11:55:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.72,
+        "voice_present": 0.25,
+        "utterance_density": 0.18,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "课间活动区域转换",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e010",
+      "ts": "2026-05-16T12:05:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.13,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.85,
+        "voice_present": 0.68,
+        "utterance_density": 0.6,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "第三节课写作练习指导",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e011",
+      "ts": "2026-05-16T12:50:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.58,
+        "voice_present": 0.55,
+        "utterance_density": 0.48,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "上午茶歇和同事聊天",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e012",
+      "ts": "2026-05-16T13:20:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.75,
+        "voice_present": 0.1,
+        "utterance_density": 0.08,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "返回教室准备上课",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e013",
+      "ts": "2026-05-16T13:25:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.24,
+        "gaze_stability": 0.86,
+        "voice_present": 0.72,
+        "utterance_density": 0.65,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "第四节课科学实验课",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e014",
+      "ts": "2026-05-16T14:10:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.6,
+        "voice_present": 0.15,
+        "utterance_density": 0.12,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "课间短暂休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e015",
+      "ts": "2026-05-16T14:20:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.78,
+        "voice_present": 0.75,
+        "utterance_density": 0.68,
+        "active_app": "",
+        "app_switch_count_5min": 1
+      },
+      "description": "第五节课维持秩序较累",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e016",
+      "ts": "2026-05-16T15:05:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.55,
+        "voice_present": 0.58,
+        "utterance_density": 0.5,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午休和同事食堂午餐",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e017",
+      "ts": "2026-05-16T15:35:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.8,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "午休后批改上午作业",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e018",
+      "ts": "2026-05-16T15:50:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 600.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.78,
+        "voice_present": 0.62,
+        "utterance_density": 0.55,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "学科组教研会议讨论",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e019",
+      "ts": "2026-05-16T16:00:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.82,
+        "voice_present": 0.2,
+        "utterance_density": 0.15,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "回复家长邮件微信",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e020",
+      "ts": "2026-05-16T16:15:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.72,
+        "voice_present": 0.1,
+        "utterance_density": 0.05,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "收拾东西准备下班",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e021",
+      "ts": "2026-05-16T16:25:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 300.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.62,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 1
+      },
+      "description": "步行前往地铁站回家",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e022",
+      "ts": "2026-05-16T16:30:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 1200.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.32,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 2
+      },
+      "description": "晚高峰地铁通勤",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_014_d10_e023",
+      "ts": "2026-05-16T16:50:00",
+      "persona_id": "vboss_014",
+      "day_index": 10,
+      "duration_s": 300.0,
+      "activity": "transition",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.68,
+        "voice_present": 0.3,
+        "utterance_density": 0.2,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "到家换衣服放松",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 1056,
+    "target_hours": 8.0
+  }
+}

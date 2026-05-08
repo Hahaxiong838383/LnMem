@@ -1,0 +1,285 @@
+{
+  "persona_id": "vboss_023",
+  "day_index": 25,
+  "generated_at": "2026-05-08T02:51:55",
+  "events": [
+    {
+      "event_id": "vboss_023_d25_e000",
+      "ts": "2026-05-31T09:00:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床洗漱换衣整理出门准备",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e001",
+      "ts": "2026-05-31T09:15:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 1800.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.25,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "骑车穿过胡同去798艺术区",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e002",
+      "ts": "2026-05-31T09:45:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 900.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 2
+      },
+      "description": "VSCode写展板设计实现代码",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e003",
+      "ts": "2026-05-31T10:00:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.07,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "深写展览策划方案框架文档",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e004",
+      "ts": "2026-05-31T10:45:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.78,
+        "voice_present": 0.75,
+        "utterance_density": 0.6,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "团队站会同步本周展览进度",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e005",
+      "ts": "2026-05-31T11:15:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 2700.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.8,
+        "voice_present": 0.8,
+        "utterance_density": 0.65,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "与独立策展人深度讨论展览框架",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e006",
+      "ts": "2026-05-31T12:00:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 1800.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.3,
+        "gaze_stability": 0.55,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 5
+      },
+      "description": "短暂休息刷手机喝咖啡",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e007",
+      "ts": "2026-05-31T12:30:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.35,
+        "gaze_stability": 0.72,
+        "voice_present": 0.15,
+        "utterance_density": 0.05,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 6
+      },
+      "description": "午休在798艺术区闲逛拍照",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e008",
+      "ts": "2026-05-31T13:30:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "逐条审查艺术家提交展览提案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e009",
+      "ts": "2026-05-31T14:30:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "distracted",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.28,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 4
+      },
+      "description": "创意头脑风暴绘制展览主题概念",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e010",
+      "ts": "2026-05-31T15:30:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.75,
+        "voice_present": 0.5,
+        "utterance_density": 0.25,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "下楼买咖啡与咖啡师闲聊",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e011",
+      "ts": "2026-05-31T15:45:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.09,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "Notion撰写展览策划书详细方案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_023_d25_e012",
+      "ts": "2026-05-31T16:45:00",
+      "persona_id": "vboss_023",
+      "day_index": 25,
+      "duration_s": 900.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.24,
+        "gaze_stability": 0.76,
+        "voice_present": 0.78,
+        "utterance_density": 0.62,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 5
+      },
+      "description": "与策展团队协作讨论新展定位",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2565,
+    "target_hours": 8.0
+  }
+}

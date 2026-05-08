@@ -1,0 +1,285 @@
+{
+  "persona_id": "vboss_013",
+  "day_index": 1,
+  "generated_at": "2026-05-07T23:29:24",
+  "events": [
+    {
+      "event_id": "vboss_013_d1_e000",
+      "ts": "2026-05-07T09:00:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.65,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床并洗漱整理",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e001",
+      "ts": "2026-05-07T09:15:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 1800.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.78,
+        "voice_present": 0.2,
+        "utterance_density": 0.15,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "健康早餐并听心理学播客",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e002",
+      "ts": "2026-05-07T09:45:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.55,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.42,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "15分钟正念冥想",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e003",
+      "ts": "2026-05-07T10:00:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.85,
+        "voice_present": 0.1,
+        "utterance_density": 0.08,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "查看日程回复客户消息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e004",
+      "ts": "2026-05-07T10:30:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Kindle",
+        "app_switch_count_5min": 1
+      },
+      "description": "深度阅读专业书籍文献",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e005",
+      "ts": "2026-05-07T11:15:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.72,
+        "voice_present": 0.85,
+        "utterance_density": 0.78,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "第一次心理咨询线上咨询",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e006",
+      "ts": "2026-05-07T12:15:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "详细记录咨询笔记分析",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e007",
+      "ts": "2026-05-07T12:45:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.58,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "茶歇休息泡杯热茶",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e008",
+      "ts": "2026-05-07T13:00:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.75,
+        "voice_present": 0.82,
+        "utterance_density": 0.72,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 4
+      },
+      "description": "第二次心理咨询咨询session",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e009",
+      "ts": "2026-05-07T14:00:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 900.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.52,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "简短休息整理思绪",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e010",
+      "ts": "2026-05-07T14:15:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.8,
+        "voice_present": 0.15,
+        "utterance_density": 0.12,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐准备散步正念练习",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e011",
+      "ts": "2026-05-07T15:15:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 2700.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 2
+      },
+      "description": "撰写课程内容创作文章",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d1_e012",
+      "ts": "2026-05-07T16:00:00",
+      "persona_id": "vboss_013",
+      "day_index": 1,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.78,
+        "voice_present": 0.88,
+        "utterance_density": 0.8,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 3
+      },
+      "description": "第三次心理咨询咨询会谈",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 155,
+    "target_hours": 8.0
+  }
+}

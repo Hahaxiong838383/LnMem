@@ -1,0 +1,264 @@
+{
+  "persona_id": "vboss_012",
+  "day_index": 28,
+  "generated_at": "2026-05-08T01:24:15",
+  "events": [
+    {
+      "event_id": "vboss_012_d28_e000",
+      "ts": "2026-06-03T09:00:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 900.0,
+      "activity": "transition",
+      "state": "transitioning",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.78,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "起床穿衣洗漱",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_012_d28_e001",
+      "ts": "2026-06-03T09:15:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 1800.0,
+      "activity": "commute",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.22,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 2
+      },
+      "description": "地铁通勤前往 IFC 大厦",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_012_d28_e002",
+      "ts": "2026-06-03T09:45:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Chrome",
+        "app_switch_count_5min": 3
+      },
+      "description": "浏览市场资讯和处理邮件",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_012_d28_e003",
+      "ts": "2026-06-03T10:15:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.78,
+        "voice_present": 0.65,
+        "utterance_density": 0.5,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 2
+      },
+      "description": "团队对齐 sprint 目标和进度",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_012_d28_e004",
+      "ts": "2026-06-03T10:45:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.93,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Excel",
+        "app_switch_count_5min": 1
+      },
+      "description": "深度工作：处理 M&A 财务模型",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_012_d28_e005",
+      "ts": "2026-06-03T11:45:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 600.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.35,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.78,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息，补充水分",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_012_d28_e006",
+      "ts": "2026-06-03T11:55:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Word",
+        "app_switch_count_5min": 2
+      },
+      "description": "撰写客户 pitch book 文档",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_012_d28_e007",
+      "ts": "2026-06-03T12:55:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.75,
+        "voice_present": 0.8,
+        "utterance_density": 0.6,
+        "active_app": "Phone",
+        "app_switch_count_5min": 1
+      },
+      "description": "与客户电话沟通项目进展",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_012_d28_e008",
+      "ts": "2026-06-03T13:25:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 3600.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.72,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐和休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_012_d28_e009",
+      "ts": "2026-06-03T14:25:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 3600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Excel",
+        "app_switch_count_5min": 1
+      },
+      "description": "深度工作：LBO 建模和估值分析",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_012_d28_e010",
+      "ts": "2026-06-03T15:25:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 3600.0,
+      "activity": "work_meeting",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.72,
+        "voice_present": 0.7,
+        "utterance_density": 0.55,
+        "active_app": "Notion",
+        "app_switch_count_5min": 3
+      },
+      "description": "项目评审会议：审阅交易方案",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_012_d28_e011",
+      "ts": "2026-06-03T16:25:00",
+      "persona_id": "vboss_012",
+      "day_index": 28,
+      "duration_s": 2100.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.91,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Word",
+        "app_switch_count_5min": 1
+      },
+      "description": "继续深度工作：完成交易备忘录",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2854,
+    "target_hours": 8.0
+  }
+}

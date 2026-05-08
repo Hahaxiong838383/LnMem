@@ -1,13 +1,16 @@
-"""多模态融合层 — Day 2 PoC 骨架（v0.9 / 2026-05-05）
+"""多模态融合层 — Day 6 特征扩展版（v1.0 / 2026-05-08）
 
 把 `poc/src/capture/multimodal_capture.MultimodalCapture.capture_frame()` 输出的单帧
 （face/audio/context 三段 dict）融合为下游 LNN / 记忆系统可消费的统一信号向量。
 
-上游契约（poc/src/capture/multimodal_capture.py 已定）::
+上游契约（poc/src/capture/multimodal_capture.py + face_signals.py 已定）::
 
     {"ts": "ISO8601", "frame_idx": int,
      "face": {"eye_closure": 0-1, "head_pitch_deg": float,
               "head_yaw_deg": float, "gaze_stability": 0-1,
+              "smile_intensity": 0-1, "brow_furrow": 0-1,
+              "cheek_raise": 0-1, "lip_corner_depress": 0-1,
+              "jaw_drop": 0-1, "mouth_open_ratio": 0-1,
               "landmarks_n": int},
      "audio": {"transcript": str, "lang": str, "duration_s": float},
      "context": {"active_app": str, "app_switch_count_5min": int}}
@@ -17,32 +20,30 @@
     FusionFrame(
       ts: str,
       frame_idx: int,
-      vector: tuple[float, ...],   # 长度=FEATURE_DIM=12，全部 [0,1] 归一化
+      vector: tuple[float, ...],   # 长度=FEATURE_DIM=18，全部 [0,1] 归一化
       missing: tuple[str, ...],    # 哪些子模态缺失（face/audio/context）
       meta: dict,                  # 调试用：app/transcript_words/lang
     )
+
+Day 6 扩展（v1.0）：
+- FEATURE_DIM 12→18，新增 6 维 AU 表情特征
+- 视觉 4 维 / 疲劳-注意 4 维 / **表情 6 维** / 语音 2 维 / 上下文 2 维
+- 解决 Day 5 真人验证暴露的核心缺陷：12 维全认知、无表情 → 不能检测安静的积极
 
 设计原则：
 1. **缺模态不崩**：face/audio/context 任一缺失 → 用 PoC-spec §6 默认值填补，
    并在 ``missing`` 字段标注（下游 LNN 可见，便于 attention mask）。
 2. **零外部依赖**：纯 Python + 标准库；测试在 sandbox 里也能跑。
-3. **特征解释力优先**：12 维向量按主分支
-   docs/capability-specs/cognitive.md §5.2 强正/强负/弱信号三表分组——
-   视觉 4 维 / 疲劳 2 维 / 注意 2 维 / 语音 2 维 / 上下文 2 维。
+3. **特征解释力优先**：18 维向量按认知 + 表情 + 语音 + 上下文四大类分组。
 4. **阈值参数化**：所有阈值集中在 ``FusionConfig``，便于 Day 5+ LNN 训练时按
    主人差异化调参（per-user τ 偏置同源思路）。
-
-Day 8+ 真实数据采集时，本模块需补：
-- 面部 landmarks（478 点）→ AU（FACS 行动单元）映射
-- 音频频谱基线 → 语速 / 音调 / 沉默率
-- 上下文事件分割（参考主分支 boundary_detection 模型）
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, Iterable
 
-FEATURE_DIM = 12
+FEATURE_DIM = 18
 
 # ---------- 配置 ----------
 
@@ -152,6 +153,29 @@ def _context_features(
     return (context_known, focus)
 
 
+def _expression_features(
+    face: dict[str, Any] | None, cfg: FusionConfig
+) -> tuple[float, ...]:
+    """6 维 AU 表情特征（Day 6 新增）。
+
+    smile_intensity / brow_furrow / cheek_raise /
+    lip_corner_depress / jaw_drop / mouth_open_ratio
+
+    来源：face_signals.py capture_signals() 新增的 6 个字段，
+    或合成数据中 MultimodalHint 的 6 个表情字段。
+    缺失 → 全部填 cfg.missing_default。
+    """
+    if not face:
+        return (cfg.missing_default,) * 6
+    smile = _clamp(float(face.get("smile_intensity", 0.0)))
+    brow = _clamp(float(face.get("brow_furrow", 0.0)))
+    cheek = _clamp(float(face.get("cheek_raise", 0.0)))
+    lip_down = _clamp(float(face.get("lip_corner_depress", 0.0)))
+    jaw = _clamp(float(face.get("jaw_drop", 0.0)))
+    mouth = _clamp(float(face.get("mouth_open_ratio", 0.0)))
+    return (smile, brow, cheek, lip_down, jaw, mouth)
+
+
 # ---------- 融合主入口 ----------
 
 
@@ -184,13 +208,14 @@ class MultimodalFusion:
         if not context:
             missing.append("context")
 
-        face_feats = _face_features(face, cfg)
-        derived_feats = _fatigue_attention_features(face, cfg)
-        audio_feats = _audio_features(audio, cfg)
-        context_feats = _context_features(context, cfg)
+        face_feats = _face_features(face, cfg)          # 4 dim
+        derived_feats = _fatigue_attention_features(face, cfg)  # 4 dim
+        expr_feats = _expression_features(face, cfg)   # 6 dim (Day 6)
+        audio_feats = _audio_features(audio, cfg)      # 2 dim
+        context_feats = _context_features(context, cfg)  # 2 dim
 
-        vector = face_feats + derived_feats + audio_feats + context_feats
-        assert len(vector) == FEATURE_DIM, f"FEATURE_DIM mismatch: {len(vector)}"
+        vector = face_feats + derived_feats + expr_feats + audio_feats + context_feats
+        assert len(vector) == FEATURE_DIM, f"FEATURE_DIM mismatch: {len(vector)} != {FEATURE_DIM}"
 
         meta = {
             "active_app": (context or {}).get("active_app", ""),

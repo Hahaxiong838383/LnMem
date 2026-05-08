@@ -1,0 +1,579 @@
+{
+  "persona_id": "vboss_013",
+  "day_index": 22,
+  "generated_at": "2026-05-08T01:30:01",
+  "events": [
+    {
+      "event_id": "vboss_013_d22_e000",
+      "ts": "2026-05-28T09:00:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 1800.0,
+      "activity": "leisure",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.08,
+        "head_pitch_norm": 0.05,
+        "head_yaw_norm": 0.04,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "阳台冥想后喝咖啡",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e001",
+      "ts": "2026-05-28T09:30:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 1500.0,
+      "activity": "transition",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.05,
+        "head_pitch_norm": 0.08,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "早餐整理后开机",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e002",
+      "ts": "2026-05-28T09:55:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 2400.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 0
+      },
+      "description": "写本周来访者案例记录",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e003",
+      "ts": "2026-05-28T10:35:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.78,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "倒水拉伸休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e004",
+      "ts": "2026-05-28T10:40:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 2400.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.16,
+        "gaze_stability": 0.76,
+        "voice_present": 0.8,
+        "utterance_density": 0.68,
+        "active_app": "Zoom",
+        "app_switch_count_5min": 2
+      },
+      "description": "远程来访者咨询（A女士）",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e005",
+      "ts": "2026-05-28T11:20:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.25,
+        "head_pitch_norm": 0.18,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.7,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "咨询后整理笔记缓冲",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e006",
+      "ts": "2026-05-28T11:30:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.35,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.85,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "阳台晒太阳眺望洱海",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e007",
+      "ts": "2026-05-28T11:35:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 2400.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.14,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.82,
+        "voice_present": 0.78,
+        "utterance_density": 0.65,
+        "active_app": "Zoom",
+        "app_switch_count_5min": 2
+      },
+      "description": "远程来访者咨询（B先生）",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e008",
+      "ts": "2026-05-28T12:15:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.07,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 0
+      },
+      "description": "补充咨询后的即时笔记",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e009",
+      "ts": "2026-05-28T12:25:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 420.0,
+      "activity": "break_long",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.15,
+        "gaze_stability": 0.88,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "下楼在社区花园散步",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e010",
+      "ts": "2026-05-28T12:32:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.9,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 0
+      },
+      "description": "制作线上情绪管理课程内容",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e011",
+      "ts": "2026-05-28T13:02:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.84,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "简短休息吃水果",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e012",
+      "ts": "2026-05-28T13:07:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.09,
+        "head_pitch_norm": 0.1,
+        "head_yaw_norm": 0.05,
+        "gaze_stability": 0.92,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "VSCode",
+        "app_switch_count_5min": 0
+      },
+      "description": "修改课程逐字稿框架",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e013",
+      "ts": "2026-05-28T13:37:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.3,
+        "head_pitch_norm": 0.28,
+        "head_yaw_norm": 0.14,
+        "gaze_stability": 0.72,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "在窗边做眼保健操",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e014",
+      "ts": "2026-05-28T13:42:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.13,
+        "head_yaw_norm": 0.07,
+        "gaze_stability": 0.89,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 1
+      },
+      "description": "梳理下周咨询排期安排",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e015",
+      "ts": "2026-05-28T14:02:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 2400.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.15,
+        "head_pitch_norm": 0.13,
+        "head_yaw_norm": 0.16,
+        "gaze_stability": 0.8,
+        "voice_present": 0.82,
+        "utterance_density": 0.7,
+        "active_app": "Zoom",
+        "app_switch_count_5min": 2
+      },
+      "description": "远程来访者咨询（C女士）",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e016",
+      "ts": "2026-05-28T14:42:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 600.0,
+      "activity": "transition",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.22,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.75,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂静坐整理情绪",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e017",
+      "ts": "2026-05-28T14:52:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 420.0,
+      "activity": "break_long",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.2,
+        "head_yaw_norm": 0.18,
+        "gaze_stability": 0.86,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "午餐后洱海边散步",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e018",
+      "ts": "2026-05-28T14:59:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.16,
+        "head_yaw_norm": 0.09,
+        "gaze_stability": 0.83,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Feishu",
+        "app_switch_count_5min": 1
+      },
+      "description": "回复飞书工作消息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e019",
+      "ts": "2026-05-28T15:09:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 1800.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.11,
+        "head_pitch_norm": 0.12,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.91,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 0
+      },
+      "description": "更新案例笔记与评估量表",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e020",
+      "ts": "2026-05-28T15:39:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.18,
+        "head_pitch_norm": 0.22,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.8,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "泡杯普洱茶小憩",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e021",
+      "ts": "2026-05-28T15:44:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 1200.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.12,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.88,
+        "voice_present": 0.75,
+        "utterance_density": 0.6,
+        "active_app": "Audacity",
+        "app_switch_count_5min": 1
+      },
+      "description": "录制情绪管理课程音频第3章",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e022",
+      "ts": "2026-05-28T16:04:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "fatigued",
+      "multimodal_hint": {
+        "eye_closure": 0.28,
+        "head_pitch_norm": 0.3,
+        "head_yaw_norm": 0.12,
+        "gaze_stability": 0.68,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "短暂休息听音乐",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e023",
+      "ts": "2026-05-28T16:09:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 1800.0,
+      "activity": "work_meeting",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.16,
+        "head_pitch_norm": 0.15,
+        "head_yaw_norm": 0.2,
+        "gaze_stability": 0.74,
+        "voice_present": 0.72,
+        "utterance_density": 0.58,
+        "active_app": "Zoom",
+        "app_switch_count_5min": 3
+      },
+      "description": "督导小组线上案例讨论",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e024",
+      "ts": "2026-05-28T16:39:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 600.0,
+      "activity": "work_focus",
+      "state": "neutral",
+      "multimodal_hint": {
+        "eye_closure": 0.13,
+        "head_pitch_norm": 0.14,
+        "head_yaw_norm": 0.08,
+        "gaze_stability": 0.86,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 1
+      },
+      "description": "记录督导讨论要点",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e025",
+      "ts": "2026-05-28T16:49:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 300.0,
+      "activity": "break_short",
+      "state": "emotional_positive",
+      "multimodal_hint": {
+        "eye_closure": 0.2,
+        "head_pitch_norm": 0.25,
+        "head_yaw_norm": 0.1,
+        "gaze_stability": 0.82,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "",
+        "app_switch_count_5min": 0
+      },
+      "description": "整理工作台休息",
+      "meta": {}
+    },
+    {
+      "event_id": "vboss_013_d22_e026",
+      "ts": "2026-05-28T16:54:00",
+      "persona_id": "vboss_013",
+      "day_index": 22,
+      "duration_s": 360.0,
+      "activity": "work_focus",
+      "state": "focused",
+      "multimodal_hint": {
+        "eye_closure": 0.1,
+        "head_pitch_norm": 0.11,
+        "head_yaw_norm": 0.06,
+        "gaze_stability": 0.91,
+        "voice_present": 0.0,
+        "utterance_density": 0.0,
+        "active_app": "Notion",
+        "app_switch_count_5min": 0
+      },
+      "description": "撰写心理咨询科普文章",
+      "meta": {}
+    }
+  ],
+  "meta": {
+    "llm_class": "MiniMaxLLMClient",
+    "seed": 2255,
+    "target_hours": 8.0
+  }
+}
