@@ -5,6 +5,7 @@ purpose: 12-14 天 PoC 完整规范——目标/AC/DoD/时间盒/失败兜底/�
 status: v0.1（2026-05-05 cc 起草，待 Day 0 老板 review 后定 v1.0）
 parent: ../README.md
 references:
+  - ../../docs/principles/lnn-first.md（**P-1 最高准则 — 必读**）
   - ../../docs/product-definition.md（v0.3.3 主产品定义）
   - ../../docs/capability-specs/cognitive.md（v0.1.1 认知能力规范）
   - ../../docs/development-harness.md（v0.1 BRO-PDCA × 目标驱动验收）
@@ -12,6 +13,8 @@ references:
 ---
 
 # LnMem PoC LNN 验证项目规范 v0.1
+
+> **⚠️ P-1 准则强制声明**：本 PoC 所有模块（capture/fusion/lnn/memory）必须遵守 [`../../docs/principles/lnn-first.md`](../../docs/principles/lnn-first.md)——记忆系统内核以 LNN（LTC/CfC 微分方程）为核心，凡"时间/演化/记忆/个性化"禁止用 LLM/规则替代 LTC。老板 2026-05-08 钦定。
 
 ## 0. 一句话目标
 

@@ -8,6 +8,16 @@
 
 ---
 
+## ⚠️ P-1 最高准则（PoC 也不例外）
+
+> **[`../docs/principles/lnn-first.md`](../docs/principles/lnn-first.md) — LNN-FIRST**
+>
+> PoC 的所有模块（capture / fusion / lnn / memory）**必须**以 LNN（LTC/CfC 微分方程）为核心。
+> 凡"时间 / 演化 / 记忆 / 个性化"用 LLM/规则替代 LTC，必须 ADR + 老板签字。
+> 老板 2026-05-08 钦定。
+
+---
+
 ## 30 秒入口（必读）
 
 按以下顺序阅读 4 份文档即可上手：

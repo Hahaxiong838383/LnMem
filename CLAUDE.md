@@ -5,6 +5,18 @@
 
 ---
 
+## ⚠️ P-1 最高准则（先读，凌驾全部 P0）
+
+> **[`docs/principles/lnn-first.md`](docs/principles/lnn-first.md) — LNN-FIRST 项目最高准则**
+>
+> **LnMem = Liquid neural Memory**。任何方案、计划、改动**不允许偏离"以 LNN 为核心打造记忆系统内核"**。
+> 凡涉及"时间 / 演化 / 记忆 / 个性化"，第一性原理必须是 LTC/CfC 微分方程。
+> 用 LLM/RNN/规则替代 LTC 必须有 ADR + 老板签字（详见 `lnn-first.md` §3 Override 协议）。
+>
+> 老板 2026-05-08 钦定。cc/codex/gemini 全员执行。违反此条 = 停下任务，提请复议。
+
+---
+
 ## 0. 三秒钟告诉你怎么开始
 
 1. 第一次到这个仓库：先读 [`README.md`](README.md) 的"30 秒入口"段

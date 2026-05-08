@@ -2,6 +2,20 @@
 
 > 本文件给 codex（gpt-5.4）看。cc 看 [`CLAUDE.md`](CLAUDE.md)。
 
+---
+
+## ⚠️ P-1 最高准则（动手前必读）
+
+> **[`docs/principles/lnn-first.md`](docs/principles/lnn-first.md) — LNN-FIRST 项目最高准则**
+>
+> 凡涉及"时间 / 演化 / 记忆 / 个性化"的代码，**必须**用 LTC/CfC 微分方程实现，**不允许**用 if-else 阶跃、LLM 文本游戏、硬编码阈值替代。
+>
+> codex 收到的 prompt 里如果有 `LTC` / `τ_persona` / `attractor` / `ODE` 等关键词，说明属于 LNN 化任务——实现里必须出现欧拉/RK4 离散化形式，测试里必须验证"切换 state 是平滑过渡，不是阶跃"。
+>
+> 对抗审查时，把"是否违反 LNN-FIRST"列为最高优先级 finding。
+
+---
+
 ## 你是谁
 
 你是 LnMem 项目的 4 路并行 codex 之一，按 module 分工：
