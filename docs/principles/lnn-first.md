@@ -108,17 +108,21 @@ LLM **不是**记忆载体，**不是**状态机，**不是**演化主体。LLM 
 
 ---
 
-## 4. 五大模块的 LNN 化清单（截至 2026-05-08）
+## 4. 五大模块的 LNN 化清单（截至 2026-05-08 Day 6.5）
 
 | 模块 | 当前状态 | LNN 化目标 | Phase |
 |------|---------|-----------|-------|
 | `lnn/model.py` (CfC + τ-bias + FiLM) | 🟢 已 LNN | 加 multi-timescale hidden | P2 |
-| `fusion.py` 表情/疲劳派生信号 | 🟡 静态线性组合 | LTC 演化（base+Δ）/τ | **P0**（进行中） |
-| `memory/` 5 阶段记忆 | 🔴 未实现，原计划 LLM | 5 个 LTC 单元 + 重要性门 | **P0.5**（即将） |
+| `fusion.py` 表情/疲劳派生信号 | 🟢 **已 LNN（Day 6.5）** | LTC 演化（base+Δ）/τ — `expression_dynamics.py` | **P0 ✅** |
+| `memory/` 5 阶段记忆 | 🟢 **已 LNN（Day 6.5）** | 5 个 LTC 单元 + 重要性门 — `memory/memory_lnn.py` | **P0.5 ✅** |
 | `capture/` 多模态采集 | 🟡 固定采样率 | 不同模态不同更新 τ | P1 |
-| `personalization.py` persona embedding | 🟡 训练时固定 | 真人数据触发在线漂移 | P1 |
+| `personalization.py` persona embedding | 🟡 训练时固定 | 真人数据触发在线漂移 | P1（Day 13） |
 
-每个 Phase 完成时，本表"当前状态"必须更新；P0+P0.5 完成 = 项目主轴归位（详见 `docs/principles/sprint-2026-05-08-lnn-realignment.md`）。
+**Day 6.5 P0+P0.5 主轴归位完成**：
+- 30 personas LTC 参数 LLM 推导生效（τ_smile range 0.8s~18s，22.5× 差异）
+- 900 信号用 LTC ODE 演化（半隐式欧拉数值稳定）
+- 5 阶段记忆 m₁(30s) → m₅(∞) 完整链路
+- 79+ 测试 PASS（codex 11 + cc 37 + codex 10 + 之前 21）
 
 ---
 

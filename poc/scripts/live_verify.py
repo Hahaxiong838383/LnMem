@@ -192,10 +192,16 @@ CLEAR_LINE = "\033[2K\033[G"
 
 
 def load_model() -> tuple:
-    ckpt = torch.load(
-        "poc/data/checkpoints/day5/checkpoint_day5.pt",
-        weights_only=False,
-    )
+    """优先加载 Day 6.5 LTC 训练 checkpoint，回退到 Day 5。"""
+    import os
+    candidates = [
+        "poc/data/checkpoints/day6_ltc/checkpoint_day5.pt",   # Day 6.5 LTC（train.py 文件名仍是 day5）
+        "poc/data/checkpoints/day6_ltc/checkpoint_day6.pt",   # 备用文件名
+        "poc/data/checkpoints/day5/checkpoint_day5.pt",        # Day 5 fallback
+    ]
+    ckpt_path = next((p for p in candidates if os.path.exists(p)), candidates[-1])
+    print(f"  ⏳ 加载 checkpoint: {ckpt_path}")
+    ckpt = torch.load(ckpt_path, weights_only=False)
     cfg: LNNTrainConfig = ckpt["config"]
     p2i: dict[str, int] = ckpt["persona_to_idx"]
 
@@ -269,8 +275,18 @@ def main() -> None:
     state_model, cfg, p2i = load_model()
     print(f" ✅ ({len(p2i)} 个画像)")
 
-    persona_id = "vboss_001"
+    # 允许命令行 --persona 选 vboss_007（外向）vs vboss_001（内敛）做个性化对比
+    import argparse, sys as _sys
+    _parser = argparse.ArgumentParser(add_help=False)
+    _parser.add_argument("--persona", default="vboss_001",
+                         help="vboss_001 (内敛) / vboss_007 (外向) / 等")
+    _args, _ = _parser.parse_known_args()
+    persona_id = _args.persona
+    if persona_id not in p2i:
+        print(f"  ⚠️ persona {persona_id} 不在 checkpoint 里，回退到 vboss_001")
+        persona_id = "vboss_001"
     pidx = p2i[persona_id]
+    print(f"  🎭 使用 persona: {persona_id}（idx={pidx}）")
 
     # 2. 初始化三模态采集
     face_extractor = FaceSignalExtractor(FaceSignalConfig())
