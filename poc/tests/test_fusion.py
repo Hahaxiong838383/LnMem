@@ -1,4 +1,6 @@
-"""Day 2 v0.9 — MultimodalFusion 单元测试（纯 mock，不依赖外部 lib）。"""
+"""Day 6 v1.0 — MultimodalFusion 单元测试（纯 mock，不依赖外部 lib）。
+Day 6: FEATURE_DIM 12→18, 新增 6 维 AU 表情特征测试。
+"""
 from __future__ import annotations
 
 from poc.src.fusion import (
@@ -11,7 +13,7 @@ from poc.src.fusion import (
 
 
 def _full_frame(idx: int = 0) -> dict:
-    """构造一个所有子模态齐备的输入帧。"""
+    """构造一个所有子模态齐备的输入帧（Day 6: 含 6 维表情特征）。"""
     return {
         "ts": "2026-05-05T12:00:00",
         "frame_idx": idx,
@@ -20,6 +22,13 @@ def _full_frame(idx: int = 0) -> dict:
             "head_pitch_deg": 5.0,
             "head_yaw_deg": 8.0,
             "gaze_stability": 0.85,
+            # Day 6: 6 维 AU 表情特征
+            "smile_intensity": 0.3,
+            "brow_furrow": 0.1,
+            "cheek_raise": 0.2,
+            "lip_corner_depress": 0.05,
+            "jaw_drop": 0.0,
+            "mouth_open_ratio": 0.1,
             "landmarks_n": 478,
         },
         "audio": {
@@ -35,11 +44,11 @@ def _full_frame(idx: int = 0) -> dict:
 
 
 def test_fusion_full_frame_vector_dim_and_range() -> None:
-    """完整帧融合 → 向量 12 维 + 全部 [0,1]。"""
+    """完整帧融合 → 向量 18 维 + 全部 [0,1]。"""
     fusion = MultimodalFusion()
     out = fusion.fuse(_full_frame(idx=42))
     assert isinstance(out, FusionFrame)
-    assert len(out.vector) == FEATURE_DIM == 12
+    assert len(out.vector) == FEATURE_DIM == 18
     assert all(0.0 <= v <= 1.0 for v in out.vector)
     assert out.missing == ()
     assert out.frame_idx == 42
@@ -47,16 +56,16 @@ def test_fusion_full_frame_vector_dim_and_range() -> None:
 
 
 def test_fusion_missing_face_falls_back() -> None:
-    """face 缺失 → vector 仍 12 维 + missing 含 'face' + 默认值填补。"""
+    """face 缺失 → vector 仍 18 维 + missing 含 'face' + 默认值填补。"""
     fusion = MultimodalFusion()
     frame = _full_frame()
     frame["face"] = None
     out = fusion.fuse(frame)
     assert len(out.vector) == FEATURE_DIM
     assert "face" in out.missing
-    # 视觉前 8 维（face 4 + derived 4）应全 = missing_default
+    # 视觉前 14 维（face 4 + derived 4 + expression 6）应全 = missing_default
     expected = DEFAULT_CONFIG.missing_default
-    assert all(v == expected for v in out.vector[:8])
+    assert all(v == expected for v in out.vector[:14])
 
 
 def test_fusion_missing_audio_and_context() -> None:
@@ -69,8 +78,8 @@ def test_fusion_missing_audio_and_context() -> None:
     assert "audio" in out.missing
     assert "context" in out.missing
     expected = DEFAULT_CONFIG.missing_default
-    # 索引 8-9 = audio，10-11 = context
-    assert all(v == expected for v in out.vector[8:12])
+    # 索引 14-15 = audio，16-17 = context（Day 6: 表情 6 维插在中间）
+    assert all(v == expected for v in out.vector[14:18])
 
 
 def test_fusion_empty_frame_all_missing() -> None:
@@ -113,6 +122,39 @@ def test_fuse_batch_returns_list_of_frames() -> None:
     assert len(out) == 5
     assert all(isinstance(f, FusionFrame) for f in out)
     assert [f.frame_idx for f in out] == [0, 1, 2, 3, 4]
+
+
+def test_fusion_expression_features_passthrough() -> None:
+    """表情特征 → 向量索引 8-13 应包含 smile/brow/cheek/lip/jaw/mouth。"""
+    fusion = MultimodalFusion()
+    frame = _full_frame()
+    frame["face"]["smile_intensity"] = 0.8
+    frame["face"]["brow_furrow"] = 0.6
+    frame["face"]["cheek_raise"] = 0.5
+    frame["face"]["lip_corner_depress"] = 0.3
+    frame["face"]["jaw_drop"] = 0.4
+    frame["face"]["mouth_open_ratio"] = 0.7
+    out = fusion.fuse(frame)
+    # 索引 8-13 = expression 6 维
+    assert out.vector[8] == 0.8   # smile_intensity
+    assert out.vector[9] == 0.6   # brow_furrow
+    assert out.vector[10] == 0.5  # cheek_raise
+    assert out.vector[11] == 0.3  # lip_corner_depress
+    assert out.vector[12] == 0.4  # jaw_drop
+    assert out.vector[13] == 0.7  # mouth_open_ratio
+
+
+def test_fusion_expression_missing_defaults_to_zero() -> None:
+    """face 有但无表情字段 → 表情维度 = 0.0（非 missing_default）。"""
+    fusion = MultimodalFusion()
+    frame = _full_frame()
+    # 删除所有表情字段
+    for key in ("smile_intensity", "brow_furrow", "cheek_raise",
+                "lip_corner_depress", "jaw_drop", "mouth_open_ratio"):
+        frame["face"].pop(key, None)
+    out = fusion.fuse(frame)
+    # face 存在但表情字段缺失 → .get() 默认 0.0
+    assert all(v == 0.0 for v in out.vector[8:14])
 
 
 def test_fusion_frame_is_immutable() -> None:

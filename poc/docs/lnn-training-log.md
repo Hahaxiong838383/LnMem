@@ -22,6 +22,7 @@ references:
 | 1 | 2026-05-08 | f156e18 | state_recognition | CfC + τ-bias + FiLM, 20 epochs, lr=1e-3, stride=600 应达 ≥30% acc | state_acc=0% | state_acc=70.2%, bnd_f1=0.295 | +70.2% / +0.295 | kept | AC state ≥30% ✅, AC bnd ≥0.5 ❌; boundary 根因=pos_weight=5.0 不足(正样本0.3%) |
 | 2 | 2026-05-08 | 08f44b5 | state_recognition | 验证: confusion matrix + threshold sweep + human verify | val_acc=70.2% | focused F1=0.87, transitioning F1=0.01 | — | kept | neutral 吞噬 transitioning/low_energy; 最优 boundary 阈值=0.45→F1=0.3123(+5.9%) |
 | 3 | 2026-05-08 | 137878c | multimodal_fusion | 真人验证: 三模态采集(face+mic+app)应覆盖所有状态 | 4/12 维锁死 0.5 | 12/12 维真实, 但无表情特征 | — | kept | 发现 feature_dim 设计缺陷: 无 AU6/AU12 → 不能检测安静的积极; Day 6 扩展 |
+| 4 | 2026-05-08 | — | multimodal_fusion | feature_dim 12→18: +6 AU 表情特征(smile/brow/cheek/lip/jaw/mouth)应修复 emotion 盲区 | 12 维无表情 | 18 维全通路, 138/138 tests PASS | +6 dim | kept | cc 主线 plumbing + codex AU extraction, 待重训验证 |
 
 **status 取值**（仅 4 种）：
 - `kept` — 实验成功，保留 commit

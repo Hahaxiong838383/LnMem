@@ -5,6 +5,50 @@
 
 ---
 
+## v0.15 — 2026-05-08（Day 6 P0: feature_dim 12→18 · AU 表情特征扩展）
+
+Day 5 真人验证暴露核心缺陷：12 维全认知特征，无表情信号 → 模型不能检测安静的积极。
+Day 6 P0 用 agent team（cc 主线 + codex）并行完成 6 维 AU 表情特征扩展。
+
+### 变更清单
+
+| 文件 | 变更 | Agent |
+|------|------|-------|
+| `contracts.py` | `feature_dim: 12 → 18` | cc |
+| `event_schema.py` | `MultimodalHint` +6 表情字段（smile/brow/cheek/lip/jaw/mouth） | cc |
+| `fusion.py` | `FEATURE_DIM 18` + `_expression_features()` 6 维新函数 | cc |
+| `script_to_signals.py` | 新 hint 字段 → face dict 透传 | cc |
+| `face_signals.py` | `_extract_expression_features()` mediapipe 478 landmarks → 6 AU | codex |
+| 测试 | 138/138 PASS（+8 新测试，4 索引修正） | cc + codex |
+
+### 18 维向量布局
+
+```
+[0-3]   face:       eye_closure / pitch_norm / yaw_norm / gaze_stability
+[4-7]   derived:    fatigue / attention / pose_steadiness / blink_burst
+[8-13]  expression: smile_intensity / brow_furrow / cheek_raise / lip_corner_depress / jaw_drop / mouth_open_ratio
+[14-15] audio:      voice_present / utterance_density
+[16-17] context:    context_known / focus_stability
+```
+
+### AU 特征 → mediapipe landmark 映射
+
+| 特征 | AU | 关键 Landmarks | 归一化 |
+|------|----|----|------|
+| smile_intensity | AU6+AU12 | 13(上唇), 61/291(嘴角) | (center_y - corners_y) / face_h × 12 |
+| brow_furrow | AU4 | 55/285(内眉) | 1 - inner_brow_dist / face_w × 12 |
+| cheek_raise | AU6 | 112/341(下眼睑), 468/473(瞳孔) | 1 - lower_lid_dist / baseline × 12 |
+| lip_corner_depress | AU15 | 13, 61/291 | (corners_y - center_y) / face_h × 12 |
+| jaw_drop | AU26 | 13(上唇), 14(下唇) | lip_gap / face_h × 12 |
+| mouth_open_ratio | — | 13, 14, 61, 291 | lip_gap / mouth_w × 12 |
+
+### 后续 P1（待启动）
+- 合成数据去偏：LLM prompt 约束"积极状态必须包含独处/安静场景"
+- 重新生成 30×30 训练数据（18 维）
+- 重训 LNN + live_verify v3 验证"安静的积极"可检测
+
+---
+
 ## v0.14 — 2026-05-08（Day 5 LNN 训练 pipeline · agent team 三路并行）
 
 老板批"Day 5 启动 + agent team 并行"。cc 主线 + codex（model/personalization）+ gemini（dataset/viz 任务接管）。

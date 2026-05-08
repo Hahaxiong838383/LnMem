@@ -66,11 +66,12 @@ def _make_script(
 # ---------- 向量维度 + 范围 ----------
 
 
-def test_vector_dim_is_12() -> None:
+def test_vector_dim_is_18() -> None:
+    """Day 6: 12→18 维（+6 AU 表情特征）。"""
     s = _make_script(n_events=2, duration_s=5.0)
     frames = list(script_to_signals(s, frame_rate_hz=1.0, noise_sigma=0.0))
     assert all(len(f.vector) == FEATURE_DIM for f in frames)
-    assert FEATURE_DIM == 12
+    assert FEATURE_DIM == 18
 
 
 def test_vector_values_in_unit_interval_with_noise() -> None:
@@ -166,7 +167,7 @@ def test_write_signals_jsonl_writes_one_line_per_frame() -> None:
         assert len(lines) == n == 10
         first = json.loads(lines[0])
         assert "vector" in first
-        assert len(first["vector"]) == 12
+        assert len(first["vector"]) == 18  # Day 6: 12→18
         assert "ground_truth_state" in first
 
 
@@ -209,8 +210,8 @@ def test_voice_present_zero_outputs_zero() -> None:
         events=(ev,),
     )
     frame = next(script_to_signals(s, frame_rate_hz=1.0, noise_sigma=0.0))
-    # vector index 8 = voice_present，必须严格 0.0
-    assert frame.vector[8] == 0.0
+    # vector index 14 = voice_present（Day 6: 8→14，表情 6 维插在中间）
+    assert frame.vector[14] == 0.0
     # missing 应不含 audio（因为我们显式构造了 audio dict）
     assert "audio" not in frame.missing
 
@@ -235,7 +236,8 @@ def test_voice_present_one_outputs_one() -> None:
         events=(ev,),
     )
     frame = next(script_to_signals(s, frame_rate_hz=1.0, noise_sigma=0.0))
-    assert frame.vector[8] == 1.0
+    # Day 6: voice_present 从 index 8 → 14（表情 6 维插在中间）
+    assert frame.vector[14] == 1.0
 
 
 def test_invalid_frame_rate_raises() -> None:

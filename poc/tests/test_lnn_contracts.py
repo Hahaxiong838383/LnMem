@@ -15,9 +15,9 @@ from poc.src.lnn.contracts import (
 
 
 def test_default_config_is_consistent() -> None:
-    """默认配置与 fusion FEATURE_DIM=12 + 8 类 State + 30 画像对齐。"""
+    """默认配置与 fusion FEATURE_DIM=18 + 8 类 State + 30 画像对齐。"""
     cfg = LNNTrainConfig()
-    assert cfg.feature_dim == 12
+    assert cfg.feature_dim == 18  # Day 6: 12→18 (6 AU expression features)
     assert cfg.n_state_classes == 8
     assert cfg.n_personas == 30
     assert cfg.sequence_length >= cfg.sequence_min_frames

@@ -1,7 +1,8 @@
-"""Day 3 Lane C — 剧本 → 12-dim FusionFrame 时间序列转换器（v0.1 / 2026-05-06）。
+"""Day 3→6 剧本 → 18-dim FusionFrame 时间序列转换器（v1.0 / 2026-05-08）。
 
 输入：``poc.src.data.event_schema.Script``（含 ScriptEvent 序列 + MultimodalHint）。
-输出：JSONL 信号流，每行一帧，向量长度 = ``poc.src.fusion.FEATURE_DIM`` (12)。
+输出：JSONL 信号流，每行一帧，向量长度 = ``poc.src.fusion.FEATURE_DIM`` (18)。
+Day 6 扩展：MultimodalHint 新增 6 维 AU 表情字段 → face dict 透传。
 
 转换流程：
 1. 遍历 Script.events
@@ -77,6 +78,12 @@ def _hint_to_fusion_input(event: ScriptEvent, ts_iso: str, frame_idx: int) -> di
     - hint.head_pitch_norm × 45 → face.head_pitch_deg（FusionConfig.head_pitch_max_deg）
     - hint.head_yaw_norm × 60 → face.head_yaw_deg
     - hint.gaze_stability → face.gaze_stability
+    - hint.smile_intensity → face.smile_intensity（Day 6 新增）
+    - hint.brow_furrow → face.brow_furrow
+    - hint.cheek_raise → face.cheek_raise
+    - hint.lip_corner_depress → face.lip_corner_depress
+    - hint.jaw_drop → face.jaw_drop
+    - hint.mouth_open_ratio → face.mouth_open_ratio
     - landmarks_n 默认 478（Day 1 实测值）
     - hint.voice_present 1.0 → audio 段（duration ≥ 0.2s + 占位 transcript）
     - hint.utterance_density × 4.0 → audio.duration_s (FusionConfig.audio_long_utterance_s)
@@ -90,6 +97,13 @@ def _hint_to_fusion_input(event: ScriptEvent, ts_iso: str, frame_idx: int) -> di
         "head_pitch_deg": hint.head_pitch_norm * FusionConfig().head_pitch_max_deg,
         "head_yaw_deg": hint.head_yaw_norm * FusionConfig().head_yaw_max_deg,
         "gaze_stability": hint.gaze_stability,
+        # Day 6: 6 维 AU 表情特征（直接透传 hint 归一值）
+        "smile_intensity": hint.smile_intensity,
+        "brow_furrow": hint.brow_furrow,
+        "cheek_raise": hint.cheek_raise,
+        "lip_corner_depress": hint.lip_corner_depress,
+        "jaw_drop": hint.jaw_drop,
+        "mouth_open_ratio": hint.mouth_open_ratio,
         "landmarks_n": 478,
     }
 

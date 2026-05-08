@@ -38,8 +38,9 @@ if TYPE_CHECKING:
 class LNNTrainConfig:
     """LNN 预训练所有超参——一份配置贯穿 dataset/model/train/viz。"""
 
-    # 数据维度（与 fusion.py FEATURE_DIM=12 + ScriptEvent.State 8 类对齐）
-    feature_dim: int = 12
+    # 数据维度（与 fusion.py FEATURE_DIM=18 + ScriptEvent.State 8 类对齐）
+    # Day 6: 12→18，新增 6 维 AU 表情特征（smile/cheek/brow/lip/jaw/mouth）
+    feature_dim: int = 18
     n_state_classes: int = 8
     n_personas: int = 30           # vboss_001..vboss_030
     persona_embed_dim: int = 8     # FiLM 适配器输入维度

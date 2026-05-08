@@ -79,6 +79,14 @@ class MultimodalHint:
     head_yaw_norm: float = 0.0       # 左右转头幅度归一
     gaze_stability: float = 0.7      # 0=游离，1=稳定注视
 
+    # expression 子模态（Day 6 新增 6 维 AU 表情特征）
+    smile_intensity: float = 0.0     # AU6+AU12 微笑强度 [0,1]
+    brow_furrow: float = 0.0         # AU4 皱眉 [0,1]（1=紧皱）
+    cheek_raise: float = 0.0         # AU6 脸颊抬升 [0,1]（Duchenne 标志）
+    lip_corner_depress: float = 0.0  # AU15 嘴角下垂 [0,1]
+    jaw_drop: float = 0.0           # AU26 下巴张开 [0,1]
+    mouth_open_ratio: float = 0.0    # 嘴巴纵横比 [0,1]
+
     # audio 子模态
     voice_present: float = 0.0       # 0=无声，1=持续讲话
     utterance_density: float = 0.0   # 单段发言密度归一
@@ -93,6 +101,12 @@ class MultimodalHint:
             "head_pitch_norm": self.head_pitch_norm,
             "head_yaw_norm": self.head_yaw_norm,
             "gaze_stability": self.gaze_stability,
+            "smile_intensity": self.smile_intensity,
+            "brow_furrow": self.brow_furrow,
+            "cheek_raise": self.cheek_raise,
+            "lip_corner_depress": self.lip_corner_depress,
+            "jaw_drop": self.jaw_drop,
+            "mouth_open_ratio": self.mouth_open_ratio,
             "voice_present": self.voice_present,
             "utterance_density": self.utterance_density,
             "active_app": self.active_app,
@@ -106,6 +120,12 @@ class MultimodalHint:
             head_pitch_norm=float(d.get("head_pitch_norm", 0.0)),
             head_yaw_norm=float(d.get("head_yaw_norm", 0.0)),
             gaze_stability=float(d.get("gaze_stability", 0.7)),
+            smile_intensity=float(d.get("smile_intensity", 0.0)),
+            brow_furrow=float(d.get("brow_furrow", 0.0)),
+            cheek_raise=float(d.get("cheek_raise", 0.0)),
+            lip_corner_depress=float(d.get("lip_corner_depress", 0.0)),
+            jaw_drop=float(d.get("jaw_drop", 0.0)),
+            mouth_open_ratio=float(d.get("mouth_open_ratio", 0.0)),
             voice_present=float(d.get("voice_present", 0.0)),
             utterance_density=float(d.get("utterance_density", 0.0)),
             active_app=str(d.get("active_app", "")),

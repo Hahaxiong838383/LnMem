@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""真人实时验证 v2：摄像头 + 麦克风 + 当前应用 → LNN 模型预测你的状态。
+"""真人实时验证 v3：摄像头 + 麦克风 + 当前应用 → LNN 模型预测你的状态。
 
-v1 只有摄像头，12 维向量有 4 维锁死 0.5 → 永远偏 neutral。
-v2 补齐三模态：
-  - 面部信号（mediapipe）：eye_closure, head_pitch, yaw, gaze_stability
-  - 语音活动（sounddevice VAD）：voice_present, utterance_density
-  - 当前应用（osascript）：context_known, focus_stability
+v1: 只有摄像头，12 维向量有 4 维锁死 0.5 → 永远偏 neutral。
+v2: 补齐三模态（face+mic+app），但 12 维无表情特征 → 不能检测安静的积极。
+v3 (Day 6): 18 维特征向量，新增 6 维 AU 表情特征：
+  - smile_intensity (AU6+AU12), brow_furrow (AU4), cheek_raise (AU6)
+  - lip_corner_depress (AU15), jaw_drop (AU26), mouth_open_ratio
 
 使用方式：
     cd /tmp/lnmem-fix/LnMem
@@ -17,7 +17,8 @@ v2 补齐三模态：
       正常看屏幕工作 → 应该识别为 focused
       闭眼/低头 → 应该识别为 fatigued 或 low_energy
       频繁转头 → 应该识别为 distracted
-      对着电脑说话 → 可能触发 emotional_positive
+      微笑/皱眉 → 表情特征变化，可能触发 emotional_positive/negative
+      对着电脑说话 → voice 维度变化
 """
 from __future__ import annotations
 
@@ -209,7 +210,7 @@ def print_header(has_mic: bool, has_app: bool) -> None:
     mic_icon = "✅" if has_mic else "❌"
     app_icon = "✅" if has_app else "❌"
     print(f"\n{'=' * 72}")
-    print(f"  {BOLD}LnMem Day 5 LNN — 真人实时验证 v2（三模态）{RESET}")
+    print(f"  {BOLD}LnMem Day 6 LNN — 真人实时验证 v3（三模态 + 表情）{RESET}")
     print(f"  📷 摄像头: ✅   🎤 麦克风: {mic_icon}   💻 应用检测: {app_icon}")
     print(f"{'=' * 72}")
     print(f"  前 60 秒积累信号窗口，之后开始实时预测")
@@ -235,19 +236,19 @@ def print_prediction(
 
     eye = raw_face.get("eye_closure", 0.0)
     gaze = raw_face.get("gaze_stability", 0.0)
-    pitch = abs(raw_face.get("head_pitch_deg", 0.0))
-    yaw = abs(raw_face.get("head_yaw_deg", 0.0))
+    smile = raw_face.get("smile_intensity", 0.0)
+    brow = raw_face.get("brow_furrow", 0.0)
 
     # 缩短应用名
     app_short = current_app[:12] if current_app else "?"
 
-    # 第 1 行：预测 + 置信度
+    # 第 1 行：预测 + 置信度 + 表情
     sys.stdout.write(CLEAR_LINE)
     sys.stdout.write(
         f"  {face_icon}{mic_icon} #{frame_count:>4d}  "
         f"{color}{BOLD}{cn:>10}{RESET}  "
         f"[{conf_bar}] {confidence:.0%}  "
-        f"│ 👁️{eye:.2f} 👀{gaze:.2f} ↕{pitch:.0f}° ↔{yaw:.0f}° "
+        f"│ 👁️{eye:.2f} 👀{gaze:.2f} 😊{smile:.2f} 😠{brow:.2f} "
         f"📱{app_short}"
     )
     sys.stdout.flush()
@@ -264,7 +265,7 @@ def print_prediction(
 
 def main() -> None:
     # 1. 加载模型
-    print(f"\n  ⏳ 加载模型...", end="", flush=True)
+    print(f"\n  ⏳ 加载模型（v3 · 18 维）...", end="", flush=True)
     state_model, cfg, p2i = load_model()
     print(f" ✅ ({len(p2i)} 个画像)")
 
@@ -320,7 +321,7 @@ def main() -> None:
             app_ctx.update()
             context_signals = app_ctx.get_signals() if has_app else None
 
-            # 融合 12 维
+            # 融合 18 维（Day 6: +6 表情特征）
             fusion_input = {
                 "ts": datetime.now().isoformat(),
                 "frame_idx": frame_count,
@@ -397,7 +398,7 @@ def main() -> None:
 
     # 汇总
     print(f"\n\n{'=' * 72}")
-    print(f"  📊 验证汇总（v2 三模态）")
+    print(f"  📊 验证汇总（v3 三模态 + 表情）")
     print(f"{'=' * 72}")
     print(f"  总帧数: {frame_count}   有效预测: {len(predictions_log)}")
 
@@ -425,11 +426,12 @@ def main() -> None:
         print(f"  人脸检测率: {face_rate:.1%}")
         print(f"  说话检测率: {speak_rate:.1%}")
 
-        # 输出最后 10 帧的原始向量供分析
-        print(f"\n  最后 5 帧原始向量（12 维）:")
+        # 输出最后 5 帧的原始向量供分析
+        print(f"\n  最后 5 帧原始向量（18 维）:")
         dims = [
             "eye", "pitch", "yaw", "gaze",
             "fatigue", "attn", "pose", "blink",
+            "smile", "brow", "cheek", "lip", "jaw", "mouth",
             "voice", "utt", "ctx", "focus",
         ]
         print(f"    {'帧':>4}  " + "  ".join(f"{d:>6}" for d in dims))
@@ -440,9 +442,10 @@ def main() -> None:
 
     print(f"\n  💡 现在试试：")
     print(f"     1. 安静看屏幕 → 应该是 focused")
-    print(f"     2. 对着电脑说话 → voice 维度变化，可能触发 emotional_positive")
-    print(f"     3. 频繁切换应用 → focus_stability 降低，可能触发 distracted")
-    print(f"     4. 闭眼低头 → 应该是 fatigued")
+    print(f"     2. 微笑 → smile_intensity 升高，可能触发 emotional_positive")
+    print(f"     3. 皱眉 → brow_furrow 升高，可能触发 emotional_negative")
+    print(f"     4. 频繁切换应用 → focus_stability 降低，可能触发 distracted")
+    print(f"     5. 闭眼低头 → 应该是 fatigued")
     print(f"{'=' * 72}")
 
 

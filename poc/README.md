@@ -3,7 +3,7 @@
 > 12-14 天 PoC + 7 天老板自用，证明 **LNN 真的能在多模态时序数据上学到主人特征**，且学习过程对老板和团队**可见、可解释、可治理**。
 
 **分支**：`poc/lnn-validation`（长期分支，不直接合并到 main）
-**状态**：v0.14 Day 5 完成（2026-05-08），Day 6 待启动
+**状态**：v0.15 Day 6 P0 完成（2026-05-08），feature_dim 12→18
 **演示对象**：内部团队（含老板）
 
 ---
@@ -73,6 +73,8 @@ poc/
 | `lnn/model.py` | 5 | CfC step-by-step + τ-bias + FiLM (codex 写) | 8 tests |
 | `lnn/dataset.py` | 5 | numpy 预处理 + FileGroupedSampler | 8 tests |
 | `lnn/train.py` | 5 | 端到端训练: **val_acc=70.2%**, bnd_f1=0.295 | 20 epochs MPS |
+| `capture/face_signals.py` AU 扩展 | 6 | 6 维 AU 表情特征(smile/brow/cheek/lip/jaw/mouth) | 6 tests PASS |
+| `fusion.py` v1.0 | 6 | FEATURE_DIM 12→18 + `_expression_features()` | 10 tests PASS |
 
 **验证脚本（Day 5）**：
 
@@ -112,7 +114,7 @@ poc/
 | 1-2 | 多模态信号流入 | Day 1 末稳定 30fps + 16kHz + 上下文 | ✅ |
 | 3-4 | 数据生成 | 30 画像 × 30 天 = 7,191h | ✅ |
 | 5 | LNN 预训练 + 验证 | 状态识别 ≥30% → 实际 70.2% | ✅ |
-| 6 | 特征扩展 + 去偏 | feature_dim 12→16~18, boundary ≥0.5 | 🔲 |
+| 6 | 特征扩展 + 去偏 | feature_dim 12→18 ✅, boundary/去偏待续 | 🟡 |
 | 7 | 5 阶段记忆 | 全流程跑通 | 🔲 |
 | 8-12 | 老板自用累积真实数据 | Day 12 末真实数据 ≥ 10h | 🔲 |
 | 13 | 真实数据微调 | 微调 vs 预训练对比 | 🔲 |
