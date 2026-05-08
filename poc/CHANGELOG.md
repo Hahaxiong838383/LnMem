@@ -5,6 +5,57 @@
 
 ---
 
+## v0.14 — 2026-05-08（Day 5 LNN 训练 pipeline · agent team 三路并行）
+
+老板批"Day 5 启动 + agent team 并行"。cc 主线 + codex（model/personalization）+ gemini（dataset/viz 任务接管）。
+
+### 协作分工
+
+| Lane | Agent | 文件 | 状态 |
+|------|-------|------|------|
+| contracts (frozen) | cc | `poc/src/lnn/contracts.py` | ✅ Day 5 起始已冻结 |
+| model + personalization | codex (gpt-5.4) | `poc/src/lnn/model.py` + `personalization.py` | ✅ 119 tests passed |
+| dataset + viz | gemini → **cc 接管** | `poc/src/lnn/dataset.py` + `viz.py` | ✅ gemini sandbox 失败，cc 主线写完 |
+| train + 集成 | cc | `poc/src/lnn/train.py` | ✅ end-to-end pipeline |
+
+### 模块摘要
+
+| 模块 | 行数 | 关键设计 |
+|------|------|---------|
+| `contracts.py` | 227 | LNNTrainConfig frozen + 4 Protocol（SignalsLoader/LNNModelFactory/PersonalizationAdapter/TrainingViz） |
+| `model.py` | 120 | CfC step-by-step + τ 偏置注入（timespans）+ FiLM 调制 hidden + StateRecognitionLNN(8类) + BoundaryDetectionLNN(1) |
+| `personalization.py` | 43 | nn.Embedding(30, 8) → 3 路线性投影（tau/gamma/beta），disabled → zeros |
+| `dataset.py` | 300 | 一次性 numpy 预处理（~1.5GB）+ FileGroupedSampler（文件间 shuffle + 文件内顺序）+ sliding window + (persona,day) 80/20 split |
+| `viz.py` | 115 | 双 Y 轴 loss curve + t-SNE persona 散点图 |
+| `train.py` | 261 | 端到端: data → model → optimizer → epoch loop → checkpoint → viz |
+
+### 测试覆盖
+
+| 文件 | case 数 | 覆盖 |
+|------|---------|------|
+| `test_lnn_contracts.py` | 7 | 配置一致性/frozen/设备/异常 |
+| `test_lnn_model.py` | 8 | shape/backward/shared adapter/persona 区分/tau 禁用/FiLM 禁用/全禁用 |
+| `test_lnn_dataset.py` | 8 | persona_to_idx 确定性/shape/state 范围/boundary 正确性/短文件跳过/JSON 错误/空目录/split 比例 |
+| `test_lnn_viz.py` | 3 | loss curve PNG/tsne PNG/few personas |
+| **total** | **130** | 111 Day 3-4 + 19 Day 5 新增 |
+
+### 训练运行
+
+- 设备: MPS (Apple M4 Max)
+- 配置: epochs=20, batch_size=32, seq_len=60, stride=600, lr=1e-3
+- 数据: 1082 train + 271 val batches, 30 personas
+- 模型参数: 105,257
+- 预处理: 900 JSONL → numpy arrays (~1.5GB), ~100s 一次性开销
+- AC 目标: StateRecognition acc 60-75%, BoundaryDetection F1 > 0.5
+- 结果:
+  - **State Acc (val): 70.2%** ← AC 60-75% ✅
+  - **Boundary F1: 0.313** ← AC 0.5 未达标（pos_weight=5.0 不足，需调至 15-20）
+  - Train Acc: 72.1%（健康 overfitting gap ~2%）
+  - t-SNE: 30 persona embedding 均匀散布，个性化生效
+  - Day 6 gate: 70.2% >> 30% 安全线 ✅
+
+---
+
 ## v0.13 — 2026-05-07（Day 4 真 LLM 接管 · MiniMax-M2.7 主路径 + Gemini 备选）
 
 老板批"Day 4 启动，先用 MiniMax 模型，自建 Gemini api 备选"。cc 主线在 4-6 小时内把 Day 3 留下的
