@@ -3,7 +3,10 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+import pytest
 import torch
+
+pytest.importorskip("ncps", reason="ncps required for CfC model tests")
 
 from poc.src.lnn.contracts import LNNTrainConfig
 from poc.src.lnn.model import BoundaryDetectionLNN, DefaultLNNFactory, StateRecognitionLNN

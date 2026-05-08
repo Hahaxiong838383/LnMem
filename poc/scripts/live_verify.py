@@ -116,6 +116,23 @@ class AppContextDetector:
         self._current_app = ""
         self._app_history: deque[str] = deque(maxlen=40)  # ~5min 内的应用记录
         self._last_check = 0.0
+        self._available = False
+
+    def probe(self) -> bool:
+        """启动时探测 osascript 是否可用。返回 True = 可用。"""
+        if sys.platform != "darwin":
+            return False
+        try:
+            result = subprocess.run(
+                ["osascript", "-e", "return \"ok\""],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+            self._available = result.returncode == 0
+        except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+            self._available = False
+        return self._available
 
     def update(self) -> None:
         now = time.time()
@@ -263,7 +280,7 @@ def main() -> None:
     has_mic = vad.start()
 
     app_ctx = AppContextDetector()
-    has_app = True  # macOS osascript 基本总是可用
+    has_app = app_ctx.probe()
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
