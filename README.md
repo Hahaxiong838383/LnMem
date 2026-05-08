@@ -12,7 +12,45 @@
 
 **与传统"LLM + RAG"方案的本质区别**：传统方案在对话时检索过去；LnMem 在永远在线的连续时间状态里持有当下，通过事件分割主动写入，通过夜间巩固主动学习。
 
-**项目阶段**：v0.3.3 产品定义二次微调 · M0 W2 启动准备中（2026-05-04）
+**项目阶段**：PoC `poc/lnn-validation` 分支 Day 6.5 完成（2026-05-08）· M0 W2 主线待启动
+
+---
+
+## 🎯 PoC 进展速览（2026-05-08 Day 6.5 大里程碑）
+
+> **PoC 目标**：12-14 天证明"LNN 真的能在多模态时序数据上学到主人特征"，且学习过程可见、可解释、可治理。
+
+| 阶段 | 状态 | 关键交付 |
+|------|------|---------|
+| **Day 0** | ✅ | 30 虚拟主人画像（HEXACO + 依恋 + Schwartz）+ 1 真人画像 |
+| **Day 1-2** | ✅ | 多模态采集骨架（face/audio/context）+ 12 维 fusion |
+| **Day 3-4** | ✅ | 30×30 = 900 LLM 剧本（MiniMax-M2.7 + Gemini Proxy fallback） |
+| **Day 5** | ✅ | LNN 训练 pipeline（CfC + τ-bias + FiLM）→ val_acc 70.2% |
+| **Day 6** | ✅ | feature_dim 12→18（新增 6 维 AU 表情特征） |
+| **Day 6.5** | ✅ | **LNN-FIRST P-1 准则部署** + **真人验证盲区修复** + **persona 个性化真人级显现** |
+
+### 🏆 Day 6.5 关键成果
+
+```
+Day 5 baseline:    val_acc 70.2%  bnd_f1 0.295  真人微笑→neutral ❌
+Day 6.5 现在:      val_acc 91.5%  bnd_f1 0.565  真人微笑→positive 100% ✅
+                   (+21.3pp)      (突破 0.5 AC) (Day 5 盲区修复)
+```
+
+**LNN-FIRST P-1 准则**（[`docs/principles/lnn-first.md`](docs/principles/lnn-first.md)，老板 2026-05-08 钦定）：凡涉及"时间/演化/记忆/个性化"必须用 LTC/CfC 微分方程，禁止用 LLM/规则替代。21 处入口部署。
+
+**核心架构升级**（详见 [`poc/CHANGELOG.md`](poc/CHANGELOG.md) v0.16+v0.17）：
+- 表情 LTC 演化（[`poc/src/lnn/expression_dynamics.py`](poc/src/lnn/expression_dynamics.py)）替代静态查表
+- 5 阶段记忆 LTC 链（[`poc/src/memory/memory_lnn.py`](poc/src/memory/memory_lnn.py)）：m₁(30s)→m₂(5min)→m₃(1h)→m₄(1day)→m₅(∞ 老板确认)
+- 视觉感知层与 LNN 内核解耦（[`poc/src/vision/`](poc/src/vision/)）：py-feat AU + AUCaliper 校准
+
+**persona 真人级硬证据**（#74 帧 smile=0.76 brow=0.46）：
+- vboss_001（内敛 base_smile=0.10）→ emotional_positive 72%
+- vboss_007（外向 base_smile=0.30）→ focused 60%
+
+**详细路线图**：[`roadmap/milestones.md`](roadmap/milestones.md) · **PoC 详情**：[`poc/README.md`](poc/README.md) + [`poc/CHANGELOG.md`](poc/CHANGELOG.md)
+
+---
 
 > **v0.3.3 微调（2026-05-04 同日二次）**：cognitive.md v0.1.1 联动修订——"主观满意度"评估指标改为"多模态反馈信号自动聚合"（评估方法和产品能力同构原则）+ §13.1 能力门补充"强正信号占比 ≥ 30%"硬指标。详见 [`docs/product-definition.md`](docs/product-definition.md) §14.0.2 + [`docs/capability-specs/cognitive.md`](docs/capability-specs/cognitive.md) §5。
 >

@@ -7,6 +7,44 @@
 
 ---
 
+## 0.0 PoC 进展速览（`poc/lnn-validation` 分支，2026-05-08）
+
+> M0 主线启动**前置 PoC**：12-14 天证明"LNN 真的能在多模态时序数据上学到主人特征"。
+> Day 6.5 大里程碑：真人验证盲区修复 + LNN-FIRST P-1 准则部署 + persona 个性化真人级显现。
+
+| 维度 | Day 5 baseline | Day 6.5 现在 | 改善 |
+|------|---------------|-------------|------|
+| val_acc | 70.2% | **91.5%** | +21.3pp |
+| bnd_f1 | 0.295 | **0.565** | 突破 0.5 AC ⭐ |
+| 真人微笑→positive | ❌ 不触发 | ✅ 100% 触发 | Day 5 盲区修复 |
+| persona 真人级差异 | 未验证 | ✅ #74 帧硬证据 | LNN-FIRST 真人生效 |
+| 测试覆盖 | 138 | 160 | +22 vision 测试 |
+
+**Day 7+ TODO**（详见 [`../poc/README.md`](../poc/README.md) §后续 TODO）：
+
+🔴 **P1（Day 7 必做）**：修复 emotional_negative anger 风格不触发
+- 重新让 LLM 推导 ExpressionProfile（focused brow 偏移 ≤ +0.10）
+- 重生成 30×30=900 LTC 信号 + 重训 20 epochs
+
+🟡 **P2（Day 7-8）**：架构优化
+- CfC parallel stack 替代 step-by-step（5-10x 训练加速）
+- boundary detection 双流（bnd_f1 0.565 → 0.7+）
+- fusion 派生信号 LTC 化
+
+🟢 **P3（Day 13+ 产品级延伸）**：
+- 真实数据集校准（FER2013/AffectNet 跑 py-feat 提取真实分布约束 LLM 推导）
+- persona embedding 在线漂移（Day 13 真人数据触发 LoRA 更新）
+- OpenFace 2.0 替代 py-feat（Person-Specific Normalization）
+- 5 阶段记忆 visualize UI（Streamlit）+ Day 14 演示录屏
+
+**关键文档**：
+- [`../poc/CHANGELOG.md`](../poc/CHANGELOG.md) v0.17（Day 6.5 完整变更）
+- [`../docs/principles/lnn-first.md`](../docs/principles/lnn-first.md)（LNN-FIRST P-1 准则 + §4.1 视觉感知层）
+- [`../poc/docs/au-calibration-research.md`](../poc/docs/au-calibration-research.md)（gemini 调研 py-feat 偏差矫正方案）
+- [`../poc/docs/memory-dynamics.md`](../poc/docs/memory-dynamics.md)（5 阶段记忆 LTC 链公式）
+
+---
+
 ## 0. M0 启动检查清单（v1.1 · 单人 + AI 协作模式）
 
 > v1.1 路线 B（[`../docs/decisions/001-route-b-single-founder-ai-mode.md`](../docs/decisions/001-route-b-single-founder-ai-mode.md)）：单人启动，无团队招聘 / 算力采购环节。M0 第一周不进入"开发"，先做"破雷 + 基础设施"。
