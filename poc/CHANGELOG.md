@@ -54,6 +54,70 @@
   - t-SNE: 30 persona embedding 均匀散布，个性化生效
   - Day 6 gate: 70.2% >> 30% 安全线 ✅
 
+### 验证三件套（v0.14.1）
+
+| 脚本 | 产出方 | 用途 |
+|------|--------|------|
+| `verify_confusion_matrix.py` | codex | 8×8 混淆矩阵 + per-class F1 |
+| `verify_threshold_sweep.py` | cc（gemini sandbox 失败后接管） | boundary sigmoid 阈值扫描 |
+| `human_verify.py` v2 | cc | 人工验证：专挑状态切换段落对比预测 |
+| `live_verify.py` v2 | cc | **真人实时验证**：摄像头+麦克风+当前应用→模型预测 |
+
+### 真人实时验证发现（关键洞察）
+
+**现象**：live_verify v1 只接摄像头（12 维中 4 维锁死 0.5），模型永远预测 neutral/focused，不出 emotional_positive。
+
+**根因分析**（两层）：
+
+1. **训练数据偏见**：合成数据中 emotional_positive 的 voice_present 均值=0.83，
+   模型学到"积极≈在说话"。但现实中安静地看到好消息、听音乐也是积极状态。
+2. **特征维度缺失（更根本）**：12 维向量全是认知特征（eye/pitch/yaw/gaze + 派生），
+   **没有情绪表情特征**（微笑/皱眉/惊讶）。mediapipe 478 landmarks 完全能算出
+   AU6（苹果肌）+AU12（嘴角上扬）= Duchenne 真笑，但 fusion.py 设计时未提取。
+
+**v2 修复**：补齐麦克风 VAD + osascript 应用检测，12/12 维全部真实采集。
+但情绪表情维度仍然缺失，需 Day 6+ 扩展。
+
+### Day 6+ 改进方向
+
+#### P0: 特征维度扩展（feature_dim 12→16~18）
+
+| 新增维度 | 来源 | 检测能力 |
+|---------|------|---------|
+| smile_intensity | mediapipe AU12 嘴角上扬 | 安静的积极（笑着看屏幕） |
+| cheek_raise | mediapipe AU6 苹果肌上抬 | 真笑 vs 假笑（Duchenne marker） |
+| brow_furrow | mediapipe AU4 皱眉 | 困惑/消极/专注思考 |
+| lip_corner_depress | mediapipe AU15 嘴角下拉 | 消极/不满 |
+| jaw_drop | mediapipe AU26 张嘴 | 惊讶/大笑 |
+| mouth_open_ratio | mediapipe 嘴部 landmark 比 | 说话 vs 打哈欠区分 |
+
+需要同步改动：fusion.py FEATURE_DIM / contracts.py feature_dim / 训练数据重新生成
+
+#### P1: 训练数据去偏
+
+- 数据生成 prompt 加约束："积极状态不一定在说话，独处看书/听音乐/收到好消息也是积极"
+- emotional_positive 样本中 voice_present 分布应 50/50（说话/安静各半）
+- 同理 emotional_negative 不应只绑定"沉默不语"
+
+#### P2: Boundary 改进
+
+- pos_weight 从 5.0 调至 50-100（正样本仅 0.3%）
+- 或换 focal loss（γ=2.0）处理极端类别不平衡
+- 最优阈值从 0.50 调至 0.45（+5.9% F1）
+
+#### P3: transitioning 状态
+
+- 当前 F1≈0.01，完全被 neutral 吞掉
+- 需要 class weight 或 label smoothing
+- 或重新定义：transitioning 不作为独立状态，改为 boundary 信号的一部分
+
+### 待调研（Day 6+）
+
+- [ ] mediapipe FACS AU 提取：从 478 landmarks 计算 AU6/AU12/AU4/AU15/AU26 的成熟方案
+- [ ] 表情特征归一化：微笑强度如何标定到 [0,1]，个体差异大（有人嘴角天然上翘）
+- [ ] 训练数据重生成成本评估：feature_dim 变更需要重跑 30画像×30天，预估 ~4h MiniMax API
+- [ ] CfC 模型对新维度的适配：hidden_dim 是否需要同步扩大
+
 ---
 
 ## v0.13 — 2026-05-07（Day 4 真 LLM 接管 · MiniMax-M2.7 主路径 + Gemini 备选）
