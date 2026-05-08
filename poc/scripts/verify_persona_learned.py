@@ -29,9 +29,10 @@ from poc.src.lnn.model import DefaultLNNFactory
 
 def load_model():
     candidates = [
-        "poc/data/checkpoints/day6_ltc/checkpoint_day5.pt",
+        "poc/data/checkpoints/day6_ltc/checkpoint_day5.pt",        # 训练完成的最终 ckpt
+        "poc/data/checkpoints/day6_ltc/checkpoint_day5_latest.pt", # 训练中的 incremental ckpt
         "poc/data/checkpoints/day6_ltc/checkpoint_day6.pt",
-        "poc/data/checkpoints/day5/checkpoint_day5.pt",
+        "poc/data/checkpoints/day5/checkpoint_day5.pt",            # Day 5 fallback (12-dim 不兼容)
     ]
     ckpt_path = next((p for p in candidates if os.path.exists(p)), candidates[-1])
     print(f"  ⏳ 加载: {ckpt_path}")
@@ -98,47 +99,54 @@ def main() -> None:
     state_model, cfg, p2i = load_model()
     print(f"  ✅ 模型加载完成（{len(p2i)} personas）")
 
-    # 构造同一段"持续微笑 + 不说话"输入
-    print("\n  📥 输入：持续微笑（smile=0.8）+ 不说话 + context_known")
-    vec = make_smiling_sequence(seq_len=cfg.sequence_length, smile=0.8)
-
-    # 测两个对比 persona
     test_personas = [
-        ("vboss_001", "内敛/低 X / 高 N — 微笑可能是社交礼貌"),
-        ("vboss_007", "外向/高 X / 低 N — 微笑 = 真积极"),
-        ("vboss_006", "最克制 / τ_smile=18s — 笑得很慢很少"),
-        ("vboss_028", "活泼 / τ_smile=1s — 反应最快"),
+        ("vboss_001", "内敛/低 X / 高 N — base_smile=0.10"),
+        ("vboss_007", "外向/高 X / 低 N — base_smile=0.30"),
+        ("vboss_006", "极克制 — base_smile=0.03"),
+        ("vboss_028", "外向活泼 — base_smile=0.55"),
     ]
 
-    results = []
-    for pid, desc in test_personas:
-        if pid not in p2i:
-            print(f"  ⚠️  {pid} 不在 checkpoint，跳过")
-            continue
-        probs = predict(state_model, vec, p2i[pid])
-        results.append((pid, desc, probs))
+    pos_idx = _STATE_LABELS.index("emotional_positive")
 
-    # 对比展示
-    for pid, desc, probs in results:
-        show_distribution(f"{pid} — {desc}", probs)
+    # 实验：扫 smile 强度 [0.1, 0.3, 0.5, 0.7, 0.9]
+    # 期待 vboss_007 (高 base) 在低 smile 时不觉得是 positive；vboss_001 (低 base) 在低 smile 时觉得是 positive
+    print("\n  🔬 关键实验：扫描 smile 强度，看不同 persona 的解码阈值")
+    print("  (LNN-FIRST 真正生效的标志：低 smile 输入对低 base persona 是高位，模型该说 positive；")
+    print("   对高 base persona 是中性，模型该说 neutral)")
 
-    # 关键诊断：两个最对立的 persona 在"微笑+不说话"下 emotional_positive 的概率差
-    if len(results) >= 2:
-        print("\n  📊 关键对比（emotional_positive 概率）:")
-        pos_idx = _STATE_LABELS.index("emotional_positive")
-        for pid, desc, probs in results:
-            print(f"    {pid:<14} P(positive) = {probs[pos_idx].item():>6.2%}")
+    print(f"\n  P(emotional_positive) vs smile 输入强度:")
+    print(f"    {'smile':<8}", end="")
+    for pid, _ in test_personas:
+        print(f"{pid:<14}", end="")
+    print()
 
-        max_p = max(probs[pos_idx].item() for _, _, probs in results)
-        min_p = min(probs[pos_idx].item() for _, _, probs in results)
-        diff = max_p - min_p
-        print(f"\n  ➡️  最大差异: {diff:.2%}")
-        if diff > 0.10:
-            print("  ✅ LNN 学到了 per-persona 解码风格（同输入不同输出 > 10pp）")
-        elif diff > 0.03:
-            print("  🟡 有差异但不显著（< 10pp）— LNN 可能未完全学透")
+    diffs_by_smile = []
+    for smile in [0.1, 0.2, 0.3, 0.5, 0.7, 0.9]:
+        vec = make_smiling_sequence(seq_len=cfg.sequence_length, smile=smile)
+        probs_list = []
+        print(f"    {smile:<8.2f}", end="")
+        for pid, _ in test_personas:
+            if pid in p2i:
+                probs = predict(state_model, vec, p2i[pid])
+                p_pos = probs[pos_idx].item()
+                probs_list.append(p_pos)
+                print(f"{p_pos:>6.2%}        ", end="")
+            else:
+                print(f"  -          ", end="")
+        if probs_list:
+            diffs_by_smile.append(max(probs_list) - min(probs_list))
+        print()
+
+    if diffs_by_smile:
+        max_diff = max(diffs_by_smile)
+        max_diff_smile = [0.1, 0.2, 0.3, 0.5, 0.7, 0.9][diffs_by_smile.index(max_diff)]
+        print(f"\n  ➡️  最大 persona 间差异: {max_diff:.2%}（在 smile={max_diff_smile} 时）")
+        if max_diff > 0.10:
+            print("  ✅ LNN 学到了 per-persona 解码风格 — 不同 persona 阈值不同")
+        elif max_diff > 0.03:
+            print("  🟡 有差异但不显著 — FiLM/τ-bias 可能弱化了，需更多 epoch 或更大 embed_dim")
         else:
-            print("  ❌ 差异极小（< 3pp）— LNN 没学到个性化，FiLM/τ-bias 失效")
+            print("  ❌ 差异极小 — 当前 epoch 模型还没学到个性化，再训几个 epoch 看")
 
     print("\n" + "=" * 72)
 

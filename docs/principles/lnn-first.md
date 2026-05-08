@@ -126,6 +126,69 @@ LLM **不是**记忆载体，**不是**状态机，**不是**演化主体。LLM 
 
 ---
 
+## 4.1 视觉感知层与 LNN 内核的边界（2026-05-08 真人验证后明确）
+
+**P-1 LNN-FIRST 准则**只约束"时间/演化/记忆/个性化"层，**不约束**视觉特征提取层。
+正确分层：
+
+```
+[原始视频帧]
+  ↓ 视觉感知（mediapipe / py-feat / OpenFace 等 SOTA 开源）  ← 不受 P-1 约束
+  ↓ 18 维 input vector（已校准到训练分布）
+[时间演化 + 个性化解码]
+  ↓ LTC ODE + FiLM/τ-bias                               ← P-1 强制
+[state 输出 + 5 阶段记忆]
+```
+
+**视觉感知层的产品级延伸方向（P3，老板 2026-05-08 钦定记住）**：
+
+> 当前合成数据让特征值"饱和"（emotional_positive 时 smile=0.98），真人 py-feat 输出通常只到 0.4-0.6 → train-inference 分布错位。
+>
+> **P3 真正的产品级方案**：用真实表情数据集校准 LTC 演化的 Δ 范围
+> 1. 引入公开数据集：FER2013 / AffectNet / RAF-DB（含真人表情图 + 情绪标签）
+> 2. 全数据集跑 py-feat，提取每种情绪的 AU 真实分布（mean, std, range）
+> 3. LLM 推导 ExpressionProfile (base, Δ, τ) 时**必须参考真实分布**作为 ground truth，不允许超过 max
+> 4. 重生成训练数据 → 训练分布 = 真实人类表情分布
+> 5. 真人推理时 py-feat 直接输出，不需要校准层
+>
+> 这才是 PoC 真正"产品级"的延伸。当前 PoC 阶段允许用"特征校准层"作为权宜之计。
+
+**视觉感知模块化建议（待实施）**：
+- `vision/landmark_extractor.py` ← mediapipe（保留）
+- `vision/au_extractor.py` ← py-feat（已实施 Day 6.5）
+- `vision/feature_calibrator.py` ← 训练-推理分布对齐层（已实施 Day 6.5，AUCaliper）
+- `vision/baseline_dataset.py` ← P3 真实数据集校准（产品级延伸，未实施）
+
+### Day 6.5 真人验证踩坑教训（4 条铁律）
+
+**踩坑 1：合成数据特征"饱和"是 PoC 真人验证最大杀手**
+合成 LTC 数据 emotional_positive 时 smile=0.98（饱和），真人 mediapipe 自写公式 max 0.37 → OOD → 模型全程 neutral。
+**铁律**：合成数据生成时**必须参考真实分布**，不能靠 LLM 拍脑袋的饱和值。
+
+**踩坑 2：自写 AU 公式必然有 bug — 用 SOTA 开源方案**
+`brow_furrow = clamp01(1.0 - dist/face_w * 12)` 数学上必然 ≤ 0。138/138 mock 测试全 PASS，真人推理永远 0（典型 train-inference mismatch）。
+**铁律**：FACS AU 检测是成熟领域，**用 py-feat / OpenFace 比自写公式靠谱 10x**。
+
+**踩坑 3：py-feat 在亚洲人脸有显著偏差（Rhim 2022 文献支持）**
+AU01 baseline 0.85（内眦赘皮误判）/ AU04 信号衰减（薄额部脂肪层）。
+**修复方案**（gemini 调研 AUCaliper）：高基线 AU 用相对归一化、AU04 用 gamma 拉伸、AU06/12 直接用、EMA 动态 baseline。
+
+**踩坑 4：状态间特征区分度污染 — focused 不该有 brow 偏移**
+合成训练数据中 LLM 推导 focused 状态 brow_furrow +0.30~+0.45（"专注眉头紧锁"），与 emotional_negative 的 +0.45~+0.70 重叠严重。真人皱眉时模型判 focused 而非 negative。
+**铁律**：状态间特征区分度必须明确——**focused 状态 brow 偏移应限制在 +0.0-0.1**，不污染 negative 信号轴。
+
+### Day 6.5 真人验证硬证据（首次显现）
+
+`#74` 关键帧：`smile=0.76 brow=0.46`
+- vboss_001（内敛 base_smile=0.10）→ **emotional_positive 72%**
+- vboss_007（外向 base_smile=0.30）→ **focused 60%**
+
+**心理学完美吻合**：vboss_001 觉得 0.76 微笑"比平时高很多"=真积极；vboss_007 觉得"跟平时差不多"=还在专注。
+
+**这才是 LNN-FIRST 准则真人级生效的硬证据**——同一段视频流，不同 persona 通过 FiLM/τ-bias 解读出不同含义。verify_persona_learned 的 10.5pp 合成数据差异不是假象，真人推理也成立。
+
+---
+
 ## 5. 给三类 AI 同事的注意事项
 
 ### 5.1 cc（Claude Code）

@@ -195,9 +195,10 @@ def load_model() -> tuple:
     """优先加载 Day 6.5 LTC 训练 checkpoint，回退到 Day 5。"""
     import os
     candidates = [
-        "poc/data/checkpoints/day6_ltc/checkpoint_day5.pt",   # Day 6.5 LTC（train.py 文件名仍是 day5）
-        "poc/data/checkpoints/day6_ltc/checkpoint_day6.pt",   # 备用文件名
-        "poc/data/checkpoints/day5/checkpoint_day5.pt",        # Day 5 fallback
+        "poc/data/checkpoints/day6_ltc/checkpoint_day5.pt",         # 训练完成的最终 ckpt
+        "poc/data/checkpoints/day6_ltc/checkpoint_day5_latest.pt",  # 训练中的 incremental ckpt
+        "poc/data/checkpoints/day6_ltc/checkpoint_day6.pt",
+        "poc/data/checkpoints/day5/checkpoint_day5.pt",             # Day 5 fallback
     ]
     ckpt_path = next((p for p in candidates if os.path.exists(p)), candidates[-1])
     print(f"  ⏳ 加载 checkpoint: {ckpt_path}")

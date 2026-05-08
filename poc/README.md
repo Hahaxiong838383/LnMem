@@ -3,7 +3,7 @@
 > 12-14 天 PoC + 7 天老板自用，证明 **LNN 真的能在多模态时序数据上学到主人特征**，且学习过程对老板和团队**可见、可解释、可治理**。
 
 **分支**：`poc/lnn-validation`（长期分支，不直接合并到 main）
-**状态**：v0.16 Day 6.5 完成（2026-05-08），P0 LTC 演化 + P0.5 5 阶段记忆 LNN 化
+**状态**：v0.17 Day 6.5 完成（2026-05-08）— py-feat 集成 + 真人验证 100% 触发 emotional_positive ✅
 **演示对象**：内部团队（含老板）
 
 ---
@@ -90,6 +90,9 @@ poc/
 | `data/synthetic/llm_v2_ltc/*.jsonl` | 6.5 | 900 LTC 演化 18-dim 信号 | 100% LTC profile |
 | `memory/memory_lnn.py` (P-1 P0.5) | 6.5 | 5 阶段 LTC 链 + persona τ + confirmed 终身免疫 | 10 tests PASS |
 | `memory/importance_judge.py` | 6.5 | LLM 重要性裁判（仅输出 g 标量门） | — |
+| `vision/au_extractor.py` (NEW) | 6.5 | py-feat 0.6.2 包装（17 AU + 7 emotion） | 真人 100% 检测成功 |
+| `vision/feature_calibrator.py` (NEW) | 6.5 | AUCaliper（EMA + gamma + 相对归一化）+ EMFACS | 6 tests PASS |
+| `docs/au-calibration-research.md` (NEW) | 6.5 | gemini 调研：py-feat 亚洲人脸 bias + 校准方案 | — |
 
 **验证脚本（Day 5）**：
 

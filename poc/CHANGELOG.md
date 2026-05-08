@@ -5,6 +5,67 @@
 
 ---
 
+## v0.17 — 2026-05-08（Day 6.5 真人验证 + py-feat 集成 — 修复 Day 5 盲区）
+
+### ⭐ 真人验证里程碑（核心交付）
+
+**修复 Day 5 关键盲区**："安静微笑→positive" 模型从不触发 → 真人测试 100% 触发 ✅
+
+**关键证据 #74**：同一帧视频流（smile=0.76 brow=0.46）
+- vboss_001（内敛 base_smile=0.10）→ **emotional_positive 72%**
+- vboss_007（外向 base_smile=0.30）→ **focused 60%**
+
+**这是 LNN-FIRST P-1 准则真人级生效的硬证据**——FiLM/τ-bias 让不同 persona 对同样输入有不同解读。verify_persona_learned 的 10.5pp 合成差异在真人验证中复现。
+
+### vision/ 视觉感知层（架构升级）
+
+P-1 LNN-FIRST 准则下，视觉特征提取层与 LNN 内核解耦：
+- `vision/__init__.py`
+- `vision/au_extractor.py` — py-feat 0.6.2 集成（17 AU + 7 emotion）
+- `vision/feature_calibrator.py` — AUCaliper（gemini 调研产出）
+  - **EMA 动态 baseline**（α=0.01）
+  - **AU04 gamma 拉伸**（用力 0.19 → ~0.8）
+  - **AU01/02/05/11/17 相对归一化**（去高基线 bias）
+  - **AU06/12 直接用 raw**（基线极低无需减）
+  - **EMFACS 公式**（17 AU → 7 emotion 完整映射）
+
+### face_signals.py 升级
+
+- 修复 `brow_furrow` 公式 bug（旧公式数学上必然返回 0）
+- 新增 `FaceSignalConfig.use_pyfeat` 选项（向后兼容）
+
+### 修复的 4 个根因（详见 docs/principles/lnn-first.md §4.1）
+
+1. **训练-推理分布饱和**：合成数据 smile=0.98 vs 真人 0.37 → OOD
+2. **自写 AU 公式 bug**：mock 测试 PASS 但真人输入永远 0
+3. **py-feat 亚洲人脸 bias**（Rhim 2022 文献）：内眦赘皮误判 + 信号衰减
+4. **状态间特征区分度污染**：focused 状态 brow 偏移与 negative 重叠
+
+### 新增配套文档
+
+- `poc/docs/au-calibration-research.md` — py-feat 偏差矫正与 EMFACS 映射（gemini 调研产出，233 行）
+- `poc/docs/principles/lnn-first.md §4.1` — 视觉感知层与 LNN 内核边界 + 4 条踩坑铁律
+
+### Agent Team 协作（前台并行）
+
+| Agent | 产出 | 评价 |
+|-------|------|------|
+| **codex (gpt-5.3-codex)** | vision 模块 4 文件 + tests | 简版 sigmoid 校准（cc 主线整合 gemini 升级） |
+| **gemini (3-pro-preview)** | AUCaliper 高级方案 + EMFACS 公式 + Rhim 2022 文献支持 | 高质量调研（被 cc 主线整合到代码） |
+| **cc 主线** | 整合 + 测试 + diagnostic 工具 + checkpoint 备份 | 22/22 tests PASS |
+
+### 训练继续进行（双机并行）
+
+- **Air M5**：epoch 4/20，val_acc **91.5%**，bnd_f1 **0.565**（突破 0.5 AC）
+- **Studio M2 Max**：epoch 1/20（30c GPU 仅快 7%——CfC step-by-step 调度瓶颈）
+
+### Day 6.5 已知局限（P3 长期方向）
+
+emotional_negative anger 风格皱眉不触发：合成数据 LLM 推导让 focused 也有 brow +0.3~0.5 偏移，污染 negative 信号轴。
+**P3 修复**：用 FER2013/AffectNet 跑 py-feat 提取 AU 真实分布，约束 LLM 推导的 (base, Δ) 范围；focused brow 偏移限制在 +0.0~0.1。
+
+---
+
 ## v0.16 — 2026-05-08（Day 6.5 P0+P0.5：LTC 演化 + 5 阶段记忆 LNN 化重构）
 
 ### ⭐ 项目最高准则上线
