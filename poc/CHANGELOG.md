@@ -5,6 +5,74 @@
 
 ---
 
+## v0.16 — 2026-05-08（Day 6.5 P0+P0.5：LTC 演化 + 5 阶段记忆 LNN 化重构）
+
+### ⭐ 项目最高准则上线
+
+**P-1 LNN-FIRST**（`docs/principles/lnn-first.md`）—— 老板 2026-05-08 钦定：
+凡涉及"时间/演化/记忆/个性化"，第一性原理必须是 LTC/CfC 微分方程；
+用 LLM/规则替代 LTC 必须 ADR + 老板签字。
+21 处入口部署（CLAUDE/AGENTS/GEMINI/.cursorrules/poc README+spec 等）。
+
+**意义**：LnMem 唯一壁垒 = 记忆是动力学系统，LLM 只做重要性裁判 + 语言渲染。
+违反 = 沦为 mem0/zep 的 N+1 个克隆 = 项目失去存在意义。
+
+### P0 表情 LTC 演化（替代静态查表）
+
+| 模块 | Agent | 状态 |
+|------|-------|------|
+| `expression_dynamics.py` LTC 演化器 + ExpressionProfile schema | codex | ✅ 11/11 tests PASS |
+| HEXACO × FACS × τ 心理学映射表 | gemini | ✅ `docs/hexaco-au-tau-theory.md` |
+| LLM-driven persona profile 生成器（30 主人 × 18 数值） | cc + LLM | ✅ 30/30 个性化生效 |
+| `script_to_signals.py` LTC 集成 | cc | ✅ 37/37 tests PASS |
+| 900 个剧本重新生成 18-dim 信号（LTC 演化） | cc 后台 | ✅ 100% 含 profile |
+
+**LTC 公式（替代静态查表）**：
+```
+d(expr_i)/dt = (A_i^persona(state) - expr_i) / τ_i^persona
+A_i = base_i^persona + Δ_i^persona[state]
+半隐式欧拉离散化：expr[t+1] = (expr[t] + A·dt/τ) / (1 + dt/τ)
+```
+
+**个性化数值证据**（LNN-FIRST 真正生效）：
+- vboss_007（外向）：base_smile=0.30, **τ_smile=0.8s**, Δ@positive=+0.70 → day0 positive 帧 avg_smile=**0.98**
+- vboss_001（内敛）：base_smile=0.10, **τ_smile=10s**, Δ@positive=+0.20 → 全程克制
+- 反应速度差 12×，积极外显程度差 14×
+
+### P0.5 5 阶段记忆 LTC 链（项目核心模块）
+
+| 模块 | Agent | 状态 |
+|------|-------|------|
+| `docs/memory-dynamics.md` 5 阶段 ODE 公式文档 | cc | ✅ 330+ 行物理直觉 + 完整公式 |
+| `memory/memory_lnn.py` 5 阶段 LTC 链 + persona τ 个性化 | codex | ✅ 10/10 tests PASS |
+| `memory/importance_judge.py` LLM 重要性裁判（仅输出 g 标量） | codex | ✅ |
+| 半隐式欧拉数值稳定性修复 | cc | ✅ 任何 dt/τ 比都数值稳定 |
+| `scripts/memory_lnn_demo.py` 端到端物理验证 | cc | ✅ 4 个演示全通过 |
+
+**核心方程**：
+```
+m₁(刚发生)：    τ₁ ≈ 30s         dm₁/dt = -m₁/τ₁ + I(t)
+m₂(短期)：      τ₂ ≈ 5min        dm₂/dt = -m₂/τ₂ + g₁₂·m₁
+m₃(工作)：      τ₃ ≈ 1hour       dm₃/dt = -m₃/τ₃ + g₂₃·m₂
+m₄(长期)：      τ₄ ≈ 24hour      dm₄/dt = -m₄/τ₄ + g₃₄·m₃
+m₅(终身)：      τ₅ → ∞ (老板确认) dm₅/dt = -m₅/τ₅ + g₄₅·m₄
+```
+
+**物理验证（demo 输出）**：
+- m₁ τ=30s → 1min 衰减到 33%，5min 到 0.41%（指数衰减 ✓）
+- confirmed=True 后 m₅ 1 周后保持/累积，未确认 m₅ 自然衰减 ✓
+- persona 短τ 充电 0.94 → 停后 0.08（快忘）vs 长τ 充电 0.24 → 停后 0.24（慢忘）
+
+### 关键发现
+
+**LLM 在 LnMem 的合法位置只剩两类**：
+1. **重要性裁判**：输出 g_{i,i+1} ∈ [0,1] 标量门
+2. **语言渲染**：把 m_i 状态向量翻译成人类可读对话
+
+**记忆衰减、状态演化、表情外显，全部由 LTC ODE 驱动，不再是文本游戏。**
+
+---
+
 ## v0.15 — 2026-05-08（Day 6 P0: feature_dim 12→18 · AU 表情特征扩展）
 
 Day 5 真人验证暴露核心缺陷：12 维全认知特征，无表情信号 → 模型不能检测安静的积极。

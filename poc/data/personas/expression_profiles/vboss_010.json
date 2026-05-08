@@ -1,0 +1,85 @@
+{
+  "persona_id": "vboss_010",
+  "base": {
+    "smile_intensity": 0.08,
+    "brow_furrow": 0.25,
+    "cheek_raise": 0.07,
+    "lip_corner_depress": 0.15,
+    "jaw_drop": 0.05,
+    "mouth_open_ratio": 0.04
+  },
+  "state_offset": {
+    "low_energy": {
+      "smile_intensity": -0.05,
+      "brow_furrow": 0.08,
+      "cheek_raise": -0.05,
+      "lip_corner_depress": 0.15,
+      "jaw_drop": 0.05,
+      "mouth_open_ratio": 0.05
+    },
+    "focused": {
+      "smile_intensity": -0.08,
+      "brow_furrow": 0.45,
+      "cheek_raise": 0.0,
+      "lip_corner_depress": 0.05,
+      "jaw_drop": -0.05,
+      "mouth_open_ratio": -0.04
+    },
+    "distracted": {
+      "smile_intensity": 0.05,
+      "brow_furrow": 0.05,
+      "cheek_raise": 0.0,
+      "lip_corner_depress": 0.0,
+      "jaw_drop": 0.18,
+      "mouth_open_ratio": 0.25
+    },
+    "fatigued": {
+      "smile_intensity": -0.08,
+      "brow_furrow": 0.28,
+      "cheek_raise": -0.07,
+      "lip_corner_depress": 0.28,
+      "jaw_drop": 0.25,
+      "mouth_open_ratio": 0.18
+    },
+    "emotional_positive": {
+      "smile_intensity": 0.35,
+      "brow_furrow": -0.15,
+      "cheek_raise": 0.25,
+      "lip_corner_depress": -0.05,
+      "jaw_drop": 0.05,
+      "mouth_open_ratio": 0.15
+    },
+    "emotional_negative": {
+      "smile_intensity": -0.08,
+      "brow_furrow": 0.75,
+      "cheek_raise": -0.05,
+      "lip_corner_depress": 0.65,
+      "jaw_drop": 0.08,
+      "mouth_open_ratio": 0.05
+    },
+    "neutral": {
+      "smile_intensity": 0.0,
+      "brow_furrow": 0.03,
+      "cheek_raise": 0.0,
+      "lip_corner_depress": 0.02,
+      "jaw_drop": 0.0,
+      "mouth_open_ratio": 0.0
+    },
+    "transitioning": {
+      "smile_intensity": 0.0,
+      "brow_furrow": 0.05,
+      "cheek_raise": 0.0,
+      "lip_corner_depress": 0.03,
+      "jaw_drop": 0.03,
+      "mouth_open_ratio": 0.03
+    }
+  },
+  "tau": {
+    "smile_intensity": 6.0,
+    "brow_furrow": 1.5,
+    "cheek_raise": 6.0,
+    "lip_corner_depress": 1.5,
+    "jaw_drop": 3.0,
+    "mouth_open_ratio": 3.0
+  }
+}

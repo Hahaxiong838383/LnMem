@@ -3,7 +3,7 @@
 > 12-14 天 PoC + 7 天老板自用，证明 **LNN 真的能在多模态时序数据上学到主人特征**，且学习过程对老板和团队**可见、可解释、可治理**。
 
 **分支**：`poc/lnn-validation`（长期分支，不直接合并到 main）
-**状态**：v0.15 Day 6 P0 完成（2026-05-08），feature_dim 12→18
+**状态**：v0.16 Day 6.5 完成（2026-05-08），P0 LTC 演化 + P0.5 5 阶段记忆 LNN 化
 **演示对象**：内部团队（含老板）
 
 ---
@@ -85,6 +85,11 @@ poc/
 | `lnn/train.py` | 5 | 端到端训练: **val_acc=70.2%**, bnd_f1=0.295 | 20 epochs MPS |
 | `capture/face_signals.py` AU 扩展 | 6 | 6 维 AU 表情特征(smile/brow/cheek/lip/jaw/mouth) | 6 tests PASS |
 | `fusion.py` v1.0 | 6 | FEATURE_DIM 12→18 + `_expression_features()` | 10 tests PASS |
+| `lnn/expression_dynamics.py` (P-1 LTC) | 6.5 | LTC 表情演化器 + ExpressionProfile schema | 11 tests PASS |
+| `data/personas/expression_profiles/*.json` | 6.5 | LLM 推导 30 主人 × 18 LTC 参数 | 个性化生效 |
+| `data/synthetic/llm_v2_ltc/*.jsonl` | 6.5 | 900 LTC 演化 18-dim 信号 | 100% LTC profile |
+| `memory/memory_lnn.py` (P-1 P0.5) | 6.5 | 5 阶段 LTC 链 + persona τ + confirmed 终身免疫 | 10 tests PASS |
+| `memory/importance_judge.py` | 6.5 | LLM 重要性裁判（仅输出 g 标量门） | — |
 
 **验证脚本（Day 5）**：
 
@@ -124,8 +129,9 @@ poc/
 | 1-2 | 多模态信号流入 | Day 1 末稳定 30fps + 16kHz + 上下文 | ✅ |
 | 3-4 | 数据生成 | 30 画像 × 30 天 = 7,191h | ✅ |
 | 5 | LNN 预训练 + 验证 | 状态识别 ≥30% → 实际 70.2% | ✅ |
-| 6 | 特征扩展 + 去偏 | feature_dim 12→18 ✅, boundary/去偏待续 | 🟡 |
-| 7 | 5 阶段记忆 | 全流程跑通 | 🔲 |
+| 6 | 特征扩展 + 去偏 | feature_dim 12→18 ✅ | ✅ |
+| 6.5 | **P0 LTC 表情演化 + P0.5 5 阶段记忆 LTC** | LNN-FIRST 准则 + 137 测试 PASS | ✅ |
+| 7 | 5 阶段记忆 visualize + UI confirm | 已大半提前到 6.5 | 🟡 |
 | 8-12 | 老板自用累积真实数据 | Day 12 末真实数据 ≥ 10h | 🔲 |
 | 13 | 真实数据微调 | 微调 vs 预训练对比 | 🔲 |
 | 14 | 演示 + 录屏 | 5 个可视化全部出片 | 🔲 |
