@@ -3,7 +3,7 @@
 > 12-14 天 PoC + 7 天老板自用，证明 **LNN 真的能在多模态时序数据上学到主人特征**，且学习过程对老板和团队**可见、可解释、可治理**。
 
 **分支**：`poc/lnn-validation`（长期分支，不直接合并到 main）
-**状态**：v0.1 起草中（2026-05-05 Day 0）
+**状态**：v0.14 Day 5 完成（2026-05-08），Day 6 待启动
 **演示对象**：内部团队（含老板）
 
 ---
@@ -58,21 +58,36 @@ poc/
 
 ### `poc/src/` 已实现 vs 计划中
 
-> 文档真实性优先于"看起来完整"。下表反映 HEAD `fdc8234` 的真实落盘状态。
+> 文档真实性优先于"看起来完整"。下表反映 HEAD `a0adc55` 的真实落盘状态。
 
-**已实现（Day 1-2 收官）**：
+**已实现（Day 0-5）**：
 
-| 路径 | 用途 | 实测 |
-|------|------|------|
-| `capture/` | Day 1 多模态采集骨架（face/audio/context/buffer） | smoke 4/4 PASS（25.5fps + 16kHz + osascript + 478 landmarks） |
-| `fusion.py` | Day 2 12-dim FusionFrame 融合层（face4+derived4+audio2+context2） | `pytest poc/tests/test_fusion.py` 12/12 PASS |
-| `validate_personas.py` | Day 0 画像校验（HEXACO/ECR/Schwartz/SDT 30 维门） | 217/217 门通过 |
+| 路径 | Day | 用途 | 实测 |
+|------|-----|------|------|
+| `capture/` | 1 | 多模态采集骨架（face/audio/context/buffer） | smoke 4/4 PASS（25.5fps + 16kHz + osascript + 478 landmarks） |
+| `fusion.py` | 2 | 12-dim FusionFrame 融合层（face4+derived4+audio2+context2） | 12/12 PASS |
+| `validate_personas.py` | 0 | 画像校验（HEXACO/ECR/Schwartz/SDT 30 维门） | 217/217 门通过 |
+| `data/event_schema.py` | 3 | ScriptEvent + Activity(8) + State(8) + 校验器 | 23 tests |
+| `data/llm_clients.py` | 4 | MiniMax-M2.7 + Gemini Proxy + Fallback 三件套 | 28 tests |
+| `lnn/contracts.py` | 5 | 接口冻结层: LNNTrainConfig + 4 Protocol | 7 tests |
+| `lnn/model.py` | 5 | CfC step-by-step + τ-bias + FiLM (codex 写) | 8 tests |
+| `lnn/dataset.py` | 5 | numpy 预处理 + FileGroupedSampler | 8 tests |
+| `lnn/train.py` | 5 | 端到端训练: **val_acc=70.2%**, bnd_f1=0.295 | 20 epochs MPS |
 
-**计划中（按 README §时间盒推进）**：
+**验证脚本（Day 5）**：
+
+| 脚本 | 用途 |
+|------|------|
+| `scripts/verify_confusion_matrix.py` | 8×8 混淆矩阵 + per-class F1 |
+| `scripts/verify_threshold_sweep.py` | boundary sigmoid 阈值扫描 |
+| `scripts/human_verify.py` | 合成数据：专挑状态切换段人工对比 |
+| `scripts/live_verify.py` | **真人实时验证**：摄像头+麦克风+应用→模型预测 |
+
+**计划中**：
 
 | 路径 | 阶段 | 硬门槛 |
 |------|------|--------|
-| `lnn/` | Day 5-6 | CfC + 状态识别 + 边界检测 + 个性化 τ，60-75% accuracy |
+| `lnn/` 扩展 | Day 6 | feature_dim 12→16~18（加 AU 表情特征），boundary 调参 |
 | `memory/` | Day 7 | 5 阶段记忆形成 pipeline + F1 SlotValue 类型收紧 |
 | `ui/` | Day 7-14 | Streamlit 主入口 + 5 可视化 + Day 14 录屏 |
 | `multimodal/` | Day 8+ | 真实采集累积（在 capture/ 之上扩 wrapper，老板自用产数据） |
@@ -91,16 +106,17 @@ poc/
 
 ## 时间盒一览（详见 [`docs/poc-spec.md`](docs/poc-spec.md) §2）
 
-| Day | 阶段 | 硬门槛 |
-|-----|------|--------|
-| 0 | 老板做画像 + cc 起草规范 | 30 画像通过校验 |
-| 1-2 | 多模态信号流入 | Day 1 末稳定 30fps + 16kHz + 上下文 |
-| 3-4 | 数据生成 | Day 3 末画像就位 |
-| 5-6 | LNN 预训练 | Day 6 末状态识别 60-75% |
-| 7 | 5 阶段记忆 | 全流程跑通 |
-| 8-12 | 老板自用累积真实数据 | Day 12 末真实数据 ≥ 10h |
-| 13 | 真实数据微调 | 微调 vs 预训练对比 |
-| 14 | 演示 + 录屏 | 5 个可视化全部出片 |
+| Day | 阶段 | 硬门槛 | 状态 |
+|-----|------|--------|------|
+| 0 | 老板做画像 + cc 起草规范 | 30 画像通过校验 | ✅ |
+| 1-2 | 多模态信号流入 | Day 1 末稳定 30fps + 16kHz + 上下文 | ✅ |
+| 3-4 | 数据生成 | 30 画像 × 30 天 = 7,191h | ✅ |
+| 5 | LNN 预训练 + 验证 | 状态识别 ≥30% → 实际 70.2% | ✅ |
+| 6 | 特征扩展 + 去偏 | feature_dim 12→16~18, boundary ≥0.5 | 🔲 |
+| 7 | 5 阶段记忆 | 全流程跑通 | 🔲 |
+| 8-12 | 老板自用累积真实数据 | Day 12 末真实数据 ≥ 10h | 🔲 |
+| 13 | 真实数据微调 | 微调 vs 预训练对比 | 🔲 |
+| 14 | 演示 + 录屏 | 5 个可视化全部出片 | 🔲 |
 
 ---
 
