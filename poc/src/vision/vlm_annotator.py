@@ -1,9 +1,10 @@
 """VLM 云端标注器：给人脸帧生成 AU 描述 + valence/arousal。
 
 优先级链（环境变量 VLM_PROVIDER 可强制指定）：
-  1. gemini-3.1-flash-lite-preview（proxy，最新 3.x，速度最快）
-  2. gemini-2.5-flash              （proxy，稳定备选）
-  3. MiniMax-M2.7                  （直连，最后兜底，TODO: 视觉格式待验证）
+  1. gemini-3.1-flash-lite-preview（proxy，最新 3.x，速度最快，主力）
+  2. gemini-3.1-pro-preview        （proxy，最高质量，~4.5s，2026-05-09 实测视觉 ✅）
+  3. gemini-2.5-flash              （proxy，稳定备选）
+  4. MiniMax-M2.7                  （直连，最后兜底，/v1/coding_plan/vlm 端点）
 
 所有 API key 从环境变量读取，不硬编码。
 """
@@ -60,10 +61,12 @@ class VLMAnnotator:
     _MINIMAX_URL = "https://api.minimaxi.com/v1/chat/completions"
 
     # 优先级顺序：(model_id, api_type)
+    # 2026-05-09 更新：pro-preview 视觉实测 4.5s，与 flash-lite 速度相当，质量更高
     _MODEL_CHAIN = [
-        ("gemini-3.1-flash-lite-preview", "proxy"),
-        ("gemini-2.5-flash",              "proxy"),
-        ("MiniMax-M2.7",                  "minimax"),
+        ("gemini-3.1-flash-lite-preview", "proxy"),   # 速度最快，主力
+        ("gemini-3.1-pro-preview",        "proxy"),   # 最高质量，次选
+        ("gemini-2.5-flash",              "proxy"),   # 稳定备选
+        ("MiniMax-M2.7",                  "minimax"), # 最后兜底
     ]
 
     def __init__(

@@ -71,7 +71,8 @@ class TestVLMAnnotatorChain(unittest.TestCase):
         a = self._make_annotator()
         chain = a._build_chain()
         self.assertEqual(chain[0][0], "gemini-3.1-flash-lite-preview")
-        self.assertEqual(chain[1][0], "gemini-2.5-flash")
+        self.assertEqual(chain[1][0], "gemini-3.1-pro-preview")
+        self.assertEqual(chain[2][0], "gemini-2.5-flash")
 
     def test_build_chain_override(self):
         a = VLMAnnotator(proxy_key="k", minimax_key="k", provider_override="gemini-2.5-flash")
@@ -103,7 +104,7 @@ class TestVLMAnnotatorChain(unittest.TestCase):
         a._encode_frame = MagicMock(return_value="fakeb64")
         result = a.annotate("fake")
         self.assertIsNotNone(result)
-        self.assertEqual(result.model_used, "gemini-2.5-flash")
+        self.assertEqual(result.model_used, "gemini-3.1-pro-preview")
         self.assertEqual(call_count, 2)  # stopped after second
 
     def test_encode_frame_file_path(self):
