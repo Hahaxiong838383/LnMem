@@ -123,8 +123,15 @@ class FaceSignalExtractor:
         if self._au_extractor is not None and frame is not None:
             try:
                 from poc.src.vision.feature_calibrator import calibrate_to_lnn_expression
-                au_dict, _ = self._au_extractor.extract(frame)
+                au_dict, _emo, pose_dict = self._au_extractor.extract(frame)
                 expression = calibrate_to_lnn_expression(au_dict)
+                # LNN-FIRST: 头部姿态切到 py-feat img2pose（覆盖上面 MediaPipe landmark 估算）
+                if pose_dict:
+                    head_yaw_deg = float(pose_dict.get("yaw_deg", head_yaw_deg))
+                    head_pitch_deg = float(pose_dict.get("pitch_deg", head_pitch_deg))
+                    gaze_stability = _clamp01(
+                        1.0 - min(1.0, (abs(head_yaw_deg) + abs(head_pitch_deg)) / 120.0)
+                    )
             except Exception:
                 expression = _extract_expression_features(landmarks=landmarks, landmarks_n=landmarks_n)
 
