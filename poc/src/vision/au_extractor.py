@@ -49,11 +49,21 @@ class AUExtractor:
         self._last_emo: dict[str, float] = {}
 
     def _ensure_detector(self) -> Any:
-        """Create detector lazily. / 首次调用时懒加载 py-feat Detector。"""
+        """Create detector lazily. / 首次调用时懒加载 py-feat Detector。
+
+        Only load face + landmark + AU models; skip emotion(526MB)/facepose(162MB)/
+        identity(107MB) since we already have mediapipe for head pose and don't need
+        emotion or identity models.
+        """
         if self._detector is None:
             from feat import Detector  # type: ignore
 
-            self._detector = Detector(au_model=self._au_model)
+            self._detector = Detector(
+                au_model=self._au_model,
+                emotion_model=None,   # skip 526MB ResMaskNet
+                facepose_model=None,  # skip 162MB img2pose (use mediapipe instead)
+                identity_model=None,  # skip 107MB facenet
+            )
         return self._detector
 
     def extract(self, frame: Any) -> tuple[dict[str, float], dict[str, float]]:
