@@ -20,6 +20,7 @@ from .feedback import (
     DNDConfig,
     EngineConfig,
     ProactiveQueryEngine,
+    ProactiveQueryTrigger,
     RateLimiterConfig,
     TokenBucketRateLimiter,
 )
@@ -76,6 +77,8 @@ class DaemonApp:
         self._pipeline.join(timeout=10.0)
         for thread in self._router_threads:
             thread.join(timeout=5.0)
+        # FB-01: 等弹窗线程落盘完成（在线 prompt 可能还在等老板回复）
+        self._feedback_engine.stop(timeout_s=5.0)
         self._storage.stop()
 
     def serve_forever(self) -> None:
@@ -134,7 +137,14 @@ class DaemonApp:
         )
         dnd = DNDConfig(apps=fb.dnd_apps)
         cfg = EngineConfig(rate=rate, dnd=dnd, enable_prompt=True)
-        return ProactiveQueryEngine(cfg, rate_limiter=TokenBucketRateLimiter(rate))
+        # FB-03: 把 daemon.toml 的 query_confidence_threshold 接到 trigger
+        trigger = ProactiveQueryTrigger(vlm_conf_threshold=fb.query_confidence_threshold)
+        return ProactiveQueryEngine(
+            cfg,
+            trigger=trigger,
+            rate_limiter=TokenBucketRateLimiter(rate),
+            session_id=self._session_id,  # FB-06
+        )
 
     def _start_http_server(self) -> None:
         app = self

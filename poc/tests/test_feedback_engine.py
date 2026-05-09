@@ -58,7 +58,7 @@ class TestEngine(unittest.TestCase):
             home = Path(tmp)
             eng = _engine(home, dry_run=True)
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="Cursor"):
-                for i in range(5):
+                for i in range(10):
                     eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
             stats = eng.stats()
             self.assertEqual(stats["triggered"], 1)
@@ -69,7 +69,7 @@ class TestEngine(unittest.TestCase):
             home = Path(tmp)
             eng = _engine(home, dnd_apps=("zoom",), dry_run=True)
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="zoom.us"):
-                for i in range(5):
+                for i in range(10):
                     eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
             stats = eng.stats()
             self.assertEqual(stats["triggered"], 1)
@@ -82,10 +82,10 @@ class TestEngine(unittest.TestCase):
             eng = _engine(home, max_per_hour=1, dry_run=True)  # only 1/h
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="Cursor"):
                 # First burst → triggers + queries
-                for i in range(5):
+                for i in range(10):
                     eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
                 # Second burst → triggers but rate-blocked
-                for i in range(5, 10):
+                for i in range(10, 20):
                     eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
             stats = eng.stats()
             self.assertEqual(stats["triggered"], 2)
@@ -98,7 +98,7 @@ class TestEngine(unittest.TestCase):
             runner = _mk_runner(label="match")
             eng = _engine(home, runner=runner)
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="Cursor"):
-                for i in range(5):
+                for i in range(10):
                     eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
             # Wait for background thread to finish
             for _ in range(20):
@@ -120,7 +120,7 @@ class TestEngine(unittest.TestCase):
             runner = _mk_runner(label="mismatch", true_state="focused")
             eng = _engine(home, runner=runner)
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="Cursor"):
-                for i in range(5):
+                for i in range(10):
                     eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
             for _ in range(20):
                 files = list((home / ".lnmem" / "feedback").glob("queries_*.jsonl"))

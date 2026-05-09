@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -72,13 +73,19 @@ class ProactiveQueryEngine:
         trigger: ProactiveQueryTrigger | None = None,
         rate_limiter: TokenBucketRateLimiter | None = None,
         prompt_runner: Any | None = None,
+        session_id: str = "",
     ) -> None:
         self._config = config
         self._trigger = trigger or ProactiveQueryTrigger()
         self._rate = rate_limiter or TokenBucketRateLimiter(config.rate)
         self._prompt_runner = prompt_runner
+        self._session_id = session_id
         self._lock = threading.Lock()
         self._log = logging.getLogger("lnmem.feedback")
+        # FB-01: 追踪后台 prompt 线程，stop() 时 join
+        self._prompt_threads: list[threading.Thread] = []
+        self._threads_lock = threading.Lock()
+        self._stopped = False
         # Stats
         self._stats = {
             "observed": 0,
@@ -123,17 +130,21 @@ class ProactiveQueryEngine:
             return None
 
         # 同步弹窗（osascript 阻塞，daemon 主流不能等太久 → 放后台 thread）
+        # FB-01: 每个 event 生成 event_uuid 作为 jsonl 关联键
+        event_uuid = uuid.uuid4().hex
         thread = threading.Thread(
             target=self._prompt_and_record,
-            args=(event, home),
+            args=(event, home, event_uuid),
             name=f"feedback-prompt-{event.frame_id}",
-            daemon=True,
+            daemon=False,  # FB-01: 改 non-daemon，stop() 时 join 保数据
         )
+        with self._threads_lock:
+            self._prompt_threads.append(thread)
         thread.start()
         self._stats["queried"] += 1
         return None  # 弹窗异步，主流不阻塞
 
-    def _prompt_and_record(self, event: TriggerEvent, home: Path | None) -> None:
+    def _prompt_and_record(self, event: TriggerEvent, home: Path | None, event_uuid: str) -> None:
         try:
             short, detail = _format_question(event)
             t0 = time.time()
@@ -145,7 +156,7 @@ class ProactiveQueryEngine:
             )
             latency_s = time.time() - t0
             self._stats["responses"] += 1
-            self._record(event, response=response, latency_s=latency_s, home=home)
+            self._record(event, response=response, latency_s=latency_s, home=home, event_uuid=event_uuid)
         except Exception as exc:  # noqa: BLE001
             self._log.warning("prompt thread failed: %s", exc)
 
@@ -155,6 +166,7 @@ class ProactiveQueryEngine:
         response: UserResponse,
         latency_s: float,
         home: Path | None,
+        event_uuid: str = "",
     ) -> None:
         record = {
             "ts": event.ts or datetime.now(timezone.utc).astimezone().isoformat(),
@@ -168,8 +180,29 @@ class ProactiveQueryEngine:
                 "note": response.note,
             },
             "latency_s": round(latency_s, 2),
+            # FB-06: 关联键，Phase 2 奖励回灌依赖
+            "session_id": self._session_id,
+            "event_uuid": event_uuid or uuid.uuid4().hex,
         }
         try:
             append_query(record, home=home)
         except Exception as exc:  # noqa: BLE001
             self._log.warning("append_query failed: %s", exc)
+
+    def stop(self, timeout_s: float = 5.0) -> None:
+        """FB-01: daemon 停机时调用，限时 join 后台 prompt 线程保数据完整。"""
+        if self._stopped:
+            return
+        self._stopped = True
+        with self._threads_lock:
+            pending = list(self._prompt_threads)
+        deadline = time.time() + timeout_s
+        for thread in pending:
+            remaining = max(0.0, deadline - time.time())
+            try:
+                thread.join(timeout=remaining)
+            except Exception as exc:  # noqa: BLE001
+                self._log.warning("join prompt thread %s failed: %s", thread.name, exc)
+        # 清理已完成线程
+        with self._threads_lock:
+            self._prompt_threads = [t for t in self._prompt_threads if t.is_alive()]

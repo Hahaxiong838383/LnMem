@@ -12,8 +12,11 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any
 
-_BROW_BURST_WINDOW = 5
-_BROW_BURST_THRESHOLD = 0.7
+# V0.2 阈值收紧（codex review FB-02 + 22/4min 过敏实测）：
+# - window 5→10 帧 (10s @ 1fps)，过滤短暂瞬间皱眉
+# - threshold 0.7→0.85，过滤老板自然工作脸 brow=0.5-0.8
+_BROW_BURST_WINDOW = 10
+_BROW_BURST_THRESHOLD = 0.85
 _LOW_VLM_CONF_THRESHOLD = 0.65
 
 
