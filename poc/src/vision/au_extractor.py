@@ -60,7 +60,7 @@ class AUExtractor:
 
             self._detector = Detector(
                 au_model=self._au_model,
-                emotion_model=None,   # skip 526MB ResMaskNet
+                emotion_model="svm",  # svm uses local pkl, skip 526MB ResMaskNet
                 facepose_model=None,  # skip 162MB img2pose (use mediapipe instead)
                 identity_model=None,  # skip 107MB facenet
             )
