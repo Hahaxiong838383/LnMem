@@ -59,7 +59,7 @@
 |------|------|------|
 | `daemon_config.py` | TOML 配置 + FeedbackConfig（查询频次 1-3/小时）+ preflight 自检 | 185 |
 | `capture_worker.py` | cv2 摄像头采集线程（指数退避重连）| 124 |
-| `signal_pipeline.py` | **py-feat 唯一信号源（LNN-FIRST）**：AU + 情绪 + img2pose 头姿 | 122 |
+| `signal_pipeline.py` | **py-feat 唯一信号源（LNN-FIRST）**：AU + 情绪 + img2pose 头姿 + VLM 每10帧 | 148 |
 | `storage_manager.py` | H.264 分时段录制 + JSONL append + 24h/365d 滚动清理 | 190 |
 | `daemon_main.py` | 编排 + HTTP API(9876) + TCC 摄像头授权预检 | 195 |
 | `__init__.py` | 包入口 | 5 |
@@ -82,6 +82,7 @@ dnd_apps = ["zoom", "loom", "facetime", "obs"]
 
 | 设备 | 状态 | frames_processed | py-feat |
 |------|------|-----------------|---------|
+<<<<<<< HEAD
 | **Air** | ✅ 运行中 | ~4900+/uptime≈100min | ✅ AU + expression（20 AUs 全出值）|
 | **Studio** | ✅ 运行中，AU 全激活 | ~250+/uptime≈5min | ✅ resmasknet + XGB AU 20 channels |
 
@@ -90,6 +91,10 @@ dnd_apps = ["zoom", "loom", "facetime", "obs"]
 - 根因 2：`emotion_model="svm"` 需要 `July4_emo_SVM.pkl`，该文件未随包安装，Studio 无外网→60s TCP timeout 阻塞
 - 修复：改用 `emotion_model="resmasknet"`（本地 .pth），rsync Air→Studio 三个大文件（img2pose 162MB + facenet 107MB + ResMaskNet 528MB）
 - 当前配置：`Detector(au_model="xgb", emotion_model="resmasknet")`，其他参数取 py-feat 默认值
+=======
+| **Air** | ✅ 运行中 | ~1000+/小时 | ✅ AU + expression |
+| **Studio** | ✅ 运行中 | ~700+/小时 | 🟡 安装中，装完自动可用 |
+>>>>>>> 853d2ff (feat(poc): Day 8 实时采集 pipeline + VLM 云端标注（16 tests pass）)
 
 **启动命令（两台都需要在 Terminal.app 里运行，非 SSH）**：
 ```bash
@@ -102,7 +107,11 @@ cd /Users/fu-121/lnmem-poc/LnMem
 PYTHONPATH=. .venv-poc/bin/python -m poc.src.realtime.daemon_main --device studio --camera 0
 ```
 
+<<<<<<< HEAD
 **信号格式**（Day 9 更新：head_pose 改为 img2pose 3DoF）：
+=======
+**信号格式**：
+>>>>>>> 853d2ff (feat(poc): Day 8 实时采集 pipeline + VLM 云端标注（16 tests pass）)
 ```json
 {
   "ts": "2026-05-09T02:00:51Z",
@@ -112,7 +121,11 @@ PYTHONPATH=. .venv-poc/bin/python -m poc.src.realtime.daemon_main --device studi
   "raw_au": {"AU04": 0.18, "AU12": 0.05, ...},
   "calibrated_au": {"AU04": 0.205, "AU12": 0.052, ...},
   "expression": {"smile_intensity": 0.056, "brow_furrow": 0.205, ...},
+<<<<<<< HEAD
   "head_pose": {"yaw_deg": -4.7, "pitch_deg": 1.9, "roll_deg": 0.3},
+=======
+  "head_pose": {"yaw_deg": -4.7, "pitch_deg": 1.9},
+>>>>>>> 853d2ff (feat(poc): Day 8 实时采集 pipeline + VLM 云端标注（16 tests pass）)
   "session_id": "uuid"
 }
 ```
@@ -144,7 +157,11 @@ PYTHONPATH=. .venv-poc/bin/python -m poc.src.realtime.daemon_main --device studi
 
 - [ ] **训练 Day 7 v2 完成** → 检查 `checkpoint_day5.pt` val_acc（目标 ≥70%）
 - [ ] **live_verify v3 重测**：运行 `poc/scripts/live_verify.py --debug-au` 10 分钟，确认 emotional_negative 能触发
+<<<<<<< HEAD
 - [x] ✅ **Studio py-feat 双摄像头上线** — AU 20 channels 全激活（brow_furrow/smile_intensity 实时输出）
+=======
+- [ ] **Studio py-feat 安装完成后重启 daemon**：将 `~/.lnmem/daemon.toml` 的 `enable_pyfeat = false` 改为 `true`，重启 Studio daemon
+>>>>>>> 853d2ff (feat(poc): Day 8 实时采集 pipeline + VLM 云端标注（16 tests pass）)
 
 ### P1 — Day 9（VLM 自标注 Pipeline）
 
@@ -186,6 +203,7 @@ PYTHONPATH=. .venv-poc/bin/python -m poc.src.realtime.daemon_main --device studi
 
 ```
 poc/
+<<<<<<< HEAD
 ├── src/realtime/           # Day 8 新增：Daemon V0.1（Day 9 LNN-FIRST 更新）
 │   ├── daemon_config.py    # 配置（enable_mediapipe=False 已弃用）
 │   ├── capture_worker.py   # 摄像头采集
@@ -198,6 +216,17 @@ poc/
 ├── scripts/
 │   ├── diagnose_au.py      # AU 诊断工具
 │   ├── realign_profiles.py # 30 persona 重对齐
+=======
+├── src/realtime/           # Day 8 新增：Daemon V0.1
+│   ├── daemon_config.py    # 配置（含 FeedbackConfig 1-3次/小时）
+│   ├── capture_worker.py   # 摄像头采集
+│   ├── signal_pipeline.py  # py-feat + mediapipe
+│   ├── storage_manager.py  # H.264 + JSONL 存储
+│   └── daemon_main.py      # 主入口（含 TCC 摄像头授权预检）
+├── scripts/
+│   ├── diagnose_au.py      # AU 诊断工具（新增）
+│   ├── realign_profiles.py # 30 persona 重对齐（新增）
+>>>>>>> 853d2ff (feat(poc): Day 8 实时采集 pipeline + VLM 云端标注（16 tests pass）)
 │   ├── regenerate_signals_v2.py  # V2 信号重生成
 │   └── train_day7_v2.py    # Day 7 V2 训练（5 epoch）
 ├── data/personas/expression_profiles/  # 30 个 vboss 已重对齐
@@ -208,6 +237,7 @@ poc/
 
 ---
 
+<<<<<<< HEAD
 ## 六、踩坑总结（Day 8-9，6 条铁律）
 
 ### 坑 1：py-feat 0.6.2 `__init__` 同步下载全部模型（非懒加载）
@@ -249,6 +279,9 @@ poc/
 ---
 
 ## 七、下个 Session 接手指引
+=======
+## 六、下个 Session 接手指引
+>>>>>>> 853d2ff (feat(poc): Day 8 实时采集 pipeline + VLM 云端标注（16 tests pass）)
 
 1. **检查训练是否完成**：
    ```bash
@@ -258,7 +291,11 @@ poc/
    ```bash
    cd /tmp/lnmem-fix/LnMem && PYTHONPATH=. .venv-poc/bin/python -u poc/scripts/train_day7_v2.py
    ```
+<<<<<<< HEAD
 3. **live_verify v3 重测**（需 val_acc 出炉后）：
+=======
+3. **live_verify v3 重测**：
+>>>>>>> 853d2ff (feat(poc): Day 8 实时采集 pipeline + VLM 云端标注（16 tests pass）)
    ```bash
    cd /tmp/lnmem-fix/LnMem && PYTHONPATH=. .venv-poc/bin/python poc/scripts/live_verify.py --debug-au
    ```
@@ -267,11 +304,19 @@ poc/
    curl -s http://127.0.0.1:9876/health        # Air
    ssh studio "curl -s http://127.0.0.1:9876/health"  # Studio
    ```
+<<<<<<< HEAD
    ✅ **Studio py-feat 已完成**：emotion_model=resmasknet，AU 20 channels 全激活。无需再执行任何安装步骤。
 
 5. **确认 LNN-FIRST head_pose 3DoF**：日志 `head_pose` 字段必须有 `roll_deg`（旧 MediaPipe 路径只有 2 字段）：
    ```bash
    curl -s "http://127.0.0.1:9876/signals/recent?seconds=10" | python3 -c "import sys,json; s=json.load(sys.stdin); print(s[0]['head_pose'])"
    ```
+=======
+5. **Studio py-feat 是否装完**：
+   ```bash
+   ssh studio "cd /Users/fu-121/lnmem-poc/LnMem && .venv-poc/bin/python -c 'from feat import Detector; print(\"OK\")'"
+   ```
+   如已装完，更新 Studio `~/.lnmem/daemon.toml` 的 `enable_pyfeat = true` 并重启 daemon。
+>>>>>>> 853d2ff (feat(poc): Day 8 实时采集 pipeline + VLM 云端标注（16 tests pass）)
 
 6. **下一步主要任务**：部署 Qwen2-VL（MLX）到 Studio，构建 VLM 自标注 pipeline（P1）
