@@ -59,7 +59,7 @@
 |------|------|------|
 | `daemon_config.py` | TOML 配置 + FeedbackConfig（查询频次 1-3/小时）+ preflight 自检 | 185 |
 | `capture_worker.py` | cv2 摄像头采集线程（指数退避重连）| 124 |
-| `signal_pipeline.py` | py-feat AU + AUCaliper + mediapipe head pose | 155 |
+| `signal_pipeline.py` | **py-feat 唯一信号源（LNN-FIRST）**：AU + 情绪 + img2pose 头姿 | 122 |
 | `storage_manager.py` | H.264 分时段录制 + JSONL append + 24h/365d 滚动清理 | 190 |
 | `daemon_main.py` | 编排 + HTTP API(9876) + TCC 摄像头授权预检 | 195 |
 | `__init__.py` | 包入口 | 5 |
@@ -102,7 +102,7 @@ cd /Users/fu-121/lnmem-poc/LnMem
 PYTHONPATH=. .venv-poc/bin/python -m poc.src.realtime.daemon_main --device studio --camera 0
 ```
 
-**信号格式**：
+**信号格式**（Day 9 更新：head_pose 改为 img2pose 3DoF）：
 ```json
 {
   "ts": "2026-05-09T02:00:51Z",
@@ -112,7 +112,7 @@ PYTHONPATH=. .venv-poc/bin/python -m poc.src.realtime.daemon_main --device studi
   "raw_au": {"AU04": 0.18, "AU12": 0.05, ...},
   "calibrated_au": {"AU04": 0.205, "AU12": 0.052, ...},
   "expression": {"smile_intensity": 0.056, "brow_furrow": 0.205, ...},
-  "head_pose": {"yaw_deg": -4.7, "pitch_deg": 1.9},
+  "head_pose": {"yaw_deg": -4.7, "pitch_deg": 1.9, "roll_deg": 0.3},
   "session_id": "uuid"
 }
 ```
@@ -186,15 +186,18 @@ PYTHONPATH=. .venv-poc/bin/python -m poc.src.realtime.daemon_main --device studi
 
 ```
 poc/
-├── src/realtime/           # Day 8 新增：Daemon V0.1
-│   ├── daemon_config.py    # 配置（含 FeedbackConfig 1-3次/小时）
+├── src/realtime/           # Day 8 新增：Daemon V0.1（Day 9 LNN-FIRST 更新）
+│   ├── daemon_config.py    # 配置（enable_mediapipe=False 已弃用）
 │   ├── capture_worker.py   # 摄像头采集
-│   ├── signal_pipeline.py  # py-feat + mediapipe
+│   ├── signal_pipeline.py  # LNN-FIRST：py-feat 唯一信号源（MediaPipe 已删除）
 │   ├── storage_manager.py  # H.264 + JSONL 存储
 │   └── daemon_main.py      # 主入口（含 TCC 摄像头授权预检）
+├── src/vision/
+│   ├── au_extractor.py     # AUExtractor.extract() → 3-tuple (au, emo, pose)
+│   └── feature_calibrator.py  # AUCaliper（EMA + gamma + 相对归一化）
 ├── scripts/
-│   ├── diagnose_au.py      # AU 诊断工具（新增）
-│   ├── realign_profiles.py # 30 persona 重对齐（新增）
+│   ├── diagnose_au.py      # AU 诊断工具
+│   ├── realign_profiles.py # 30 persona 重对齐
 │   ├── regenerate_signals_v2.py  # V2 信号重生成
 │   └── train_day7_v2.py    # Day 7 V2 训练（5 epoch）
 ├── data/personas/expression_profiles/  # 30 个 vboss 已重对齐
@@ -205,7 +208,47 @@ poc/
 
 ---
 
-## 六、下个 Session 接手指引
+## 六、踩坑总结（Day 8-9，6 条铁律）
+
+### 坑 1：py-feat 0.6.2 `__init__` 同步下载全部模型（非懒加载）
+
+**现象**：Studio daemon 启动 `frames_processed=0` 卡死数分钟，无 Python 报错，只有 `/health` 请求流正常。  
+**根因**：`Detector.__init__()` → `get_pretrained_models()` → 对每个模型文件调 `download_url()` → `_get_redirect_url()` → TCP connect → **60 秒超时**。Studio 出口网络受限，每个文件都超时才继续。  
+**铁律**：`Detector()` 调用前必须确保所有模型文件已在磁盘。诊断命令：`ls feat/resources/` 对比 `model_list.json`。
+
+### 坑 2：`emotion_model=None` / `facepose_model=None` = 立即 ValueError，不是跳过
+
+**现象**：传 `Detector(facepose_model=None, identity_model=None)` 报 `ValueError: facepose_model must be one of [...]`。  
+**根因**：py-feat 0.6.2 对 `None` 参数立即 `raise ValueError`，没有"跳过此模型"语义。  
+**铁律**：必须传合法字符串（`"img2pose"` / `"resmasknet"` 等）或完全省略让 py-feat 取默认值。
+
+### 坑 3：`emotion_model="svm"` 依赖 `July4_emo_SVM.pkl`，pip 不发布这个文件
+
+**现象**：有网机器正常，无网 Studio 卡死 60 秒。  
+**根因**：该 pkl 文件在 GitHub release URL，pip install 不下载。首次使用触发下载。  
+**铁律**：用 `emotion_model="resmasknet"`（本地 528MB .pth，rsync 一次永不再下载，性能也更好）。
+
+### 坑 4：LNN-FIRST 架构违反：py-feat + MediaPipe 混用破坏信号一致性
+
+**现象**：`signal_pipeline.py` 同时跑 MediaPipe FaceMesh 算头姿（yaw/pitch）+ py-feat 算 AU/情绪。  
+**根因**：两套面部分析管道的 face alignment 算法不同，坐标系不一致。同一帧可能一个检测到人脸另一个没有，导致字段不一致。额外消耗 RAM/CPU。  
+**铁律**：选择 py-feat 后，**所有面部信号必须从同一个 `detect_image()` 的 fex 里提取**。`fex["Pitch"/"Roll"/"Yaw"]` = img2pose 3DoF 头姿，比手写的 MediaPipe 两点公式更准（3DoF vs 2DoF）。
+
+### 坑 5：macOS `kill -3` = SIGQUIT → 进程立即终止
+
+**现象**：想 dump Python 线程堆栈调试 `frames_processed=0`，`kill -3 <PID>` 后进程消失。  
+**根因**：Linux `kill -3` 会让 Python 打印 traceback；macOS `kill -3` 默认行为是终止进程，无 core dump。  
+**铁律**：macOS Python 调试用 `kill -SIGUSR1`（如果已注册）或加 `-u` 参数防缓冲；不要用 `kill -3`。
+
+### 坑 6：摄像头 TCC 授权必须在 Terminal.app 主线程，不能在 SSH/Background 线程
+
+**现象**：`daemon_main.py` 用 `run_in_background` 启动 → OpenCV `can not spin main run loop from other thread`。  
+**根因**：macOS TCC 摄像头权限弹窗只能在主线程 run loop 里触发，SSH session 无 GUI 上下文。  
+**铁律**：daemon 启动命令必须用 `osascript -e 'tell application "Terminal" to do script "..."'` 触发 Terminal.app 新窗口，不能用 SSH 后台。
+
+---
+
+## 七、下个 Session 接手指引
 
 1. **检查训练是否完成**：
    ```bash
@@ -215,7 +258,7 @@ poc/
    ```bash
    cd /tmp/lnmem-fix/LnMem && PYTHONPATH=. .venv-poc/bin/python -u poc/scripts/train_day7_v2.py
    ```
-3. **live_verify v3 重测**：
+3. **live_verify v3 重测**（需 val_acc 出炉后）：
    ```bash
    cd /tmp/lnmem-fix/LnMem && PYTHONPATH=. .venv-poc/bin/python poc/scripts/live_verify.py --debug-au
    ```
@@ -224,10 +267,11 @@ poc/
    curl -s http://127.0.0.1:9876/health        # Air
    ssh studio "curl -s http://127.0.0.1:9876/health"  # Studio
    ```
-5. **Studio py-feat 是否装完**：
+   ✅ **Studio py-feat 已完成**：emotion_model=resmasknet，AU 20 channels 全激活。无需再执行任何安装步骤。
+
+5. **确认 LNN-FIRST head_pose 3DoF**：日志 `head_pose` 字段必须有 `roll_deg`（旧 MediaPipe 路径只有 2 字段）：
    ```bash
-   ssh studio "cd /Users/fu-121/lnmem-poc/LnMem && .venv-poc/bin/python -c 'from feat import Detector; print(\"OK\")'"
+   curl -s "http://127.0.0.1:9876/signals/recent?seconds=10" | python3 -c "import sys,json; s=json.load(sys.stdin); print(s[0]['head_pose'])"
    ```
-   如已装完，更新 Studio `~/.lnmem/daemon.toml` 的 `enable_pyfeat = true` 并重启 daemon。
 
 6. **下一步主要任务**：部署 Qwen2-VL（MLX）到 Studio，构建 VLM 自标注 pipeline（P1）
