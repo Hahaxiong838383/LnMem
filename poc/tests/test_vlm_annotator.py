@@ -123,6 +123,75 @@ class TestVLMAnnotatorChain(unittest.TestCase):
         a = self._make_annotator()
         self.assertIsNone(a._encode_frame(None))
 
+    def test_call_minimax_uses_vlm_endpoint(self):
+        """MiniMax VLM 必须走 /v1/coding_plan/vlm，不是 chat/completions。"""
+        import poc.src.vision.vlm_annotator as mod
+        orig = mod._post_json
+        calls = []
+
+        def fake_post(url, headers, body, timeout):
+            calls.append({"url": url, "body": body})
+            assert "coding_plan/vlm" in url, f"Wrong endpoint: {url}"
+            assert "prompt" in body, "Should use 'prompt' key not 'messages'"
+            assert "image_url" in body, "Should have 'image_url' key"
+            return 200, {"content": '{"au_description":"AU4","valence":-0.3,"arousal":0.5,"confidence":0.8}',
+                         "base_resp": {"status_code": 0}}
+
+        mod._post_json = fake_post
+        try:
+            result = self._make_annotator()._call_minimax("fakeb64")
+            self.assertIsNotNone(result)
+            self.assertEqual(len(calls), 1)
+        finally:
+            mod._post_json = orig
+
+    def test_call_minimax_base_resp_error(self):
+        """Non-zero base_resp.status_code 应返回 None。"""
+        import poc.src.vision.vlm_annotator as mod
+        orig = mod._post_json
+        mod._post_json = lambda *a, **k: (200, {"content": "text",
+                                                "base_resp": {"status_code": 1001}})
+        try:
+            self.assertIsNone(self._make_annotator()._call_minimax("fakeb64"))
+        finally:
+            mod._post_json = orig
+
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_call_minimax_uses_vlm_endpoint(self):
+        """MiniMax VLM 必须走 /v1/coding_plan/vlm，不是 chat/completions。"""
+        import poc.src.vision.vlm_annotator as mod
+        orig = mod._post_json
+        calls = []
+
+        def fake_post(url, headers, body, timeout):
+            calls.append({"url": url, "body": body})
+            assert "coding_plan/vlm" in url, f"Wrong endpoint: {url}"
+            assert "prompt" in body, "Should use 'prompt' key"
+            assert "image_url" in body, "Should have 'image_url' key"
+            return 200, {"content": '{"au_description":"AU4","valence":-0.3,"arousal":0.5,"confidence":0.8}',
+                         "base_resp": {"status_code": 0}}
+
+        mod._post_json = fake_post
+        a = self.__class__._make_annotator(self)
+        try:
+            result = a._call_minimax("fakeb64")
+            self.assertIsNotNone(result)
+            self.assertEqual(len(calls), 1)
+        finally:
+            mod._post_json = orig
+
+    def test_call_minimax_base_resp_error(self):
+        """Non-zero base_resp.status_code 应返回 None。"""
+        import poc.src.vision.vlm_annotator as mod
+        orig = mod._post_json
+        mod._post_json = lambda *a, **k: (200, {"content": "text",
+                                                "base_resp": {"status_code": 1001}})
+        ann = self.__class__._make_annotator(self)
+        try:
+            self.assertIsNone(ann._call_minimax("fakeb64"))
+        finally:
+            mod._post_json = orig
+

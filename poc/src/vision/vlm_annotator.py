@@ -177,28 +177,32 @@ class VLMAnnotator:
         return content or None
 
     def _call_minimax(self, img_b64: str) -> str | None:
-        """MiniMax-M2.7 视觉接口（base64:// 格式）。"""
+        """MiniMax VLM 视觉接口。
+
+        正确端点：/v1/coding_plan/vlm（非 chat/completions）
+        M2.7 是纯文本模型，vision 走专属 VLM 端点，请求为扁平结构。
+        响应在 resp["content"] 而非 choices[0].message.content。
+        """
         if not self._minimax_key:
             return None
         body = {
-            "model": "MiniMax-M2.7",
-            "max_tokens": 200,
-            "messages": [{"role": "user", "content": [
-                {"type": "image_url",
-                 "image_url": {"url": f"base64://{img_b64}"}},
-                {"type": "text", "text": _PROMPT},
-            ]}],
+            "prompt": _PROMPT,
+            "image_url": f"data:image/jpeg;base64,{img_b64}",
         }
         status, resp = _post_json(
-            self._MINIMAX_URL,
+            "https://api.minimaxi.com/v1/coding_plan/vlm",
             {"Authorization": f"Bearer {self._minimax_key}"},
             body,
             self._timeout,
         )
         if status != 200:
-            logger.warning("minimax HTTP %s: %s", status, str(resp)[:120])
+            logger.warning("minimax vlm HTTP %s: %s", status, str(resp)[:120])
             return None
-        content = resp.get("choices", [{}])[0].get("message", {}).get("content", "")
+        base_resp = resp.get("base_resp", {})
+        if base_resp.get("status_code", -1) != 0:
+            logger.warning("minimax vlm base_resp error: %s", base_resp)
+            return None
+        content = resp.get("content", "")
         # 过滤 <think>...</think> reasoning trace
         content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
         return content or None
