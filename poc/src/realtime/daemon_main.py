@@ -168,6 +168,29 @@ def _request_camera_auth_macos(camera_index: int) -> bool:
         return False
 
 
+def _load_dotenv() -> None:
+    """自动加载项目根目录 poc/.env（含 VLM API key）。不报错，没文件就跳过。"""
+    import pathlib
+    env_path = pathlib.Path(__file__).parent.parent.parent / ".env"
+    if env_path.exists():
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(dotenv_path=env_path, override=False)
+            logging.info("daemon: loaded %s", env_path)
+        except ImportError:
+            # dotenv 未安装时手动解析
+            with open(env_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, _, v = line.partition("=")
+                        k = k.strip()
+                        v = v.strip().strip('"').strip("'")
+                        import os
+                        os.environ.setdefault(k, v)
+            logging.info("daemon: loaded %s (manual parse)", env_path)
+
+
 def main() -> None:
     parser = ArgumentParser(description="LnMem realtime capture daemon")
     parser.add_argument("--device", default=None)
@@ -177,6 +200,7 @@ def main() -> None:
                         help="跳过主线程 TCC 授权预检（已确认权限时用）")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    _load_dotenv()  # 加载 poc/.env → GEMINI_PROXY_KEY / MINIMAX_API_KEY
     if not args.skip_camera_auth:
         cam_idx = args.camera if args.camera is not None else 0
         _request_camera_auth_macos(cam_idx)
