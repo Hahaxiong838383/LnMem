@@ -16,6 +16,13 @@ from uuid import uuid4
 
 from .capture_worker import CaptureWorker, CapturedFrame
 from .daemon_config import HTTP_HOST, HTTP_PORT, load_config, preflight_check
+from .feedback import (
+    DNDConfig,
+    EngineConfig,
+    ProactiveQueryEngine,
+    RateLimiterConfig,
+    TokenBucketRateLimiter,
+)
 from .signal_pipeline import SignalPipelineWorker
 from .storage_manager import StorageManager
 
@@ -41,6 +48,7 @@ class DaemonApp:
         )
         self._router_threads: list[threading.Thread] = []
         self._http_server: ThreadingHTTPServer | None = None
+        self._feedback_engine = self._build_feedback_engine()
 
     def start(self) -> None:
         logging.info("starting realtime daemon: %s", json.dumps(self._preflight, ensure_ascii=False))
@@ -78,12 +86,16 @@ class DaemonApp:
         finally:
             self.stop()
 
+    def feedback_stats(self) -> dict[str, int]:
+        return self._feedback_engine.stats()
+
     def health(self) -> dict[str, Any]:
         return {
             "status": "ok",
             "uptime_s": round(time.monotonic() - self._started_at, 3),
             "frames_processed": self._pipeline._frames_processed,
             "last_frame_ts": self._pipeline._last_frame_ts or self._capture.last_frame_ts,
+            "feedback": self.feedback_stats(),
         }
 
     def recent_signals(self, seconds: int) -> list[dict[str, Any]]:
@@ -105,6 +117,24 @@ class DaemonApp:
             except queue.Empty:
                 continue
             self._storage.enqueue_signal(item)
+            try:
+                self._feedback_engine.observe(item)
+            except Exception as exc:  # noqa: BLE001
+                logging.warning("feedback_engine.observe failed: %s", exc)
+
+    def _build_feedback_engine(self) -> ProactiveQueryEngine:
+        from pathlib import Path
+
+        fb = self._config.feedback
+        rate_state = Path.home() / ".lnmem" / "feedback" / "rate_state.json"
+        rate = RateLimiterConfig(
+            min_per_hour=fb.query_min_per_hour,
+            max_per_hour=fb.query_max_per_hour,
+            state_path=rate_state,
+        )
+        dnd = DNDConfig(apps=fb.dnd_apps)
+        cfg = EngineConfig(rate=rate, dnd=dnd, enable_prompt=True)
+        return ProactiveQueryEngine(cfg, rate_limiter=TokenBucketRateLimiter(rate))
 
     def _start_http_server(self) -> None:
         app = self
@@ -114,6 +144,9 @@ class DaemonApp:
                 parsed = urlparse(self.path)
                 if parsed.path == "/health":
                     self._write_json(200, app.health())
+                    return
+                if parsed.path == "/feedback/stats":
+                    self._write_json(200, app.feedback_stats())
                     return
                 if parsed.path == "/signals/recent":
                     seconds = int(parse_qs(parsed.query).get("seconds", ["300"])[0])
