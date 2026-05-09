@@ -1,6 +1,6 @@
 # Day 7-8 范式跃迁：真实数据持续学习闭环
 
-**更新时间**：2026-05-09  
+**更新时间**：2026-05-09（Day 9 Session 补充）  
 **分支**：`poc/lnn-validation`
 
 ---
@@ -82,8 +82,14 @@ dnd_apps = ["zoom", "loom", "facetime", "obs"]
 
 | 设备 | 状态 | frames_processed | py-feat |
 |------|------|-----------------|---------|
-| **Air** | ✅ 运行中 | ~1000+/小时 | ✅ AU + expression |
-| **Studio** | ✅ 运行中 | ~700+/小时 | 🟡 安装中，装完自动可用 |
+| **Air** | ✅ 运行中 | ~4900+/uptime≈100min | ✅ AU + expression（20 AUs 全出值）|
+| **Studio** | ✅ 运行中，AU 全激活 | ~250+/uptime≈5min | ✅ resmasknet + XGB AU 20 channels |
+
+**Day 9 Session 补充说明**：Studio py-feat 踩坑排查记录：
+- 根因 1：`emotion_model=None` / `facepose_model=None` → py-feat 0.6.2 `get_pretrained_models()` 直接 `raise ValueError`
+- 根因 2：`emotion_model="svm"` 需要 `July4_emo_SVM.pkl`，该文件未随包安装，Studio 无外网→60s TCP timeout 阻塞
+- 修复：改用 `emotion_model="resmasknet"`（本地 .pth），rsync Air→Studio 三个大文件（img2pose 162MB + facenet 107MB + ResMaskNet 528MB）
+- 当前配置：`Detector(au_model="xgb", emotion_model="resmasknet")`，其他参数取 py-feat 默认值
 
 **启动命令（两台都需要在 Terminal.app 里运行，非 SSH）**：
 ```bash
@@ -138,7 +144,7 @@ PYTHONPATH=. .venv-poc/bin/python -m poc.src.realtime.daemon_main --device studi
 
 - [ ] **训练 Day 7 v2 完成** → 检查 `checkpoint_day5.pt` val_acc（目标 ≥70%）
 - [ ] **live_verify v3 重测**：运行 `poc/scripts/live_verify.py --debug-au` 10 分钟，确认 emotional_negative 能触发
-- [ ] **Studio py-feat 安装完成后重启 daemon**：将 `~/.lnmem/daemon.toml` 的 `enable_pyfeat = false` 改为 `true`，重启 Studio daemon
+- [x] ✅ **Studio py-feat 双摄像头上线** — AU 20 channels 全激活（brow_furrow/smile_intensity 实时输出）
 
 ### P1 — Day 9（VLM 自标注 Pipeline）
 
