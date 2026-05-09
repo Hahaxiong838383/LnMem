@@ -1,8 +1,8 @@
 {
   "persona_id": "vboss_004",
   "base": {
-    "smile_intensity": 0.05,
-    "brow_furrow": 0.25,
+    "smile_intensity": 0.08,
+    "brow_furrow": 0.08,
     "cheek_raise": 0.08,
     "lip_corner_depress": 0.12,
     "jaw_drop": 0.07,
@@ -10,65 +10,65 @@
   },
   "state_offset": {
     "low_energy": {
-      "smile_intensity": -0.05,
-      "brow_furrow": 0.05,
-      "cheek_raise": -0.05,
+      "smile_intensity": -0.08,
+      "brow_furrow": 0.073448,
+      "cheek_raise": -0.038621,
       "lip_corner_depress": 0.15,
       "jaw_drop": 0.05,
       "mouth_open_ratio": 0.05
     },
     "focused": {
-      "smile_intensity": -0.05,
-      "brow_furrow": 0.35,
-      "cheek_raise": 0.0,
+      "smile_intensity": -0.03,
+      "brow_furrow": 0.068276,
+      "cheek_raise": 0.007931,
       "lip_corner_depress": 0.05,
       "jaw_drop": -0.05,
       "mouth_open_ratio": -0.05
     },
     "distracted": {
-      "smile_intensity": 0.05,
-      "brow_furrow": 0.0,
-      "cheek_raise": 0.0,
+      "smile_intensity": -0.00931,
+      "brow_furrow": 0.068276,
+      "cheek_raise": 0.007931,
       "lip_corner_depress": 0.0,
       "jaw_drop": 0.15,
       "mouth_open_ratio": 0.2
     },
     "fatigued": {
-      "smile_intensity": -0.05,
-      "brow_furrow": 0.2,
-      "cheek_raise": -0.05,
+      "smile_intensity": -0.076552,
+      "brow_furrow": 0.068276,
+      "cheek_raise": -0.031724,
       "lip_corner_depress": 0.2,
       "jaw_drop": 0.15,
       "mouth_open_ratio": 0.15
     },
     "emotional_positive": {
-      "smile_intensity": 0.35,
-      "brow_furrow": -0.15,
-      "cheek_raise": 0.25,
+      "smile_intensity": 0.638966,
+      "brow_furrow": -0.011034,
+      "cheek_raise": 0.513103,
       "lip_corner_depress": -0.1,
       "jaw_drop": 0.05,
       "mouth_open_ratio": 0.15
     },
     "emotional_negative": {
-      "smile_intensity": -0.05,
-      "brow_furrow": 0.5,
-      "cheek_raise": -0.05,
+      "smile_intensity": -0.069655,
+      "brow_furrow": 0.74069,
+      "cheek_raise": -0.017931,
       "lip_corner_depress": 0.4,
       "jaw_drop": 0.05,
       "mouth_open_ratio": 0.0
     },
     "neutral": {
-      "smile_intensity": 0.0,
-      "brow_furrow": 0.0,
-      "cheek_raise": 0.0,
+      "smile_intensity": -0.023103,
+      "brow_furrow": 0.018276,
+      "cheek_raise": -0.003448,
       "lip_corner_depress": 0.0,
       "jaw_drop": 0.0,
       "mouth_open_ratio": 0.0
     },
     "transitioning": {
-      "smile_intensity": 0.0,
-      "brow_furrow": 0.0,
-      "cheek_raise": 0.0,
+      "smile_intensity": 0.033793,
+      "brow_furrow": 0.088966,
+      "cheek_raise": 0.057931,
       "lip_corner_depress": 0.0,
       "jaw_drop": 0.0,
       "mouth_open_ratio": 0.0
