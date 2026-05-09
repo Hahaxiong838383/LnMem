@@ -18,6 +18,9 @@ from .daemon_config import PipelineConfig
 
 
 class SignalPipelineWorker(threading.Thread):
+    # VLM 标注每 N 帧触发一次（1 FPS × 10 = 约 10 秒/次）
+    _VLM_INTERVAL_FRAMES = 10
+
     def __init__(
         self,
         config: PipelineConfig,
@@ -36,6 +39,7 @@ class SignalPipelineWorker(threading.Thread):
         self._last_frame_ts: str | None = None
         self._au_extractor: Any | None = None
         self._caliper: Any | None = None
+        self._vlm_annotator: Any | None = None
 
     def run(self) -> None:
         while not self._stop_event.is_set() or not self._input_queue.empty():
@@ -78,6 +82,15 @@ class SignalPipelineWorker(threading.Thread):
                 result["calibrated_au"] = _round_map(calibrated)
                 result["expression"] = _round_map(caliper.to_lnn_expression(calibrated))
 
+        # VLM 标注：每 _VLM_INTERVAL_FRAMES 帧触发一次（面朝检测到时才标注）
+        if (
+            result["face_detected"]
+            and self._frames_processed % self._VLM_INTERVAL_FRAMES == 0
+        ):
+            vlm_label = self._annotate_vlm(item.frame)
+            if vlm_label is not None:
+                result["vlm_label"] = vlm_label
+
         return result
 
     def _extract_pyfeat(
@@ -98,9 +111,22 @@ class SignalPipelineWorker(threading.Thread):
             self._caliper = AUCaliper()
         return self._caliper
 
+    def _annotate_vlm(self, frame: Any) -> "dict[str, Any] | None":
+        """VLM 标注（同步，阻塞约 1-3s，PoC 可接受）。"""
+        try:
+            if self._vlm_annotator is None:
+                from poc.src.vision.vlm_annotator import VLMAnnotator
+                self._vlm_annotator = VLMAnnotator.from_env()
+            label = self._vlm_annotator.annotate(frame)
+            return label.to_dict() if label else None
+        except Exception:
+            logging.exception("VLM annotation failed")
+            return None
+
     def _close_resources(self) -> None:
         self._au_extractor = None
         self._caliper = None
+        self._vlm_annotator = None
 
 
 def _round_map(values: Mapping[str, float]) -> dict[str, float]:
