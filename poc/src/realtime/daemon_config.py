@@ -24,7 +24,8 @@ DEFAULT_CONFIG: dict[str, dict[str, Any]] = {
     },
     "pipeline": {
         "enable_pyfeat": True,
-        "enable_mediapipe": True,
+        # LNN-FIRST: mediapipe 头姿路径已由 py-feat img2pose 取代，此字段保留以兼容旧配置文件但不再生效
+        "enable_mediapipe": False,
         "enable_vad": False,
     },
     "feedback": {

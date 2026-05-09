@@ -1,4 +1,9 @@
-"""Signal pipeline worker. / py-feat + MediaPipe 信号提取线程。"""
+"""Signal pipeline worker. / py-feat 信号提取线程（LNN-FIRST）。
+
+LNN-FIRST 原则：py-feat 是唯一面部信号来源。
+AUExtractor.extract() 同时返回 AU / 情绪 / 头部姿态（img2pose），
+不再引入 MediaPipe 作为备用头姿估计路径。
+"""
 
 from __future__ import annotations
 
@@ -7,9 +12,6 @@ import logging
 import queue
 import threading
 from typing import Any
-
-import cv2  # type: ignore
-import mediapipe  # type: ignore
 
 from .capture_worker import CapturedFrame
 from .daemon_config import PipelineConfig
@@ -32,7 +34,6 @@ class SignalPipelineWorker(threading.Thread):
         self._device_name = device_name
         self._frames_processed = 0
         self._last_frame_ts: str | None = None
-        self._face_mesh: Any | None = None
         self._au_extractor: Any | None = None
         self._caliper: Any | None = None
 
@@ -52,7 +53,7 @@ class SignalPipelineWorker(threading.Thread):
         self._close_resources()
 
     def _process(self, item: CapturedFrame) -> dict[str, Any]:
-        result = {
+        result: dict[str, Any] = {
             "ts": item.ts,
             "device": self._device_name,
             "frame_id": item.frame_id,
@@ -61,51 +62,34 @@ class SignalPipelineWorker(threading.Thread):
             "raw_au": {},
             "calibrated_au": {},
             "expression": {},
-            "head_pose": {"yaw_deg": 0.0, "pitch_deg": 0.0},
+            # head_pose: filled by py-feat img2pose below (yaw/pitch/roll in degrees)
+            "head_pose": {"yaw_deg": 0.0, "pitch_deg": 0.0, "roll_deg": 0.0},
             "session_id": item.session_id,
         }
-        landmarks = self._extract_landmarks(item.frame)
-        if landmarks is not None:
-            result["face_detected"] = True
-            result["head_pose"] = _head_pose_from_landmarks(landmarks)
 
-        raw_au: Mapping[str, float] = {}
         if self._config.enable_pyfeat:
-            raw_au = self._extract_au(item.frame)
+            raw_au, _emo, pose = self._extract_pyfeat(item.frame)
             if raw_au:
                 result["face_detected"] = True
                 result["raw_au"] = _round_map(raw_au)
+                result["head_pose"] = {k: round(v, 3) for k, v in pose.items()}
                 caliper = self._ensure_caliper()
                 calibrated = caliper.step(raw_au)
                 result["calibrated_au"] = _round_map(calibrated)
                 result["expression"] = _round_map(caliper.to_lnn_expression(calibrated))
+
         return result
 
-    def _extract_landmarks(self, frame: Any) -> Any | None:
-        if not self._config.enable_mediapipe:
-            return None
-        if self._face_mesh is None:
-            face_mesh = mediapipe.solutions.face_mesh
-            self._face_mesh = face_mesh.FaceMesh(
-                max_num_faces=1,
-                min_detection_confidence=0.5,
-                min_tracking_confidence=0.5,
-                refine_landmarks=True,
-            )
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        output = self._face_mesh.process(rgb)
-        faces = getattr(output, "multi_face_landmarks", None)
-        if not faces:
-            return None
-        return faces[0].landmark
-
-    def _extract_au(self, frame: Any) -> Mapping[str, float]:
+    def _extract_pyfeat(
+        self, frame: Any
+    ) -> tuple[Mapping[str, float], dict[str, float], dict[str, float]]:
+        """Call AUExtractor; returns (raw_au, emo, pose). / 调用 AUExtractor，返回三元组。"""
         if self._au_extractor is None:
             from poc.src.vision.au_extractor import AUExtractor
 
             self._au_extractor = AUExtractor()
-        raw_au, _ = self._au_extractor.extract(frame)
-        return raw_au
+        raw_au, emo, pose = self._au_extractor.extract(frame)
+        return raw_au, emo, pose
 
     def _ensure_caliper(self) -> Any:
         if self._caliper is None:
@@ -115,26 +99,8 @@ class SignalPipelineWorker(threading.Thread):
         return self._caliper
 
     def _close_resources(self) -> None:
-        if self._face_mesh is not None and hasattr(self._face_mesh, "close"):
-            self._face_mesh.close()
-        self._face_mesh = None
         self._au_extractor = None
         self._caliper = None
-
-
-def _head_pose_from_landmarks(landmarks: Any) -> dict[str, float]:
-    left = landmarks[234]
-    right = landmarks[454]
-    nose = landmarks[1]
-    up = landmarks[10]
-    down = landmarks[152]
-    center_x = (left.x + right.x) / 2.0
-    center_y = (up.y + down.y) / 2.0
-    width = max(1e-6, abs(right.x - left.x))
-    height = max(1e-6, abs(down.y - up.y))
-    yaw = (nose.x - center_x) / width * 45.0
-    pitch = (nose.y - center_y) / height * 35.0
-    return {"yaw_deg": round(float(yaw), 3), "pitch_deg": round(float(pitch), 3)}
 
 
 def _round_map(values: Mapping[str, float]) -> dict[str, float]:
