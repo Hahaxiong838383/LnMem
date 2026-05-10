@@ -137,6 +137,7 @@ tau_drift 反传后 L2 范数对比：
 |------|--------|--------|-----------|---------|--------------|------|
 | 15:43 CST | 13196s | 11628 | 44 | 5 | 39 | Loop 5 起步 +1 reward 到 7 / signals 11.0h |
 | 16:24 CST | 15658s | 13819 | 49 | **6** | 43 | Loop 6 / +0.68h uptime / +5 触发 / +1 skip 反馈到 8 总 (5/10 frame 14406 侧对镜头 conf=0.1 临界) / signals 11.6h (25h 46%) |
+| 17:11 CST | 18477s | 16378 | 56 | **8** | 48 | Loop 7 / +0.78h uptime / +7 触发 / **+2 skip 反馈到 10 总**（达 min_total ≥10 ✅）但 mismatch 仍 1（10%）/ signals 12.3h (25h 49%, Day13 末 15h 缺 2.7h) / **进 Day 13 收尾**（trigger_if_ready=False）|
 
 ## C.6 Loop 6 (16:24 CST) — Codex Day 13 工程链对抗审 + 反馈累积更新
 
