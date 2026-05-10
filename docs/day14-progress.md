@@ -88,9 +88,14 @@ user_response: skip
 | 17:46 (Loop 8) | 1.41GB | +0.31 |
 | **18:23 (Loop 9)** | **1.32GB** | **-0.09** |
 | **18:57 (Loop 10)** | **1.28GB** | **-0.04** |
+| **🚨 19:29 (Loop 11)** | **2.19GB** | **+0.91** |
 
-**观察**：RSS **非单调增长**，6h 内在 1.10-1.86GB 之间波动，最低 1.10GB 最高 1.86GB。Loop 8 1.41GB 是 spike 而非 leak，Loop 9-10 持续回落。
-**结论**：内存增长不是简单 leak，可能是 frame buffer / VLM async cache 周期性 GC。M0 W2 P0-4 应做 24h 长跑监控，看是否在 24h 后突破 2GB。
+**观察更新（Loop 11）**：RSS 30min 内从 1.28GB **暴涨到 2.19GB（+71%）突破 2GB 警戒线**！同时 triggered 78→119（+41）/ rate_blocked +41 同步——daemon 进入异常密集触发状态（可能 VLM async 任务积压 / frame buffer 急涨）。
+**之前结论已部分修正**：6h 内非单调波动 + 短时间内大幅 spike 同时存在；M0 W2 P0-4 watchdog 必须做（监控 RSS > 2GB 自动重启），不能只是被动观察。
+**当前建议**（cc 立场，川哥未签 → 不主动操作）：
+- daemon 在川哥未指示下继续跑（不破坏 PoC 数据采集）
+- 但触发暴涨 + RSS 暴涨提示川哥**可能需要重启 daemon**（节省内存 / 重置 VLM cache / 让 mismatch 反馈类型恢复）
+- 如 RSS 继续涨 → 写紧急警报到 RECENT_EVENTS
 
 ---
 
@@ -118,6 +123,31 @@ user_response: skip
 **核心结论**：Day 13 §C.3 识别的"Phase 2 真正卡点是反馈类型分布而非反馈量"假设在 Loop 10 进一步证实——daemon V0.2 trigger 设计偏向"模型自己拿不准"（low_vlm_conf）路径，但川哥对这种"非典型时刻"主要回应 skip 而非 mismatch；M0 W2 daemon V0.3 user_triggered_mismatch channel 必须做。
 
 **等川哥签字** — signoff prompt 已在 docs/poc-day14-signoff-prompt.md 待回复。
+
+---
+
+## A.8 Loop 11 状态（19:29 CST）— 🚨 RSS 警报 + triggered 暴涨
+
+```
+uptime=7.44h frames=23695 triggered=119 queried=12 rate_blocked=107
+RSS=2.19GB (vs Loop 10 1.28GB, +71%)
+```
+
+**异常信号**：
+- RSS 突破 2GB 警戒线（Day 12 baseline 1.86GB 已是早期高点；Loop 11 创新高）
+- triggered +41 / rate_blocked +41 同步（限速吃满，0 新弹窗到 user）
+- 反馈累积仍 14（无新反馈，30min 0 user-actionable）
+- signals 14.32h（25h 57%）
+
+**推测根因**（需 M0 W2 P0-4 排查）：
+- VLM async task 队列积压 → cache 急涨
+- frame buffer 在 daemon busy 时不释放
+- Python GC 在 high triggered rate 下未及时回收
+
+**cc 行动**：
+- 不主动重启 daemon（不破坏 PoC 数据采集 + TCC 限制 + 等川哥指示）
+- 记录到 progress doc 让川哥可见
+- 建议下次 Loop 间隔拉长（Loop 12 计划 60min 后 vs 30min），避免 cc 在川哥未签前空转 token
 
 ---
 
