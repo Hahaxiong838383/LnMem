@@ -121,6 +121,69 @@ class TestProactiveQueryTrigger(unittest.TestCase):
             self.assertIsNotNone(ev, "VLM 自有描述且无 no-face 关键词时应触发")
             self.assertEqual(ev.reason, "low_vlm_conf")
 
+    def test_skip_low_vlm_conf_english_no_face(self):
+        """FB-09 (Day 12 fix): gemini-3.1-pro-preview 偶尔回英文，必须命中。
+
+        Regression: 5/10 04:32 实战 vlm_label.au_description='The image does not contain a face.'
+        confidence=0.0 但 keyword 列表全中文 → 漏过，进入弹窗触发分支。
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            t = ProactiveQueryTrigger(home=Path(tmpdir))
+            vlm = {
+                "confidence": 0.0,
+                "valence": 0.0,
+                "arousal": 0.0,
+                "au_description": "The image does not contain a face.",
+            }
+            result = t.observe(_frame(vlm=vlm))
+            self.assertIsNone(result, "VLM 英文自报无脸时应返回 None")
+
+    def test_skip_low_vlm_conf_english_case_insensitive(self):
+        """FB-09 (Day 12 fix): 英文 keyword 匹配大小写不敏感。"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            t = ProactiveQueryTrigger(home=Path(tmpdir))
+            for desc in (
+                "NO FACE DETECTED",
+                "Unable To Identify the face",
+                "Cannot detect a face in the image.",
+                "image does not contain any face features",
+            ):
+                vlm = {
+                    "confidence": 0.0,
+                    "valence": 0.0,
+                    "arousal": 0.0,
+                    "au_description": desc,
+                }
+                result = t.observe(_frame(vlm=vlm))
+                self.assertIsNone(result, f"应跳过英文变体: {desc!r}")
+
+    def test_skip_mixed_zh_en_no_face(self):
+        """FB-09 (Day 12 fix): 中英混合表达也命中。"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            t = ProactiveQueryTrigger(home=Path(tmpdir))
+            vlm = {
+                "confidence": 0.0,
+                "valence": 0.0,
+                "arousal": 0.0,
+                "au_description": "no face detected (未检测到人脸)",
+            }
+            result = t.observe(_frame(vlm=vlm))
+            self.assertIsNone(result)
+
+    def test_normal_english_description_still_triggers(self):
+        """FB-09 (Day 12 fix): 英文有效描述（无 no-face keyword + conf 不低）必须正常触发。"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            t = ProactiveQueryTrigger(home=Path(tmpdir))
+            vlm = {
+                "confidence": 0.4,
+                "valence": 0.2,
+                "arousal": 0.3,
+                "au_description": "AU4 (brow lowerer) and AU7 (lid tightener), focused.",
+            }
+            ev = t.observe(_frame(vlm=vlm))
+            self.assertIsNotNone(ev, "英文有效 AU 描述应触发")
+            self.assertEqual(ev.reason, "low_vlm_conf")
+
     def test_skip_appends_jsonl_not_overwrites(self):
         """FB-09 hardening: 多次 skip 应 append 到 jsonl，而非原子覆盖丢前面记录。"""
         with tempfile.TemporaryDirectory() as tmpdir:

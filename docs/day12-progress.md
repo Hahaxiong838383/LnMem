@@ -100,6 +100,8 @@ phase: PoC Day 12 (剩 3 天)
 |------|--------|--------|-----------|---------|--------------|------|
 | 12:55 CST | 3212s | 2726 | 32 | 3 | 29 | Day 12 起步快照 |
 | 13:10 CST | 3717s | 3090 | 38 | 3 | 35 | +8.4min / +364 帧 / +6 触发但 0 新弹窗（限速吃满）/ queried/h ≈ 2.9 ✅ |
+| 13:41 CST | 5879s | 4965 | 40 | 3 | 37 | +33min / +1875 帧 / +2 触发 0 新弹窗 / queried/h ≈ 1.84（长尾下降合理）/ skipped jsonl 145KB（FB-09 持续生效）|
+| 13:46 CST | 6184s | 5245 | 40 | 3 | 37 | Phase 3 收尾快照 / 0 ERROR / 川哥这 53min 无新反馈累积，仍 5 条总数 |
 
 ## C.1 Phase 2 工程骨架（cc 主线 13:00-13:15 CST 完成）
 
@@ -124,9 +126,40 @@ phase: PoC Day 12 (剩 3 天)
 | OnlineAdapterConfig（trigger 阈值 / lr / clip_norm） | ✅ 已定 |
 | OnlineLoRAAdapter（forward 包装） | ✅ 已实现 |
 | FeedbackDataset（jsonl → reward） | ✅ 已实现 |
-| **fit_step(events, model, optim) → loss / drift_norm** | ⏳ 待 cc 主线实现 |
-| trigger_if_ready(feedback_dir) → bool | ⏳ 待 cc 主线实现 |
-| 端到端 mismatch reward 微调实测（mismatch 反馈下 lnn_score 下降） | ⏳ 待反馈累积 ≥ 10 条 mismatch 触发 |
+| **fit_step(model, online, optim, x, idx, label, reward, config)** | ✅ 13:46 CST commit 完成（poc/src/lnn/online_trainer.py 191 行）|
+| **trigger_if_ready(feedback_dir, config) → (bool, counts)** | ✅ 同上（双门 min_total + mismatch_threshold）|
+| 端到端 mismatch reward 微调实测（mismatch 反馈下 lnn_score 下降） | ✅ **`test_mismatch_reward_pushes_down_target_logit` PASS** + 对偶 match 上升 PASS（合成数据 sanity check 已绿）|
+
+## C.3 Phase 3 训练循环 + FB-09 英文 keyword 修复（cc 主线 13:30-13:50 CST）
+
+### Phase 3：在线 LoRA 训练循环
+**新增**：`poc/src/lnn/online_trainer.py`（191 行）
+- `trigger_if_ready(feedback_dir, config) → (bool, counts)`：双门 gate（min_total + trigger_mismatch_threshold），返回完整 label 计数（含 0 类）
+- `compute_reward_loss(logits, labels, rewards) → scalar Tensor`：REINFORCE-style，公式 `loss = -mean(reward * log_softmax(logits)[label])`，match=+CE / mismatch=-CE / skip=0 贡献
+- `fit_step(model, online, optim, *, x, persona_idx, labels, rewards, config) → metrics`：单 SGD step，loss.backward 仅触达 `online.tau_drift`，自动 grad clip + post-step per-persona L2 范数裁剪
+
+**测试**：`poc/tests/test_online_trainer.py`（16 cases）
+- `TestTriggerIfReady` ×4：min_total gate / mismatch gate / 双 gate 满足触发 / 缺类 0 计数
+- `TestComputeRewardLoss` ×6：match=标准 CE / mismatch=取相反 / skip=0 贡献 / 3 个形状错误抛
+- `TestFitStep` ×6：finite loss / **base 不变 + tau_drift 变** / **mismatch 反传后 logits[label] 严格下降** / **match 反传后 logits[label] 严格上升** / skip=0 不动 drift / clip 生效
+
+### FB-09 英文 keyword 漏洞修复（5/10 04:32 实战暴露）
+**根因**：`VLM_NO_FACE_KEYWORDS` 列表全中文（"未检测到人脸"等 9 项），但 `gemini-3.1-pro-preview` 偶尔回英文（实证 5/10 04:32 那条 `au_description="The image does not contain a face."`），命中任何中文 keyword = False → `_is_vlm_self_report_no_face` 返 False → 进入弹窗触发，浪费一次川哥反馈窗口。
+
+**修复**：`poc/src/realtime/feedback/trigger.py`
+- 拆分为 `VLM_NO_FACE_KEYWORDS_ZH`（9 中文）+ `VLM_NO_FACE_KEYWORDS_EN`（13 英文，全小写）
+- `_is_vlm_self_report_no_face`：中文直接子串匹配，英文走 `desc.lower()` 包含语义（大小写不敏感）
+- 向后兼容：`VLM_NO_FACE_KEYWORDS = ZH + EN` 保留旧 import
+
+**测试**：`poc/tests/test_feedback_trigger.py` +4 cases
+- `test_skip_low_vlm_conf_english_no_face`：5/10 04:32 实战 `"The image does not contain a face."` 必须命中
+- `test_skip_low_vlm_conf_english_case_insensitive`：4 个英文变体大小写组合
+- `test_skip_mixed_zh_en_no_face`：中英混合表达
+- `test_normal_english_description_still_triggers`：英文有效 AU 描述（无 no-face keyword）必须正常触发，防过度过滤
+
+### 双门验证
+- Gate 1 verify：16+4 = 20 新测试 PASS
+- **Gate 2 guard**：**295/295 全量回归 PASS（5.45s 无原有测试退化）**
 
 ---
 

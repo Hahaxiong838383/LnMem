@@ -27,8 +27,11 @@ _BROW_BURST_WINDOW = 10
 _BROW_BURST_THRESHOLD = 0.85
 _LOW_VLM_CONF_THRESHOLD = 0.65
 
-# FB-09: VLM 自报无脸的关键词清单
-VLM_NO_FACE_KEYWORDS = (
+# FB-09: VLM 自报无脸的关键词清单（中文 + 英文）
+# 中英双语必须都覆盖：gemini-3.1-pro-preview 在 prompt 不强制中文时会偶尔回英文
+# （5/10 04:32 实证：au_description="The image does not contain a face." 漏过）
+# 匹配采用 lower-case 包含语义，故英文项必须全部小写。
+VLM_NO_FACE_KEYWORDS_ZH = (
     "未检测到人脸",
     "图片中未出现人脸",
     "图中未出现人脸",
@@ -39,6 +42,23 @@ VLM_NO_FACE_KEYWORDS = (
     "无法检测",
     "无法进行",
 )
+VLM_NO_FACE_KEYWORDS_EN = (
+    "does not contain a face",
+    "does not contain any face",
+    "no face detected",
+    "no face is detected",
+    "no face visible",
+    "cannot detect a face",
+    "cannot detect any face",
+    "unable to detect",
+    "unable to identify",
+    "unable to analyze",
+    "unable to analyse",
+    "image does not contain",
+    "no human face",
+)
+# Public alias 保持向后兼容（旧测试可能 import VLM_NO_FACE_KEYWORDS）
+VLM_NO_FACE_KEYWORDS = VLM_NO_FACE_KEYWORDS_ZH + VLM_NO_FACE_KEYWORDS_EN
 VLM_NO_FACE_CONF_THRESHOLD = 0.1
 
 _log = logging.getLogger(__name__)
@@ -87,7 +107,11 @@ class ProactiveQueryTrigger:
             return False
 
         desc = (vlm_label.get("au_description") or "").strip()
-        return any(kw in desc for kw in VLM_NO_FACE_KEYWORDS)
+        # 中文 keyword 直接匹配（保持原语义）；英文 keyword 走 lower-case 包含
+        if any(kw in desc for kw in VLM_NO_FACE_KEYWORDS_ZH):
+            return True
+        desc_lower = desc.lower()
+        return any(kw in desc_lower for kw in VLM_NO_FACE_KEYWORDS_EN)
 
     def _log_vlm_no_face_skip(self, item: dict[str, Any], vlm_label: dict[str, Any] | None) -> None:
         """记录 VLM 自报无脸导致的跳过事件到 ~/.lnmem/feedback/skipped_<date>.jsonl。"""
