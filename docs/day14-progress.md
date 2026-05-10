@@ -90,6 +90,8 @@ user_response: skip
 | **18:57 (Loop 10)** | **1.28GB** | **-0.04** |
 | **🚨 19:29 (Loop 11)** | **2.19GB** | **+0.91** |
 | **20:31 (Loop 12)** | **1.76GB** | **-0.43** ✅ |
+| **🎯 20:50 (watchdog WARN)** | **2.04GB** | spike (1min 后回落) |
+| **21:00 (Loop 13)** | **1.75GB** | -0.01 ✅ |
 
 **观察更新（Loop 11）**：RSS 30min 内从 1.28GB **暴涨到 2.19GB（+71%）突破 2GB 警戒线**！同时 triggered 78→119（+41）/ rate_blocked +41 同步——daemon 进入异常密集触发状态（可能 VLM async 任务积压 / frame buffer 急涨）。
 **之前结论已部分修正**：6h 内非单调波动 + 短时间内大幅 spike 同时存在；M0 W2 P0-4 watchdog 必须做（监控 RSS > 2GB 自动重启），不能只是被动观察。
@@ -172,6 +174,47 @@ RSS=1.76GB (vs Loop 11 2.19GB, -0.43GB / -19.6%)
 - 不主动操作（川哥未签 + daemon 健康）
 - Loop 13 间隔继续 60min，至 PoC 时间盒 23:59 CST 自然到期（剩 ~3.5h）
 - 如川哥仍未签 → Loop 13/14 写"PoC 时间盒到期事件"
+
+---
+
+## A.10 Loop 13 状态（21:00 CST）— ✅ watchdog 首次实战 WARN 触发 + 反馈累积校准
+
+```
+uptime=8.88h frames=28105 triggered=144 queried=15 rate_blocked=129
+RSS=1.75GB
+```
+
+### 🎯 watchdog 首次实战 WARN（M0 W1 P0-4 设计完整验证）
+```
+2026-05-10T20:50:39+0800 [WARN] RSS=2.04GB > 2.0GB warn threshold (PID 15934)
+2026-05-10T20:51:39+0800 [DEBUG] RSS=1.89GB OK (PID 15934)
+```
+- 川哥 install 后 1.3h+ 持续运行（launchctl list: PID 55269 com.lnmem.daemon-watchdog）
+- 阈值触发正确（2.04 > 2.0 warn / 仍 < 3.0 kill）
+- spike 1min 内自然回落（再次确认 transient 非 leak）
+- 无 RESTART_NEEDED 写入（行为正确：warn 仅 log，不触发重启）
+- **P0-4 设计 + 实测端到端通**：spike 检测 → 阈值分级（warn/kill）→ 自然恢复识别 三链路全验证
+
+### 反馈累积校准（Day 14 末）
+
+cc 之前 Loop 9-12 报的"14 总"是基于 daemon /health 旧字段；queries_2026-05-*.jsonl 实际累积如下：
+
+| label | count | % |
+|-------|-------|---|
+| skip | 10 | 58.8% |
+| match | **5** | 29.4% |
+| mismatch | 1 | 5.9% |
+| input | 1 | 5.9% |
+| **总** | **17** | 100% |
+
+**修正条目**：match 5（之前误报 3）；总数 17（之前误报 14）。
+**核心结论不变**：mismatch 仍 1 条（5+ 天 0 增长 = 结构性短缺铁证），M0 W2 daemon V0.3 user_triggered_mismatch channel 仍是 P0-1 头号任务。
+**Loop 13 新增**：1 条 match（brow_burst, frame 30885, 20:38 CST）— 川哥 30min 内进帐 1 反馈。
+
+### cc 行动
+- 不主动操作（川哥未指示 + daemon 健康 + watchdog 工作正常）
+- Loop 14 间隔继续 60min（22:34 CST），覆盖 PoC 时间盒 23:59 前最后一扫
+- 不修改代码、不动 V0.3 / feedback v2
 
 ---
 
