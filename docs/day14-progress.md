@@ -56,6 +56,43 @@ user_response: skip
 
 ---
 
+## A.5 Loop 9 状态更新（18:23 CST）
+
+```json
+{
+  "uptime_s": 22805,        // 6.33h ✅ 达成 daemon ≥6h DoD
+  "frames_processed": 20180,
+  "feedback": {
+    "triggered": 68,         // +1 vs Loop 8
+    "queried": 10,           // +1 川哥进帐
+    "rate_blocked": 58       // 不变
+  }
+}
+```
+
+**daemon ≥6h DoD ✅ 达成**（自然过线时间 ~18:03 CST，PID etime 06:20:06）
+**反馈累积**：12 条总（match×3 / mismatch×1 / skip×7 / input×1）— skip 占比 50% → 55% → **58%** 持续上升
+**最新一条**：5/10 17:55 frame 21106 low_vlm_conf → skip（FB-09 临界，川哥合理 skip）
+**signals 总**：48040 帧 / 1 fps = **13.34h**（25h 53%）
+
+### A.6 daemon RSS 内存监控（M0 W2 P0-4 准备）
+
+| 时点 | RSS | 增量 |
+|------|-----|------|
+| 12:55 (Loop 1 起步) | 1.86GB | baseline |
+| 13:46 (Loop 2) | (未记) | — |
+| 14:32 (Loop 3) | 1.42GB | -0.44 |
+| 15:43 (Loop 5) | 1.10GB | -0.32 |
+| 16:24 (Loop 6) | 1.16GB | +0.06 |
+| 17:11 (Loop 7) | 1.10GB | -0.06 |
+| 17:46 (Loop 8) | 1.41GB | +0.31 |
+| **18:23 (Loop 9)** | **1.32GB** | **-0.09** |
+
+**观察**：RSS **非单调增长**，5.5h 内在 1.10-1.86GB 之间波动，最低 1.10GB 最高 1.86GB。Loop 8 1.41GB 是 spike 而非 leak，Loop 9 已回落。
+**结论**：内存增长不是简单 leak，可能是 frame buffer / VLM async cache 周期性 GC。M0 W2 P0-4 应做 24h 长跑监控，看是否在 24h 后突破 2GB。
+
+---
+
 ## B. Day 14 P0 交付（cc 主线 17:50 CST 启）
 
 ### B.1 P0-1 PoC 收尾报告（已完成）
@@ -80,6 +117,16 @@ user_response: skip
 ### B.3 P0-2 Demo 录屏（待川哥配合）
 - 5-10min 端到端展示（摄像头预览 + daemon /health + 弹窗 + dry-run + ckpt diff）
 - **依赖川哥真人配合录制**（非 cc 单独可完成）→ 等川哥决策
+
+### B.4 Loop 9 新增：docs/poc-day14-signoff-prompt.md（150 行）
+**目的**：给川哥的签字提议清单，4 项决策 + 回复模板（懒人版）
+**4 项决策**：
+1. PoC 时间盒处理：A 暂停 / B 4 样本实战 / **C dry-run 即交付（cc ⭐⭐⭐）**
+2. M0 W2 路线图（P0-1/2/3/4 优先级 + P1 + P2）
+3. Demo 录屏配合（5-10min 拍摄 + 何时 + 用途）
+4. PoC 收尾报告 review（通过 / 修订 / 补充）
+
+**川哥回复示例**：`PoC Day 14 签字回复：1=C / 2=同意 / 3=yes 安排 M0 W1 / 4=通过 / 签：陈川`
 
 ---
 
