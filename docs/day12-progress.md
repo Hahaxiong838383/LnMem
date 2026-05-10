@@ -104,6 +104,29 @@ phase: PoC Day 12 (剩 3 天)
 | 13:46 CST | 6184s | 5245 | 40 | 3 | 37 | Phase 3 收尾快照 / 0 ERROR / 川哥这 53min 无新反馈累积，仍 5 条总数 |
 | 14:20 CST | 8228s | 7080 | 41 | **4** | 37 | +34min / +1835 帧 / +1 触发 + **+1 新弹窗 reward**（川哥进帐 1 反馈，5/10 14:16 low_vlm_conf au_description="None" 漏过 FB-09 v2 → skip 浪费）/ queried/h ≈ 1.75 |
 | 14:32 CST | 8946s | 7720 | 41 | 4 | 37 | 本轮收尾 / 反馈累积 6 条总（match×2 / mismatch×1 / **skip×2** / input×1）/ 仍 1 mismatch 远未达 ≥10 触发首次实战微调 |
+| 15:06 CST | 10978s | 9600 | 41 | 4 | 37 | Loop 4 / daemon 3.05h 健康 / +1880 帧 0 新触发 / 反馈累积无变化 6 条 / **决策**进 Day 12 收尾报告 |
+
+## C.5 Loop 4 (15:06 CST)：Day 12 收尾决策
+
+**状态评估**：
+- daemon 持续运行 3h（PID 15934 RSS 1.08GB 稳定），距 6h DoD 50% 进度
+- 反馈累积 6 条无变化（vs 14:32 / 川哥这 30min 0 新交互或限速吃满）
+- `trigger_if_ready`: ready=False（counts={'match':2, 'mismatch':1, 'skip':2, 'input':1, 'total':6}），仅 1 mismatch 远未达 ≥10
+- signals 总累积：5/9 27860 帧 + 5/10 9640 帧 ≈ **10.4h**（25h 硬门槛 41%）
+
+**为何不做低样本量 sanity 微调**：
+- 仅 1 mismatch + 2 match = 3 有效训练样本，noise 远大于 signal
+- mismatch label 选择有歧义（user_response.true_state="distracted"，需手动映射 8 个 state class）
+- feedback frame_id ↔ signals frame_id × LNN sequence_length=60 的 join 工程量未做（需要 signals_loader + feedback_to_batch 模块，~2h 开发）
+
+**决策**：
+- 写 Day 12 收尾报告 `docs/day12-end-of-day.md`（核心交付）
+- feedback_to_batch 工程链推迟到 Day 13 主开发任务
+- 反馈累积观察期持续，daemon 不动（川哥继续真人使用）
+
+**Day 12 末完成度**：
+- 工程层面 6/6 ✅（Phase 2/3 + vboss_self + Codex + docs + tracking）
+- 数据采集 1/3 部分达标（daemon 50% / 反馈 60% / mismatch 10%）
 
 ## C.1 Phase 2 工程骨架（cc 主线 13:00-13:15 CST 完成）
 
