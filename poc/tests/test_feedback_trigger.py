@@ -78,6 +78,44 @@ class TestProactiveQueryTrigger(unittest.TestCase):
         self.assertAlmostEqual(ev.signal_snapshot["smile_intensity"], 0.8)
         self.assertAlmostEqual(ev.signal_snapshot["eye_closure"], 0.3)
 
+    def test_skip_low_vlm_conf_when_no_face_detected(self):
+        """FB-09: VLM 自报无脸 (confidence=0.0 + au_description='未检测到人脸…') → 不弹窗。"""
+        t = ProactiveQueryTrigger()
+        vlm = {
+            "confidence": 0.0,
+            "valence": 0.0,
+            "arousal": 0.0,
+            "au_description": "未检测到人脸，无法识别面部动作单元。",
+        }
+        # 虽然 low_vlm_conf 分支判断会触发（confidence < 0.65），但被 FB-09 过滤跳过
+        result = t.observe(_frame(vlm=vlm))
+        self.assertIsNone(result, "VLM 自报无脸时应返回 None")
+
+    def test_skip_low_vlm_conf_when_low_light(self):
+        """FB-09: VLM 自报光线不足 (confidence=0.05 + au_description='光线…') → 不弹窗。"""
+        t = ProactiveQueryTrigger()
+        vlm = {
+            "confidence": 0.05,
+            "valence": 0.0,
+            "arousal": 0.0,
+            "au_description": "图片中未包含人脸，无法识别面部动作单元。",
+        }
+        result = t.observe(_frame(vlm=vlm))
+        self.assertIsNone(result, "VLM 自报无脸/光线不足时应返回 None")
+
+    def test_normal_low_vlm_conf_still_triggers(self):
+        """FB-09: VLM 看到脸但不确定状态 (confidence=0.4, au_description 无关键词) → 正常弹窗。"""
+        t = ProactiveQueryTrigger()
+        vlm = {
+            "confidence": 0.4,
+            "valence": 0.2,
+            "arousal": 0.3,
+            "au_description": "AU4 和 AU7，表现出专注与轻微压力。",
+        }
+        ev = t.observe(_frame(vlm=vlm))
+        self.assertIsNotNone(ev, "VLM 自有描述且无 no-face 关键词时应触发")
+        self.assertEqual(ev.reason, "low_vlm_conf")
+
 
 class TestTriggerEvent(unittest.TestCase):
     def test_immutable(self):
