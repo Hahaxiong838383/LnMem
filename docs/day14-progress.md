@@ -87,9 +87,37 @@ user_response: skip
 | 17:11 (Loop 7) | 1.10GB | -0.06 |
 | 17:46 (Loop 8) | 1.41GB | +0.31 |
 | **18:23 (Loop 9)** | **1.32GB** | **-0.09** |
+| **18:57 (Loop 10)** | **1.28GB** | **-0.04** |
 
-**观察**：RSS **非单调增长**，5.5h 内在 1.10-1.86GB 之间波动，最低 1.10GB 最高 1.86GB。Loop 8 1.41GB 是 spike 而非 leak，Loop 9 已回落。
+**观察**：RSS **非单调增长**，6h 内在 1.10-1.86GB 之间波动，最低 1.10GB 最高 1.86GB。Loop 8 1.41GB 是 spike 而非 leak，Loop 9-10 持续回落。
 **结论**：内存增长不是简单 leak，可能是 frame buffer / VLM async cache 周期性 GC。M0 W2 P0-4 应做 24h 长跑监控，看是否在 24h 后突破 2GB。
+
+---
+
+## A.7 Loop 10 状态更新（18:57 CST）
+
+```json
+{
+  "uptime_s": 24854,        // 6.90h（超 6h DoD 0.90h）
+  "frames_processed": 21909,
+  "feedback": {
+    "triggered": 78,         // +10 vs Loop 9 (短时间内大量触发)
+    "queried": 12,           // +2 川哥进帐
+    "rate_blocked": 66       // +8 (限速吃满更多)
+  }
+}
+```
+
+**反馈累积进一步恶化**：14 条总（match×3 / mismatch×1 / **skip×9** / input×1）
+- skip 占比 58% → **64%**（Loop 9 → Loop 10 进一步上升）
+- 新增 2 条均为 skip（5/10 18:25 frame 22938 + 18:55 frame 24738，均 low_vlm_conf）
+- mismatch 仍 1 条（**5 天 0 增长结构性短缺铁证**）
+
+**daemon trigger 频率上升**：+10 触发 / +8 限速拦截，但 0 user-actionable 反馈（match/mismatch）。
+
+**核心结论**：Day 13 §C.3 识别的"Phase 2 真正卡点是反馈类型分布而非反馈量"假设在 Loop 10 进一步证实——daemon V0.2 trigger 设计偏向"模型自己拿不准"（low_vlm_conf）路径，但川哥对这种"非典型时刻"主要回应 skip 而非 mismatch；M0 W2 daemon V0.3 user_triggered_mismatch channel 必须做。
+
+**等川哥签字** — signoff prompt 已在 docs/poc-day14-signoff-prompt.md 待回复。
 
 ---
 
