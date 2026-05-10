@@ -13,6 +13,7 @@ from poc.src.lnn.online_contracts import FeedbackDataError
 from poc.src.lnn.signals_loader import (
     SignalsFrame,
     build_frame_id_index,
+    build_session_frame_index,
     load_signals,
     parse_signals_row,
     signals_to_tensor,
@@ -199,3 +200,90 @@ class TestIndexAndTensor:
     def test_tensor_empty_raises(self) -> None:
         with pytest.raises(FeedbackDataError):
             signals_to_tensor(())
+
+
+class TestF1_01_SessionFrameIndex:
+    """F1-01 (codex): 复合键 (session_id, frame_id) 防跨天 silent overwrite。"""
+
+    def test_session_frame_index_basic(self) -> None:
+        frames = (
+            SignalsFrame(ts="t1", frame_id=10, vector=tuple([0.0] * 18),
+                         face_detected=True, expression={}, session_id="A"),
+            SignalsFrame(ts="t2", frame_id=20, vector=tuple([0.0] * 18),
+                         face_detected=True, expression={}, session_id="A"),
+        )
+        idx = build_session_frame_index(frames)
+        assert idx[("A", 10)] == 0
+        assert idx[("A", 20)] == 1
+
+    def test_cross_session_same_frame_id_no_collision(self) -> None:
+        """两个 session 同 frame_id 不再 silent overwrite。"""
+        frames = (
+            SignalsFrame(ts="t1", frame_id=10, vector=tuple([0.0] * 18),
+                         face_detected=True, expression={}, session_id="A"),
+            SignalsFrame(ts="t2", frame_id=10, vector=tuple([1.0] * 18),
+                         face_detected=True, expression={}, session_id="B"),
+        )
+        idx = build_session_frame_index(frames)
+        assert idx[("A", 10)] == 0
+        assert idx[("B", 10)] == 1
+        assert len(idx) == 2  # 两个独立 entry
+
+    def test_legacy_build_frame_id_index_warns_on_duplicates(self) -> None:
+        """老 build_frame_id_index 跨天重复发 warning（F1-01 风险标识）。"""
+        frames = (
+            SignalsFrame(ts="t1", frame_id=10, vector=tuple([0.0] * 18),
+                         face_detected=True, expression={}),
+            SignalsFrame(ts="t2", frame_id=10, vector=tuple([1.0] * 18),
+                         face_detected=True, expression={}),
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            idx = build_frame_id_index(frames)
+        assert idx[10] == 1  # 后到覆盖前（行为保留）
+        assert any("F1-01" in str(x.message) for x in w)
+
+    def test_session_id_attribute_default_none(self) -> None:
+        """SignalsFrame.session_id 默认 None（向后兼容老 V0.1 数据）。"""
+        sf = SignalsFrame(
+            ts="t", frame_id=0, vector=tuple([0.0] * 18),
+            face_detected=True, expression={},
+        )
+        assert sf.session_id is None
+
+
+class TestF2_04_MissingFieldWarning:
+    """F2-04 (codex): signals 字段缺失发 warning（不阻断 fail-soft）。"""
+
+    def test_missing_expression_warns(self) -> None:
+        row = _make_signals_row()
+        del row["expression"]
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            sf = parse_signals_row(row)
+        assert sf is not None  # 仍 fail-soft 解析
+        assert any("'expression' field missing" in str(x.message) for x in w)
+
+    def test_missing_head_pose_warns(self) -> None:
+        row = _make_signals_row()
+        del row["head_pose"]
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            sf = parse_signals_row(row)
+        assert sf is not None
+        assert any("'head_pose' field missing" in str(x.message) for x in w)
+
+    def test_missing_calibrated_au_warns(self) -> None:
+        row = _make_signals_row()
+        del row["calibrated_au"]
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            sf = parse_signals_row(row)
+        assert sf is not None
+        assert any("'calibrated_au' field missing" in str(x.message) for x in w)
+
+    def test_session_id_extracted_from_jsonl(self) -> None:
+        row = _make_signals_row()
+        row["session_id"] = "test-session-uuid-1234"
+        sf = parse_signals_row(row)
+        assert sf.session_id == "test-session-uuid-1234"

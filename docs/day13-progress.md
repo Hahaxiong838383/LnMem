@@ -136,6 +136,50 @@ tau_drift 反传后 L2 范数对比：
 | 时间 | uptime | frames | triggered | queried | rate_blocked | 备注 |
 |------|--------|--------|-----------|---------|--------------|------|
 | 15:43 CST | 13196s | 11628 | 44 | 5 | 39 | Loop 5 起步 +1 reward 到 7 / signals 11.0h |
+| 16:24 CST | 15658s | 13819 | 49 | **6** | 43 | Loop 6 / +0.68h uptime / +5 触发 / +1 skip 反馈到 8 总 (5/10 frame 14406 侧对镜头 conf=0.1 临界) / signals 11.6h (25h 46%) |
+
+## C.6 Loop 6 (16:24 CST) — Codex Day 13 工程链对抗审 + 反馈累积更新
+
+### Loop 6 状态变化（vs Loop 5 15:43）
+
+| 项 | Loop 5 (15:43) | Loop 6 (16:24) | Δ |
+|----|----------------|----------------|---|
+| daemon uptime | 3.67h | 4.35h | +0.68h |
+| frames | 11628 | 13819 | +2191 |
+| triggered | 44 | 49 | +5 |
+| queried | 5 | **6** | **+1 川哥进帐** |
+| 反馈累积 | 7 条 | **8 条** | +1 (5/10 frame 14406 skip) |
+| signals 总累积 | 11.0h | 11.6h | +0.6h |
+
+### 新反馈分析（5/10 16:03 frame 14406）
+
+```json
+au_description: "图像中人物侧对镜头，面部特征不清晰，无法确定具体AU激活"
+confidence: 0.1  ← 刚好不命中 FB-09 VLM_NO_FACE_CONF_THRESHOLD=0.1（< 才跳过）
+user_response: skip
+```
+
+**评估**：
+- FB-09 行为正确 — `conf=0.1` 不属于"无脸"语义（确实有人脸只是侧对），让弹窗触发是合理决策
+- 川哥 skip 也合理 — 不确定状态 → 不污染训练
+- **反馈数据质量观察**：daemon 累计 8 条反馈中 skip 占 3 条（37.5%），意味着 ~1/3 的弹窗在川哥眼里是"非典型时刻"，触发率偏高的隐性指标
+- M0 W2 优化方向：trigger 阈值再调严，或 skip 比例 > 30% 时自动收紧
+
+### 派 codex 对抗审 Day 13 工程链（三道门中间门）
+
+**任务**：审 signals_loader.py + feedback_to_batch.py + 26 TDD（commit b4925e4）
+**模型**：gpt-5.3-codex / high reasoning
+**重点 8 项**（按 cc 自查盲区）：
+1. 跨天 frame_id 重复处理是否安全（F.1 风险，cc 已知 silent 取后到）
+2. match argmax 自一致 label 选择是否合理（F.2，confidence 极低时噪声放大）
+3. window 不足跳过 vs padding 决策（F.3）
+4. signals jsonl 字段缺失 fail-soft 完整性
+5. 18 维 fusion vector 映射正确性（face/audio/context 缺失语义）
+6. STATE_NAME_TO_IDX hardcode vs derive 风险
+7. TrainingBatch frozen 但 tensor 内可被外部 in-place 改
+8. fill_match_labels_with_argmax 与 LNN-FIRST 关系（model.eval vs train 行为差异）
+
+**后台 PID 36626**，预计 10-15min 完成。落 /tmp/codex-day13-review.md。
 
 ---
 

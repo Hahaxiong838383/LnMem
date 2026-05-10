@@ -52,19 +52,49 @@ class SignalsFrame:
     vector: tuple[float, ...]
     face_detected: bool
     expression: dict[str, float]
+    session_id: str | None = None  # F1-01: V0.2 起 daemon 写入；老格式 None
 
 
 def _signals_row_to_frame_dict(row: dict) -> dict:
     """把 signals jsonl 单行 → fusion.fuse() 期望的 frame dict（face/audio/context）.
+
+    F2-04 (codex)：signals 字段缺失时记录 warning（不抛错以保持 fail-soft），
+    让上层数据质量监控可见。PoC 阶段缺失语义仍以 fusion.missing_default=0.5 + 0.0
+    填充（M0 W2 引入显式 missing mask）。
 
     Returns
     -------
     frame : dict
         {ts, frame_idx, face: {...18-dim raw fields...}, audio: None, context: None}
     """
-    expression = row.get("expression") or {}
-    head_pose = row.get("head_pose") or {}
-    calibrated_au = row.get("calibrated_au") or {}
+    expression_raw = row.get("expression")
+    head_pose_raw = row.get("head_pose")
+    calibrated_au_raw = row.get("calibrated_au")
+    frame_id = row.get("frame_id", "?")
+
+    # F2-04: 整段缺失时 warning（说明 daemon V0.1 老格式或解析失败）
+    if expression_raw is None:
+        warnings.warn(
+            f"signals_loader: frame_id={frame_id} 'expression' field missing → "
+            f"6 维表情走 0.0（PoC 阶段；M0 W2 改 missing mask）",
+            RuntimeWarning,
+        )
+    if head_pose_raw is None:
+        warnings.warn(
+            f"signals_loader: frame_id={frame_id} 'head_pose' field missing → "
+            f"pitch/yaw 走 0.0（中性姿态语义错位风险）",
+            RuntimeWarning,
+        )
+    if calibrated_au_raw is None:
+        warnings.warn(
+            f"signals_loader: frame_id={frame_id} 'calibrated_au' field missing → "
+            f"AU43 (eye_closure) 走 0.5（半闭语义错位风险）",
+            RuntimeWarning,
+        )
+
+    expression = expression_raw or {}
+    head_pose = head_pose_raw or {}
+    calibrated_au = calibrated_au_raw or {}
 
     # eye_closure 从 AU43（眼闭单元）取
     eye_closure = float(calibrated_au.get("AU43", 0.5))
@@ -121,6 +151,7 @@ def parse_signals_row(row: object) -> SignalsFrame | None:
             vector=tuple(fused.vector),
             face_detected=bool(row.get("face_detected", True)),
             expression=dict(row.get("expression") or {}),
+            session_id=row.get("session_id"),  # F1-01: V0.2 daemon 写入；老格式 None
         )
     except (KeyError, TypeError, ValueError, AttributeError) as e:
         warnings.warn(
@@ -185,19 +216,68 @@ def load_signals(
 def build_frame_id_index(
     frames: tuple[SignalsFrame, ...],
 ) -> dict[int, int]:
-    """frame_id → list-index 反查表。
+    """[deprecated F1-01] frame_id → list-index 反查表。
 
     daemon V0.2 frame_id 在单天内单调递增（每天 daemon 重启会重置 0）；
-    跨天时同一 frame_id 可能出现两次。本函数取**最后一个**（更新近的）。
+    跨天时同一 frame_id 可能出现两次 → silent overwrite，**会导致跨天反馈静默
+    错配**（codex F1-01）。
+
+    保留此函数仅用于向后兼容（无 session_id 的老测试）；新代码必须用
+    `build_session_frame_index`。
 
     Returns
     -------
     index : dict[int, int]
-        frame_id → frames 元组下标
+        frame_id → frames 元组下标（重复 frame_id 取后到）
     """
     out: dict[int, int] = {}
+    duplicates = 0
     for i, f in enumerate(frames):
-        out[f.frame_id] = i  # 后写入覆盖前——跨天去重，取后到的
+        if f.frame_id in out:
+            duplicates += 1
+        out[f.frame_id] = i
+    if duplicates > 0:
+        warnings.warn(
+            f"build_frame_id_index: {duplicates} duplicate frame_id silently overwritten "
+            f"(F1-01 risk); use build_session_frame_index for safety",
+            RuntimeWarning,
+        )
+    return out
+
+
+def build_session_frame_index(
+    frames: tuple[SignalsFrame, ...],
+) -> dict[tuple[str | None, int], int]:
+    """[F1-01 修复] (session_id, frame_id) → list-index 复合键反查表。
+
+    每个 daemon session（重启即新 session_id）独立索引，跨天 frame_id 重复不再
+    silent overwrite，确保 feedback × signals join 语义正确。
+
+    向后兼容
+    --------
+    SignalsFrame 当前不含 session_id 字段（M0 W2 待加）；本函数从 frames 元数据
+    无法直接拿，调用方需要外部传入。临时方案：对 SignalsFrame 增加可选 session_id
+    属性，**但不破坏向后兼容**——本函数允许 session_id=None 的 frame，等价于
+    单 session 模式。
+
+    Returns
+    -------
+    index : dict[(session_id, frame_id), int]
+    """
+    out: dict[tuple[str | None, int], int] = {}
+    duplicates = 0
+    for i, f in enumerate(frames):
+        sid = getattr(f, "session_id", None)
+        key = (sid, f.frame_id)
+        if key in out:
+            duplicates += 1
+        out[key] = i
+    if duplicates > 0:
+        warnings.warn(
+            f"build_session_frame_index: {duplicates} (session_id, frame_id) duplicates "
+            f"overwritten — same session same frame_id is unexpected",
+            RuntimeWarning,
+        )
     return out
 
 
@@ -222,5 +302,6 @@ __all__ = [
     "parse_signals_row",
     "load_signals",
     "build_frame_id_index",
+    "build_session_frame_index",
     "signals_to_tensor",
 ]

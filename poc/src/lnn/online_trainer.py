@@ -131,6 +131,18 @@ def compute_reward_loss(
             f"expected rewards (B,) matching labels, got {tuple(rewards.shape)}"
         )
 
+    # F1-02 (codex): hard assert label range，防 -1 占位静默 gather 错训
+    n_classes = logits.shape[1]
+    if labels.numel() > 0:
+        min_label = int(labels.min().item())
+        max_label = int(labels.max().item())
+        if min_label < 0 or max_label >= n_classes:
+            raise OnlineAdapterError(
+                f"label out of range [0, {n_classes}): min={min_label}, max={max_label}. "
+                f"If you used MATCH_LABEL_PLACEHOLDER=-1, call "
+                f"fill_match_labels_with_argmax(batch, model) before fit_step."
+            )
+
     log_probs = F.log_softmax(logits, dim=-1)
     # log p(label) per sample: (B,)
     log_p_label = log_probs.gather(1, labels.unsqueeze(1)).squeeze(1)
