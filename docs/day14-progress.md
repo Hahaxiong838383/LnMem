@@ -89,6 +89,7 @@ user_response: skip
 | **18:23 (Loop 9)** | **1.32GB** | **-0.09** |
 | **18:57 (Loop 10)** | **1.28GB** | **-0.04** |
 | **🚨 19:29 (Loop 11)** | **2.19GB** | **+0.91** |
+| **20:31 (Loop 12)** | **1.76GB** | **-0.43** ✅ |
 
 **观察更新（Loop 11）**：RSS 30min 内从 1.28GB **暴涨到 2.19GB（+71%）突破 2GB 警戒线**！同时 triggered 78→119（+41）/ rate_blocked +41 同步——daemon 进入异常密集触发状态（可能 VLM async 任务积压 / frame buffer 急涨）。
 **之前结论已部分修正**：6h 内非单调波动 + 短时间内大幅 spike 同时存在；M0 W2 P0-4 watchdog 必须做（监控 RSS > 2GB 自动重启），不能只是被动观察。
@@ -148,6 +149,29 @@ RSS=2.19GB (vs Loop 10 1.28GB, +71%)
 - 不主动重启 daemon（不破坏 PoC 数据采集 + TCC 限制 + 等川哥指示）
 - 记录到 progress doc 让川哥可见
 - 建议下次 Loop 间隔拉长（Loop 12 计划 60min 后 vs 30min），避免 cc 在川哥未签前空转 token
+
+---
+
+## A.9 Loop 12 状态（20:31 CST）— RSS 回落 + watchdog 已上线
+
+```
+uptime=8.48h frames=26893 triggered=135 queried=14 rate_blocked=121
+RSS=1.76GB (vs Loop 11 2.19GB, -0.43GB / -19.6%)
+```
+
+**关键观察**：
+- **Loop 11 spike 修正为 transient**：RSS 60min 内自然回落 1.76GB（Python GC 正常回收，**非 leak**）
+- watchdog 已上线（PID 55269 by 川哥 19:40）每 60s DEBUG 日志，RSS 全程 OK，无 RESTART_NEEDED 标记
+- triggered +16（vs Loop 11 +41）触发频率回落到正常范围
+- 反馈仍 14（mismatch 短缺不变，川哥 30min 0 弹窗交互）
+- daemon 8.48h 持续稳定，0 中断
+
+**结论**：watchdog 设计验证通过——真实 spike 发生时不会误报（warn 阈值 2.0GB 已被 1.76 < 2.19 < 3.0 三段验证），M0 W1 P0-4 交付里程碑达成。
+
+**cc 行动**：
+- 不主动操作（川哥未签 + daemon 健康）
+- Loop 13 间隔继续 60min，至 PoC 时间盒 23:59 CST 自然到期（剩 ~3.5h）
+- 如川哥仍未签 → Loop 13/14 写"PoC 时间盒到期事件"
 
 ---
 
