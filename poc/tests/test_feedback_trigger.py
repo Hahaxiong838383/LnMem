@@ -1,5 +1,8 @@
 """Tests for ProactiveQueryTrigger."""
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from poc.src.realtime.feedback.trigger import ProactiveQueryTrigger, TriggerEvent
 
@@ -80,41 +83,65 @@ class TestProactiveQueryTrigger(unittest.TestCase):
 
     def test_skip_low_vlm_conf_when_no_face_detected(self):
         """FB-09: VLM 自报无脸 (confidence=0.0 + au_description='未检测到人脸…') → 不弹窗。"""
-        t = ProactiveQueryTrigger()
-        vlm = {
-            "confidence": 0.0,
-            "valence": 0.0,
-            "arousal": 0.0,
-            "au_description": "未检测到人脸，无法识别面部动作单元。",
-        }
-        # 虽然 low_vlm_conf 分支判断会触发（confidence < 0.65），但被 FB-09 过滤跳过
-        result = t.observe(_frame(vlm=vlm))
-        self.assertIsNone(result, "VLM 自报无脸时应返回 None")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            t = ProactiveQueryTrigger(home=Path(tmpdir))
+            vlm = {
+                "confidence": 0.0,
+                "valence": 0.0,
+                "arousal": 0.0,
+                "au_description": "未检测到人脸，无法识别面部动作单元。",
+            }
+            result = t.observe(_frame(vlm=vlm))
+            self.assertIsNone(result, "VLM 自报无脸时应返回 None")
 
     def test_skip_low_vlm_conf_when_low_light(self):
         """FB-09: VLM 自报光线不足 (confidence=0.05 + au_description='光线…') → 不弹窗。"""
-        t = ProactiveQueryTrigger()
-        vlm = {
-            "confidence": 0.05,
-            "valence": 0.0,
-            "arousal": 0.0,
-            "au_description": "图片中未包含人脸，无法识别面部动作单元。",
-        }
-        result = t.observe(_frame(vlm=vlm))
-        self.assertIsNone(result, "VLM 自报无脸/光线不足时应返回 None")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            t = ProactiveQueryTrigger(home=Path(tmpdir))
+            vlm = {
+                "confidence": 0.05,
+                "valence": 0.0,
+                "arousal": 0.0,
+                "au_description": "图片中未包含人脸，无法识别面部动作单元。",
+            }
+            result = t.observe(_frame(vlm=vlm))
+            self.assertIsNone(result, "VLM 自报无脸/光线不足时应返回 None")
 
     def test_normal_low_vlm_conf_still_triggers(self):
         """FB-09: VLM 看到脸但不确定状态 (confidence=0.4, au_description 无关键词) → 正常弹窗。"""
-        t = ProactiveQueryTrigger()
-        vlm = {
-            "confidence": 0.4,
-            "valence": 0.2,
-            "arousal": 0.3,
-            "au_description": "AU4 和 AU7，表现出专注与轻微压力。",
-        }
-        ev = t.observe(_frame(vlm=vlm))
-        self.assertIsNotNone(ev, "VLM 自有描述且无 no-face 关键词时应触发")
-        self.assertEqual(ev.reason, "low_vlm_conf")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            t = ProactiveQueryTrigger(home=Path(tmpdir))
+            vlm = {
+                "confidence": 0.4,
+                "valence": 0.2,
+                "arousal": 0.3,
+                "au_description": "AU4 和 AU7，表现出专注与轻微压力。",
+            }
+            ev = t.observe(_frame(vlm=vlm))
+            self.assertIsNotNone(ev, "VLM 自有描述且无 no-face 关键词时应触发")
+            self.assertEqual(ev.reason, "low_vlm_conf")
+
+    def test_skip_appends_jsonl_not_overwrites(self):
+        """FB-09 hardening: 多次 skip 应 append 到 jsonl，而非原子覆盖丢前面记录。"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            t = ProactiveQueryTrigger(home=Path(tmpdir))
+            vlm_no_face = {
+                "confidence": 0.0,
+                "valence": 0.0,
+                "arousal": 0.0,
+                "au_description": "未检测到人脸，无法识别面部动作单元。",
+            }
+            t.observe(_frame(vlm=vlm_no_face, fid=10))
+            t.observe(_frame(vlm=vlm_no_face, fid=20))
+            t.observe(_frame(vlm=vlm_no_face, fid=30))
+            # 找 jsonl
+            feedback_dir = Path(tmpdir) / ".lnmem" / "feedback"
+            jsonl_files = list(feedback_dir.glob("skipped_*.jsonl"))
+            self.assertEqual(len(jsonl_files), 1, f"应有 1 个 jsonl 文件，实际 {len(jsonl_files)}")
+            lines = jsonl_files[0].read_text(encoding="utf-8").strip().split("\n")
+            self.assertEqual(len(lines), 3, f"应 append 3 条，实际 {len(lines)}")
+            fids = [json.loads(line)["frame_id"] for line in lines]
+            self.assertEqual(fids, [10, 20, 30], "frame_id 应按写入顺序保留")
 
 
 class TestTriggerEvent(unittest.TestCase):

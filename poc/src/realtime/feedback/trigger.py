@@ -107,10 +107,8 @@ class ProactiveQueryTrigger:
             }
 
             line = json.dumps(record, ensure_ascii=False) + "\n"
-            tmp_path = path.parent / f"{path.name}.tmp"
-            with tmp_path.open("w", encoding="utf-8") as f:
+            with path.open("a", encoding="utf-8") as f:
                 f.write(line)
-            tmp_path.replace(path)
 
         except Exception as e:
             _log.warning("Failed to log vlm_no_face_skip: %s", e)
