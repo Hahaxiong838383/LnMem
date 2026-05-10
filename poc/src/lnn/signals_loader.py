@@ -1,0 +1,226 @@
+"""poc/src/lnn/signals_loader.py — 解析 ~/.lnmem/data/signals_*.jsonl → 18 维 fusion vector。
+
+桥接 daemon V0.2 实采的 signals jsonl 格式与 MultimodalFusion 18 维输出。
+
+输入 jsonl 行字段（daemon V0.2 写入）
+-------------------------------------
+- ts, frame_id, face_detected, device, raw_video_offset_ms
+- raw_au + calibrated_au: 20 AU 各
+- expression: 6 维 (smile_intensity / brow_furrow / cheek_raise /
+                   lip_corner_depress / jaw_drop / mouth_open_ratio)
+- head_pose: pitch_deg / roll_deg / yaw_deg
+- session_id (V0.2)
+- vlm_label (可选): au_description / valence / arousal / confidence / model_used
+
+输出 18 维 fusion vector（fusion.MultimodalFusion.fuse 公契约）
+---------------------------------------------------------------
+- 4 face: eye_closure / pitch_norm / yaw_norm / gaze_stability
+- 4 derived: fatigue / attention / pose_steadiness / blink_burst
+- 6 expression: smile / brow / cheek / lip_down / jaw / mouth_open
+- 2 audio: voice_present / utterance_density (missing → 0.5)
+- 2 context: context_known / focus_stability (missing → 0.5)
+
+注意事项
+--------
+- daemon V0.2 不采 audio + context → 这两段走 fusion missing_default=0.5
+- eye_closure 来自 calibrated_au["AU43"]（眨眼/眼闭单元）
+- gaze_stability 当前 daemon 不采 → 走 missing_default=0.5
+- face_detected=False 的行也保留（fusion 会用 missing_default 处理）
+"""
+from __future__ import annotations
+
+import json
+import logging
+import warnings
+from dataclasses import dataclass
+from pathlib import Path
+
+import torch
+
+from poc.src.fusion import FEATURE_DIM, MultimodalFusion
+from poc.src.lnn.online_contracts import FeedbackDataError
+
+_log = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class SignalsFrame:
+    """单帧 signals → fusion 后的 18 维向量（immutable）。"""
+
+    ts: str
+    frame_id: int
+    vector: tuple[float, ...]
+    face_detected: bool
+    expression: dict[str, float]
+
+
+def _signals_row_to_frame_dict(row: dict) -> dict:
+    """把 signals jsonl 单行 → fusion.fuse() 期望的 frame dict（face/audio/context）.
+
+    Returns
+    -------
+    frame : dict
+        {ts, frame_idx, face: {...18-dim raw fields...}, audio: None, context: None}
+    """
+    expression = row.get("expression") or {}
+    head_pose = row.get("head_pose") or {}
+    calibrated_au = row.get("calibrated_au") or {}
+
+    # eye_closure 从 AU43（眼闭单元）取
+    eye_closure = float(calibrated_au.get("AU43", 0.5))
+    pitch = float(head_pose.get("pitch_deg", 0.0))
+    yaw = float(head_pose.get("yaw_deg", 0.0))
+
+    face = {
+        # face_feats 4 dim（pitch / yaw 用度数原始值，fusion 内部归一化）
+        "eye_closure": eye_closure,
+        "head_pitch_deg": pitch,
+        "head_yaw_deg": yaw,
+        "gaze_stability": 0.5,  # daemon V0.2 不采 → missing_default
+        # expression 6 dim 直接拷
+        "smile_intensity": float(expression.get("smile_intensity", 0.0)),
+        "brow_furrow": float(expression.get("brow_furrow", 0.0)),
+        "cheek_raise": float(expression.get("cheek_raise", 0.0)),
+        "lip_corner_depress": float(expression.get("lip_corner_depress", 0.0)),
+        "jaw_drop": float(expression.get("jaw_drop", 0.0)),
+        "mouth_open_ratio": float(expression.get("mouth_open_ratio", 0.0)),
+    }
+    return {
+        "ts": row.get("ts", ""),
+        "frame_idx": int(row.get("frame_id", 0)),
+        "face": face,
+        "audio": None,  # daemon V0.2 不采
+        "context": None,  # daemon V0.2 不采
+    }
+
+
+def parse_signals_row(row: object) -> SignalsFrame | None:
+    """parse 单行 signals jsonl → SignalsFrame；fail-soft 返 None.
+
+    F3-01 风格：raw 必须 dict，否则 warning + skip。
+    """
+    if not isinstance(row, dict):
+        warnings.warn(
+            f"SignalsLoader: skip non-dict row (type={type(row).__name__})",
+            RuntimeWarning,
+        )
+        return None
+    try:
+        frame_dict = _signals_row_to_frame_dict(row)
+        fusion = MultimodalFusion()
+        fused = fusion.fuse(frame_dict)
+        if len(fused.vector) != FEATURE_DIM:
+            warnings.warn(
+                f"SignalsLoader: fused vector dim {len(fused.vector)} != {FEATURE_DIM}",
+                RuntimeWarning,
+            )
+            return None
+        return SignalsFrame(
+            ts=str(row.get("ts", "")),
+            frame_id=int(row.get("frame_id", 0)),
+            vector=tuple(fused.vector),
+            face_detected=bool(row.get("face_detected", True)),
+            expression=dict(row.get("expression") or {}),
+        )
+    except (KeyError, TypeError, ValueError, AttributeError) as e:
+        warnings.warn(
+            f"SignalsLoader: skip malformed row ({type(e).__name__}: {e})",
+            RuntimeWarning,
+        )
+        return None
+
+
+def load_signals(
+    signals_dir: Path,
+    *,
+    date_prefix: str | None = None,
+) -> tuple[SignalsFrame, ...]:
+    """Load all signals from `signals_dir/signals_*.jsonl`.
+
+    Parameters
+    ----------
+    signals_dir : Path
+        e.g. ``~/.lnmem/data/``
+    date_prefix : str | None
+        过滤前缀（e.g. ``2026-05-10``）
+
+    Returns
+    -------
+    frames : tuple[SignalsFrame, ...]
+        按文件名字典序 → 行序排列；frozen tuple
+    """
+    signals_dir = Path(signals_dir)
+    if not signals_dir.exists():
+        raise FeedbackDataError(f"signals_dir does not exist: {signals_dir}")
+
+    pattern = "signals_*.jsonl"
+    if date_prefix:
+        pattern = f"signals_{date_prefix}*.jsonl"
+
+    frames: list[SignalsFrame] = []
+    for path in sorted(signals_dir.glob(pattern)):
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        raw = json.loads(line)
+                    except json.JSONDecodeError as e:
+                        warnings.warn(
+                            f"SignalsLoader: bad jsonl in {path.name}: {e}",
+                            RuntimeWarning,
+                        )
+                        continue
+                    sf = parse_signals_row(raw)
+                    if sf is not None:
+                        frames.append(sf)
+        except OSError as e:
+            raise FeedbackDataError(f"cannot read {path}: {e}") from e
+
+    return tuple(frames)
+
+
+def build_frame_id_index(
+    frames: tuple[SignalsFrame, ...],
+) -> dict[int, int]:
+    """frame_id → list-index 反查表。
+
+    daemon V0.2 frame_id 在单天内单调递增（每天 daemon 重启会重置 0）；
+    跨天时同一 frame_id 可能出现两次。本函数取**最后一个**（更新近的）。
+
+    Returns
+    -------
+    index : dict[int, int]
+        frame_id → frames 元组下标
+    """
+    out: dict[int, int] = {}
+    for i, f in enumerate(frames):
+        out[f.frame_id] = i  # 后写入覆盖前——跨天去重，取后到的
+    return out
+
+
+def signals_to_tensor(
+    frames: tuple[SignalsFrame, ...],
+) -> torch.Tensor:
+    """tuple[SignalsFrame] → Tensor (n_frames, 18) float32.
+
+    Raises
+    ------
+    FeedbackDataError
+        frames 为空
+    """
+    if not frames:
+        raise FeedbackDataError("cannot build tensor from empty frames")
+    rows = [list(f.vector) for f in frames]
+    return torch.tensor(rows, dtype=torch.float32)
+
+
+__all__ = [
+    "SignalsFrame",
+    "parse_signals_row",
+    "load_signals",
+    "build_frame_id_index",
+    "signals_to_tensor",
+]
