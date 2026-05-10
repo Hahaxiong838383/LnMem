@@ -266,3 +266,120 @@ class TestLNNFirstCompliance:
             )
         # tau_drift 必须有 grad
         assert online_adapter.tau_drift.grad is not None
+
+
+class TestLNNFirstExplicitGuards:
+    """F2-02 (codex)：LNN-FIRST P-1 直接断言（cell 类型 + timespan 公式 + τ 单调影响）。
+
+    Why: 之前测试只验证"forward 可跑通 + 梯度存在"，未直接锁住 LTC ODE
+    半隐式欧拉路径。若未来重构换掉 cell 或 timespan 公式，旧测试可能仍过。
+    本类显式断言核心约束。
+    """
+
+    def test_backbone_is_cfc_module(
+        self,
+        base_config: LNNTrainConfig,
+        online_adapter: OnlineLoRAAdapter,
+    ) -> None:
+        """LTC ODE backbone 必须是 ncps.torch.CfC（半隐式欧拉路径）。"""
+        from ncps.torch import CfC
+
+        torch.manual_seed(0)
+        model = StateRecognitionLNN(base_config, online_adapter)  # type: ignore[arg-type]
+        assert isinstance(model.backbone, CfC), (
+            f"backbone must be ncps CfC (LTC ODE), got {type(model.backbone).__name__}"
+        )
+        # rnn_cell 是 CfC 的 step API，不可被替换为 Linear/规则化逻辑
+        assert hasattr(model.backbone, "rnn_cell"), (
+            "CfC backbone 必须暴露 rnn_cell 用于半隐式欧拉 step"
+        )
+
+    def test_timespan_formula_is_softplus_ode_path(
+        self,
+        base_config: LNNTrainConfig,
+        online_adapter: OnlineLoRAAdapter,
+    ) -> None:
+        """timespan = 0.5 + softplus(tau_bias)：softplus 强制正性，tau_bias 即 τ-bias 路径。"""
+        import torch.nn.functional as F
+
+        torch.manual_seed(0)
+        model = StateRecognitionLNN(base_config, online_adapter)  # type: ignore[arg-type]
+        tau_bias = torch.randn(2, base_config.hidden_dim)
+        timespans = model._timespans_from_tau(tau_bias)
+        expected = 0.5 + F.softplus(tau_bias)
+        assert torch.allclose(timespans, expected), (
+            "timespan 必须等于 0.5 + softplus(tau_bias)（LTC ODE 时间常数公式）"
+        )
+        # softplus 输出严格 > 0，timespan ≥ 0.5
+        assert (timespans >= 0.5).all(), "timespan 必须 ≥ 0.5（softplus 正性保证）"
+
+    def test_tau_drift_monotonically_affects_timespan(
+        self,
+        base_config: LNNTrainConfig,
+        online_adapter: OnlineLoRAAdapter,
+    ) -> None:
+        """tau_drift 单调影响 timespan：同一 idx 下 drift 增加 → tau_bias 增加 → timespan 增加。
+
+        这锁住"τ 真触达 ODE timespan"约束 — 若未来 base.tau_projection 输出
+        被 detach 或被规则替代，本测试会立即红。
+        """
+        idx = torch.tensor([0], dtype=torch.long)
+        # 基线
+        base_tau = online_adapter.get_tau_bias(idx)
+        # 注入 drift
+        with torch.no_grad():
+            online_adapter.tau_drift[0].fill_(1.0)
+        boosted_tau = online_adapter.get_tau_bias(idx)
+
+        # tau_bias 单调上升
+        assert (boosted_tau > base_tau).all(), (
+            "tau_drift 增加后 tau_bias 应单调增"
+        )
+        # 通过 model._timespans_from_tau 路径验证 timespan 也单调上升
+        torch.manual_seed(0)
+        model = StateRecognitionLNN(base_config, online_adapter)  # type: ignore[arg-type]
+        base_ts = model._timespans_from_tau(base_tau)
+        boosted_ts = model._timespans_from_tau(boosted_tau)
+        assert (boosted_ts > base_ts).all(), (
+            "timespan 必须随 tau_bias 单调增（softplus 严格递增）"
+        )
+
+    def test_tau_drift_propagates_across_all_timesteps(
+        self,
+        base_config: LNNTrainConfig,
+        online_adapter: OnlineLoRAAdapter,
+    ) -> None:
+        """LNN-FIRST P-1 行为驱动断言（替代 rnn_cell 调用计数 — nn.Module __setattr__ 限制）。
+
+        语义：若 τ-bias 真在每帧通过 LTC ODE timespan 调制 hidden state，
+        那么 batch 中 idx=0 (drift=0) 和 idx=1 (drift>0) 的 logits 序列在
+        **每个 timestep** 都应不同（不仅仅是最后一步）。
+
+        反例：若实现退化成"一次性 forward"或仅初始化阶段用 τ，则非首帧的
+        logits 趋同（hidden state 演化丢失个性化）。
+        """
+        # 注入区分性的 drift：idx=1 的 row 远大于 idx=0
+        with torch.no_grad():
+            online_adapter.tau_drift[0].fill_(0.0)
+            online_adapter.tau_drift[1].fill_(0.4)  # 在 clip_norm=0.5 内
+
+        torch.manual_seed(0)
+        model = StateRecognitionLNN(base_config, online_adapter)  # type: ignore[arg-type]
+        model.eval()
+
+        x = torch.randn(2, base_config.sequence_length, base_config.feature_dim)
+        # 同一份 x 喂两个 sample (用 batch 复制)，仅 persona_idx 不同
+        x_paired = torch.stack([x[0], x[0]], dim=0)
+        idx = torch.tensor([0, 1], dtype=torch.long)
+
+        with torch.no_grad():
+            logits = model(x_paired, idx)  # (2, T, n_classes)
+
+        # 每个 timestep 的 logits 在 idx=0 vs idx=1 下应严格不同
+        # （τ 在每帧 timespan 都生效）
+        for t in range(base_config.sequence_length):
+            diff = (logits[0, t] - logits[1, t]).abs().max().item()
+            assert diff > 1e-4, (
+                f"timestep t={t}：logits[idx=0] 与 logits[idx=1] 应不同（τ 调制 ODE 每帧），"
+                f"实际 max diff={diff:.6f}"
+            )

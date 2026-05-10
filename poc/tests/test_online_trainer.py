@@ -21,6 +21,7 @@ from poc.src.lnn.contracts import LNNTrainConfig
 from poc.src.lnn.model import StateRecognitionLNN
 from poc.src.lnn.online_adapter import OnlineLoRAAdapter
 from poc.src.lnn.online_contracts import OnlineAdapterConfig, OnlineAdapterError
+from poc.src.lnn.personalization import DefaultPersonalizationAdapter
 from poc.src.lnn.online_trainer import (
     compute_reward_loss,
     fit_step,
@@ -138,6 +139,17 @@ class TestTriggerIfReady:
         ready, counts = trigger_if_ready(online_cfg.feedback_dir, online_cfg)
         assert ready
         assert counts["mismatch"] == 10
+
+    def test_failsoft_when_dir_missing(
+        self, online_cfg: OnlineAdapterConfig
+    ) -> None:
+        """F3-03 (codex): feedback_dir 不存在 → 返 (False, zero counts)，不抛错。"""
+        # 未写入任何 jsonl，dir 不存在
+        ready, counts = trigger_if_ready(online_cfg.feedback_dir, online_cfg)
+        assert not ready
+        assert counts["total"] == 0
+        assert counts["match"] == 0
+        assert counts["mismatch"] == 0
 
     def test_counts_include_zeros_for_missing_labels(
         self, online_cfg: OnlineAdapterConfig
@@ -339,6 +351,30 @@ class TestFitStep:
             config=online_cfg,
         )
         assert torch.allclose(online.tau_drift.detach(), drift_before)
+
+    def test_silent_no_op_guard_when_model_not_bound(
+        self, setup, base_config, online_cfg
+    ) -> None:
+        """F2-01 (codex): fit_step 必须校验 model.personalization is online_adapter，
+        否则 silent no-op 风险。错误绑定时抛 OnlineAdapterError。
+        """
+        model, online, optim = setup
+        # 故意构造一个未替换 personalization 的模型
+        torch.manual_seed(0)
+        rogue_base = DefaultPersonalizationAdapter(base_config)
+        rogue_model = StateRecognitionLNN(base_config, rogue_base)
+
+        x = torch.randn(1, base_config.sequence_length, base_config.feature_dim)
+        idx = torch.tensor([0], dtype=torch.long)
+        labels = torch.tensor([0], dtype=torch.long)
+        rewards = torch.tensor([1.0])
+
+        with pytest.raises(OnlineAdapterError, match="not the passed online_adapter"):
+            fit_step(
+                rogue_model, online, optim,
+                x=x, persona_idx=idx, labels=labels, rewards=rewards,
+                config=online_cfg,
+            )
 
     def test_drift_norm_reported_and_clipped(
         self, setup, base_config, online_cfg

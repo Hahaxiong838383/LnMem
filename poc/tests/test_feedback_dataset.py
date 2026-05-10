@@ -193,6 +193,28 @@ class TestMalformedRows:
         assert len(events) == 2
         assert any("bad jsonl" in str(item.message).lower() for item in w)
 
+    def test_skip_non_dict_jsonl_row(self, tmp_path: Path) -> None:
+        """F3-01 (codex): jsonl 行是 list/number/string 时必须 fail-soft 跳过，不抛 AttributeError。"""
+        d = tmp_path / "feedback"
+        d.mkdir()
+        (d / "queries_2026-05-10.jsonl").write_text(
+            '[1, 2, 3]\n'  # list (legal json, but raw not dict)
+            '"a string"\n'  # string
+            '42\n'  # number
+            '{"ts":"2026-05-10T00:00:00Z","frame_id":0,"reason":"x",'
+            '"signal":{},"vlm_label":null,'
+            '"user_response":{"label":"match","true_state":null,"note":null},'
+            '"latency_s":0}\n',
+            encoding="utf-8",
+        )
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            events = load_events(d)
+        # 只有最后一条 dict 行应被解析
+        assert len(events) == 1
+        # 至少 1 个 warning
+        assert any("non-dict" in str(item.message).lower() for item in w)
+
     def test_skip_unknown_label(self, tmp_path: Path) -> None:
         d = tmp_path / "feedback"
         d.mkdir()

@@ -102,6 +102,8 @@ phase: PoC Day 12 (剩 3 天)
 | 13:10 CST | 3717s | 3090 | 38 | 3 | 35 | +8.4min / +364 帧 / +6 触发但 0 新弹窗（限速吃满）/ queried/h ≈ 2.9 ✅ |
 | 13:41 CST | 5879s | 4965 | 40 | 3 | 37 | +33min / +1875 帧 / +2 触发 0 新弹窗 / queried/h ≈ 1.84（长尾下降合理）/ skipped jsonl 145KB（FB-09 持续生效）|
 | 13:46 CST | 6184s | 5245 | 40 | 3 | 37 | Phase 3 收尾快照 / 0 ERROR / 川哥这 53min 无新反馈累积，仍 5 条总数 |
+| 14:20 CST | 8228s | 7080 | 41 | **4** | 37 | +34min / +1835 帧 / +1 触发 + **+1 新弹窗 reward**（川哥进帐 1 反馈，5/10 14:16 low_vlm_conf au_description="None" 漏过 FB-09 v2 → skip 浪费）/ queried/h ≈ 1.75 |
+| 14:32 CST | 8946s | 7720 | 41 | 4 | 37 | 本轮收尾 / 反馈累积 6 条总（match×2 / mismatch×1 / **skip×2** / input×1）/ 仍 1 mismatch 远未达 ≥10 触发首次实战微调 |
 
 ## C.1 Phase 2 工程骨架（cc 主线 13:00-13:15 CST 完成）
 
@@ -160,6 +162,59 @@ phase: PoC Day 12 (剩 3 天)
 ### 双门验证
 - Gate 1 verify：16+4 = 20 新测试 PASS
 - **Gate 2 guard**：**295/295 全量回归 PASS（5.45s 无原有测试退化）**
+
+## C.4 Loop 3 (14:20-14:32 CST)：FB-09 v3 + vboss_self 入 ckpt + codex 对抗审 5 finding 修复
+
+### FB-09 v3 sentinel 修复
+**新触发**：5/10 14:16 实战 vlm_label.au_description=`"None"` 字面字符串 + confidence=0.0 + model=gemini-3.1-pro-preview，FB-09 v2 中英 keyword 列表都不命中 → 漏过弹窗 → 川哥点 skip 浪费。
+
+**修复**：trigger.py 加 `VLM_NO_FACE_DESC_SENTINELS = frozenset({"", "none", "null", "n/a", "na", "no description", "no_description", "unknown"})`，描述整体（strip + lower 后）等于 sentinel 即视为无脸；同时 `desc_raw is None` 路径处理 Python None。+3 测试（字面 "None" / Python None / 防过度过滤）。
+
+### vboss_self 真人画像入 ckpt（P0-3 完成）
+**新增模块**：`poc/src/lnn/extend_persona.py`（260 行）
+- `parse_persona_markdown(md_path)`：解析 vboss_self.md frontmatter（PyYAML），抽 HEXACO 6 维 + ECR avoidance + motivation 4 维 + values_top3/bottom + 自动标注 4 项 partial 字段
+- `hexaco_to_embedding(persona_data, embed_dim=8)`：HEXACO 6 维 + avoidance + motivation_mean → 8 维 embedding，中心化到 [-0.5, +0.5]
+- `extend_ckpt_with_persona(src, dst, persona_id, md, overwrite=False)`：扩 base ckpt embedding (n, 8) → (n+1, 8) + persona_to_idx 加 vboss_self → frozen LNNTrainConfig 用 dataclasses.replace + boundary_model 同步 + extension_metadata 显式落 partial_fields
+
+**生产实跑结果**：
+```
+src: poc/data/checkpoints/day7_v2/checkpoint_day5.pt (30 personas, final_state_acc=0.9432)
+dst: poc/data/checkpoints/day12_with_self/checkpoint_day12.pt (31 personas, idx=30 = vboss_self)
+embedding[30] = [0.167, 0.000, 0.250, 0.167, 0.333, 0.417, 0.208, 0.500]
+                  ^^H-H ^^Emot ^^xt   ^^Agr  ^^Cons ^^Open  ^^Avoid ^^Motiv-mean
+partial_fields: [attachment.confidence_low, caps_if_then_patterns_empty,
+                 multimodal_signature_confidence_0.3, schwartz_values_full_10dim_partial]
+```
+
+**端到端验证**：加载 day12_with_self ckpt + persona_idx=30 forward → logits.shape (1, 60, 8) all finite + tau_bias diff (vboss_001 vs vboss_self) max=0.0295（informed init 起效）/ base 30 行 embedding 完全保留（test_base_embedding_rows_unchanged）。
+
+**TDD**：`poc/tests/test_extend_persona.py` 23 cases：parse 7 / informed init 5 / extend ckpt 9 / 端到端 forward 2。
+
+### Codex 对抗审 5 finding 修复（gpt-5.3-codex/high session 019e108e-69ce）
+| ID | 严重度 | 标题 | 修复 |
+|----|--------|------|------|
+| F2-01 | 高 | `fit_step` 未校验 model-adapter 绑定 → silent no-op 风险 | online_trainer.py 加 `state_model.personalization is online_adapter` 断言，不满足抛 OnlineAdapterError |
+| F2-02 | 高 | LNN-FIRST 合规测试证据不足（仅"能跑通"间接证明） | test_online_adapter.py 加 `TestLNNFirstExplicitGuards` 4 cases：CfC 类型断言 / timespan = 0.5+softplus(τ) 公式锁 / drift 增加 → tau_bias + timespan 单调增 / **per-timestep τ 传播行为驱动断言**（idx=0 vs idx=1 在每个 timestep 的 logits 严格不同） |
+| F3-01 | 中 | feedback_dataset 非 dict json 行抛 AttributeError 未捕获 | `_parse_event` 入口 isinstance(raw, dict) 检查 + AttributeError 入 fail-soft；嵌套 user_resp 也加 isinstance |
+| F3-02 | 中 | skip 样本占 mean 分母漂移有效 lr | docstring "设计决策注解" 显式说明：保留 batch-mean 标准 REINFORCE 实现，过滤策略由调用方 batching 阶段负责 |
+| F3-03 | 中 | trigger_if_ready 缺失目录硬错 | online_trainer.py try/except FeedbackDataError → fail-soft 返 (False, zero_counts) |
+
+**新增 6 测试覆盖修复**：
+- test_online_adapter.py +4（TestLNNFirstExplicitGuards 全部）
+- test_online_trainer.py +1（test_silent_no_op_guard_when_model_not_bound F2-01）+1（test_failsoft_when_dir_missing F3-03）
+- test_feedback_dataset.py +1（test_skip_non_dict_jsonl_row F3-01）
+
+### 双门验证（Loop 3）
+- Gate 1 verify：6 + 23 + 3（FB-09 v3）= 32 新测试 PASS（实际累计 33）
+- **Gate 2 guard**：**328/328 全量回归 PASS（5.95s 无原有测试退化）**
+- 注：codex 报告环境无 torch/pytest 仅静态审；动态实测全部由 cc 在 .venv-poc-fresh 完成
+
+### 反馈累积现状（14:32 CST）
+- 总 6 条（5/9 2 + 5/10 4），分布 match×2 / mismatch×1 / skip×2 / input×1
+- mismatch 仍仅 1 → 远未达 ≥10 mismatch 触发首次 LoRA 实战微调
+- queried/h ≈ 1.75 < 5 安全线 ✅
+- daemon uptime 149min ≈ 2.5h，0 ERROR/Traceback
+- **核心结论**：Phase 2 + Phase 3 + vboss_self ckpt + 5 finding 修复均已完成 → 在线学习闭环工程上 100% 就绪 → 卡点已转移到"川哥真人使用累积反馈"
 
 ---
 

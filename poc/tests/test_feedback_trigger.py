@@ -184,6 +184,52 @@ class TestProactiveQueryTrigger(unittest.TestCase):
             self.assertIsNotNone(ev, "英文有效 AU 描述应触发")
             self.assertEqual(ev.reason, "low_vlm_conf")
 
+    def test_skip_low_vlm_conf_literal_none_string(self):
+        """FB-09 v3 (Day 12 fix): au_description='None' 字面字符串 + conf=0 必须命中。
+
+        Regression: 5/10 14:16 实战 au_description='None' (字符串 None 不是 Python None) +
+        confidence=0.0，gemini-3.1-pro-preview 实测 quirk → 漏过中英 keyword 列表。
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            t = ProactiveQueryTrigger(home=Path(tmpdir))
+            for desc in ("None", "none", "NONE", "null", "Null", "N/A", "na",
+                         "Unknown", "  None  ", ""):
+                vlm = {
+                    "confidence": 0.0,
+                    "valence": 0.0,
+                    "arousal": 0.0,
+                    "au_description": desc,
+                }
+                result = t.observe(_frame(vlm=vlm))
+                self.assertIsNone(result, f"应跳过 sentinel desc={desc!r}")
+
+    def test_skip_au_description_python_none(self):
+        """FB-09 v3: au_description 字段实际是 Python None（不是字符串）也算 sentinel。"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            t = ProactiveQueryTrigger(home=Path(tmpdir))
+            vlm = {
+                "confidence": 0.0,
+                "valence": 0.0,
+                "arousal": 0.0,
+                "au_description": None,
+            }
+            result = t.observe(_frame(vlm=vlm))
+            self.assertIsNone(result, "Python None 也应跳过")
+
+    def test_normal_short_desc_not_misclassified(self):
+        """FB-09 v3 防过度过滤：包含 'none' 子串的正常描述（非整词）必须正常触发。"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            t = ProactiveQueryTrigger(home=Path(tmpdir))
+            # "none" 在正常描述中出现作为单词；sentinel 仅匹配整个 description 整体
+            vlm = {
+                "confidence": 0.4,
+                "valence": 0.2,
+                "arousal": 0.3,
+                "au_description": "Showing none of the typical AU4 patterns, calm baseline.",
+            }
+            ev = t.observe(_frame(vlm=vlm))
+            self.assertIsNotNone(ev, "正常描述含 'none' 子串不应误命中 sentinel")
+
     def test_skip_appends_jsonl_not_overwrites(self):
         """FB-09 hardening: 多次 skip 应 append 到 jsonl，而非原子覆盖丢前面记录。"""
         with tempfile.TemporaryDirectory() as tmpdir:

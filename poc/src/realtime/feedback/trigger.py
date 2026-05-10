@@ -57,6 +57,21 @@ VLM_NO_FACE_KEYWORDS_EN = (
     "image does not contain",
     "no human face",
 )
+# FB-09 v3: VLM 偶尔返字面量 sentinel（gemini-3.1-pro-preview quirk）。
+# 实证 5/10 14:16 那条：au_description="None" + confidence=0.0 漏过 keyword 列表
+# 进入弹窗。这些值与 confidence=0 配合即视为无脸。
+# 必须全小写 + strip 后对照（避免 "Hello, none here" 类正常描述误命中——只匹配
+# au_description 整体等于 sentinel，不做子串）。
+VLM_NO_FACE_DESC_SENTINELS = frozenset({
+    "",
+    "none",
+    "null",
+    "n/a",
+    "na",
+    "no description",
+    "no_description",
+    "unknown",
+})
 # Public alias 保持向后兼容（旧测试可能 import VLM_NO_FACE_KEYWORDS）
 VLM_NO_FACE_KEYWORDS = VLM_NO_FACE_KEYWORDS_ZH + VLM_NO_FACE_KEYWORDS_EN
 VLM_NO_FACE_CONF_THRESHOLD = 0.1
@@ -106,7 +121,17 @@ class ProactiveQueryTrigger:
         if not isinstance(conf, (int, float)) or conf >= VLM_NO_FACE_CONF_THRESHOLD:
             return False
 
-        desc = (vlm_label.get("au_description") or "").strip()
+        desc_raw = vlm_label.get("au_description")
+        # FB-09 v3: au_description 可能是字面量字符串 "None" 而非 Python None
+        if desc_raw is None:
+            desc = ""
+        else:
+            desc = str(desc_raw).strip()
+
+        # FB-09 v3 sentinel：au_description 整体等于已知占位字面量（含空串）→ 视为无脸
+        if desc.lower() in VLM_NO_FACE_DESC_SENTINELS:
+            return True
+
         # 中文 keyword 直接匹配（保持原语义）；英文 keyword 走 lower-case 包含
         if any(kw in desc for kw in VLM_NO_FACE_KEYWORDS_ZH):
             return True

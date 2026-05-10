@@ -33,6 +33,7 @@ from poc.src.lnn.feedback_dataset import (
 )
 from poc.src.lnn.online_adapter import OnlineLoRAAdapter
 from poc.src.lnn.online_contracts import (
+    FeedbackDataError,
     OnlineAdapterConfig,
     OnlineAdapterError,
 )
@@ -51,14 +52,22 @@ def trigger_if_ready(
     1. 总反馈条数 ≥ `config.min_total_feedback`（默认 10，PoC 不可妥协最低门槛）
     2. mismatch 条数 ≥ `config.trigger_mismatch_threshold`（默认 10，理想触发量）
 
+    Fail-soft（codex F3-03 修复）：
+    - feedback_dir 不存在 → 返回 (False, zero counts)，不抛错
+      （首次部署 / 目录尚未生成时，调度方应"暂无数据"而非"硬错"）
+
     Returns
     -------
     (should_trigger, counts) where counts contains keys
     {match, mismatch, skip, input, total}（任一类型 0 时也存在该 key 值为 0）
     """
-    events = load_events(feedback_dir)
+    counts = {"match": 0, "mismatch": 0, "skip": 0, "input": 0, "total": 0}
+    try:
+        events = load_events(feedback_dir)
+    except FeedbackDataError:
+        # F3-03: feedback_dir missing → fail-soft 返零计数（不抛）
+        return False, counts
 
-    counts = {"match": 0, "mismatch": 0, "skip": 0, "input": 0}
     counts.update(count_by_label(events))
     counts["total"] = len(events)
 
@@ -86,7 +95,15 @@ def compute_reward_loss(
 
     - reward=+1 (match)    → ``-log p(label)``，标准 CE，最小化即 pull p(label) up
     - reward=-1 (mismatch) → ``+log p(label)``，最小化即 push p(label) down
-    - reward= 0 (skip/input) → 0，不贡献 loss / 不贡献 grad
+    - reward= 0 (skip/input) → 该样本本身贡献 0，**但仍占 mean 分母**
+
+    设计决策注解（codex F3-02）
+    --------------------------
+    skip/input 样本 reward=0 时其 grad 贡献为 0，但因 ``-weighted.mean()`` 仍
+    包含在分母 B 中，等价于把 match/mismatch 样本的有效梯度按 ``B_eff/B`` 缩放。
+    这是"按 batch 平均"的 REINFORCE 标准实现。如果未来需要"非零均值"语义
+    （仅对 ``reward!=0`` 子集求平均），调用方应负责在 batching 阶段就过滤掉
+    skip/input，让本函数收到的 batch 不含 0 reward 样本。
 
     Parameters
     ----------
@@ -157,6 +174,17 @@ def fit_step(
     """
     if x.ndim != 3:
         raise OnlineAdapterError(f"expected x (B, T, F), got {tuple(x.shape)}")
+
+    # F2-01 (codex): 校验 model-adapter 绑定，防 silent no-op
+    # state_model._PersonaConditionedCfC.personalization 必须 IS online_adapter，
+    # 否则 loss.backward() 不会把梯度落到 online_adapter.tau_drift 上。
+    bound_personalization = getattr(state_model, "personalization", None)
+    if bound_personalization is not online_adapter:
+        raise OnlineAdapterError(
+            "fit_step: state_model.personalization is not the passed online_adapter; "
+            "this would silently no-op tau_drift updates. Replace state_model."
+            "personalization = online_adapter before calling fit_step."
+        )
 
     state_model.train()
     optim.zero_grad()

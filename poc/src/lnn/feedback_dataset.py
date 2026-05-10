@@ -23,10 +23,24 @@ from poc.src.lnn.online_contracts import (
 )
 
 
-def _parse_event(raw: dict) -> FeedbackEvent | None:
-    """Parse one jsonl row → FeedbackEvent；fail-soft，失败返 None 但记录 warning。"""
+def _parse_event(raw: object) -> FeedbackEvent | None:
+    """Parse one jsonl row → FeedbackEvent；fail-soft，失败返 None 但记录 warning.
+
+    F3-01 (codex): raw 可能不是 dict（可能是 list/number/string，json 行结构异常但语法合法），
+    入口必须先 isinstance 检查 + 把 AttributeError 纳入 fail-soft 捕获。
+    """
+    if not isinstance(raw, dict):
+        import warnings
+        warnings.warn(
+            f"FeedbackDataset: skip non-dict row (type={type(raw).__name__})",
+            RuntimeWarning,
+        )
+        return None
     try:
         user_resp = raw.get("user_response") or {}
+        # user_resp 也必须是 dict（防嵌套结构异常）
+        if not isinstance(user_resp, dict):
+            user_resp = {}
         label = user_resp.get("label")
         if label not in {"match", "mismatch", "skip", "input"}:
             # 老旧格式或损坏，跳过
@@ -44,7 +58,7 @@ def _parse_event(raw: dict) -> FeedbackEvent | None:
             session_id=raw.get("session_id"),
             event_uuid=raw.get("event_uuid"),
         )
-    except (KeyError, TypeError, ValueError) as e:
+    except (KeyError, TypeError, ValueError, AttributeError) as e:
         # fail-soft: log via warning (避免 silent fail 隐藏 bug)
         # 按 ~/.claude/rules silent_fail_soft_hides_bugs，必须 console.warn
         import warnings
