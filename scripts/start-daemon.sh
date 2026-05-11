@@ -127,7 +127,7 @@ echo "   cwd:    $REPO_ROOT"
 echo "   python: $VENV_PYTHON"
 echo "   module: $DAEMON_MODULE"
 echo "   git:    $(cd "$REPO_ROOT" && git log --oneline -1 2>/dev/null || echo '<not a git repo>')"
-echo "   args:   ${DAEMON_ARGS[*]:-<none>}"
+echo "   args:   ${DAEMON_ARGS[*]+${DAEMON_ARGS[*]}}"  # bash 3.2 兼容空数组
 echo ""
 echo -e "${YELLOW}注意：摄像头 TCC 授权依赖当前 Terminal.app 上下文，不要 Ctrl+Z 后台${NC}"
 echo ""
@@ -137,7 +137,15 @@ cd "$REPO_ROOT"
 trap - ERR
 # exec 替换 shell 自身，确保 SIGINT 直达 daemon_main
 # exec 失败极少见（venv python 已在前置检查中验过），但仍打印明确错误
-exec "$VENV_PYTHON" -m "$DAEMON_MODULE" "${DAEMON_ARGS[@]}" || {
-    echo -e "${RED}❌ exec failed: python module 启动失败（前置检查过但 runtime 失败）${NC}" >&2
-    exit 6
-}
+# bash 3.2 兼容：空数组用 `[@]+...` 条件展开防 unbound variable
+if [[ ${#DAEMON_ARGS[@]} -gt 0 ]]; then
+    exec "$VENV_PYTHON" -m "$DAEMON_MODULE" "${DAEMON_ARGS[@]}" || {
+        echo -e "${RED}❌ exec failed: python module 启动失败${NC}" >&2
+        exit 6
+    }
+else
+    exec "$VENV_PYTHON" -m "$DAEMON_MODULE" || {
+        echo -e "${RED}❌ exec failed: python module 启动失败${NC}" >&2
+        exit 6
+    }
+fi
