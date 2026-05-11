@@ -8,6 +8,19 @@ purpose: Gemini 工具读取本仓库时的强制入口文件
 
 > Gemini CLI（0.38+）会自动读取本文件作为项目级系统指令。
 
+---
+
+## ⚠️ P-1 最高准则（先读，凌驾全部其他规则）
+
+> **[`docs/principles/lnn-first.md`](docs/principles/lnn-first.md) — LNN-FIRST 项目最高准则**
+>
+> LnMem = Liquid neural Memory。记忆系统内核**必须**以 LNN（LTC/CfC 微分方程）为核心。
+> Gemini 收到的调研类任务（如 HEXACO×τ 映射、LTC 数学推导），输出的"理论映射表"**必须**能直接喂给 LTC ODE——给出 τ、A、γ、β 等可数学化参数，**不要**给"轻度笑"这种自然语言形容。
+>
+> 涉及"时间 / 演化 / 记忆 / 个性化"的方案 review，**必须**检查是否符合 LNN-FIRST。
+
+---
+
 ## 必读文档（按顺序）
 
 1. **[`docs/STYLE.md`](docs/STYLE.md)** — LnMem 文档写作规范，**强制遵循**（4 级体裁分层 + L1 frontmatter + L2 万能公式 v1）。任何 .md 改动前必读

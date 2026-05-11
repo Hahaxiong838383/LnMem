@@ -1,0 +1,85 @@
+{
+  "persona_id": "vboss_014",
+  "base": {
+    "smile_intensity": 0.08,
+    "brow_furrow": 0.08,
+    "cheek_raise": 0.08,
+    "lip_corner_depress": 0.1,
+    "jaw_drop": 0.05,
+    "mouth_open_ratio": 0.05
+  },
+  "state_offset": {
+    "low_energy": {
+      "smile_intensity": 0.006207,
+      "brow_furrow": 0.021724,
+      "cheek_raise": 0.002759,
+      "lip_corner_depress": 0.15,
+      "jaw_drop": 0.05,
+      "mouth_open_ratio": 0.05
+    },
+    "focused": {
+      "smile_intensity": 0.056207,
+      "brow_furrow": 0.054483,
+      "cheek_raise": 0.04931,
+      "lip_corner_depress": 0.05,
+      "jaw_drop": -0.05,
+      "mouth_open_ratio": -0.05
+    },
+    "distracted": {
+      "smile_intensity": 0.056207,
+      "brow_furrow": 0.016552,
+      "cheek_raise": 0.04931,
+      "lip_corner_depress": 0.0,
+      "jaw_drop": 0.15,
+      "mouth_open_ratio": 0.2
+    },
+    "fatigued": {
+      "smile_intensity": 0.006207,
+      "brow_furrow": 0.021724,
+      "cheek_raise": 0.002759,
+      "lip_corner_depress": 0.2,
+      "jaw_drop": 0.2,
+      "mouth_open_ratio": 0.15
+    },
+    "emotional_positive": {
+      "smile_intensity": 0.759655,
+      "brow_furrow": -0.031724,
+      "cheek_raise": 0.668276,
+      "lip_corner_depress": -0.05,
+      "jaw_drop": 0.1,
+      "mouth_open_ratio": 0.2
+    },
+    "emotional_negative": {
+      "smile_intensity": 0.044138,
+      "brow_furrow": 0.74931,
+      "cheek_raise": 0.044138,
+      "lip_corner_depress": 0.5,
+      "jaw_drop": 0.05,
+      "mouth_open_ratio": 0.0
+    },
+    "neutral": {
+      "smile_intensity": 0.056207,
+      "brow_furrow": -0.005862,
+      "cheek_raise": 0.025517,
+      "lip_corner_depress": 0.0,
+      "jaw_drop": 0.0,
+      "mouth_open_ratio": 0.0
+    },
+    "transitioning": {
+      "smile_intensity": 0.185517,
+      "brow_furrow": 0.054483,
+      "cheek_raise": 0.09931,
+      "lip_corner_depress": 0.0,
+      "jaw_drop": 0.05,
+      "mouth_open_ratio": 0.05
+    }
+  },
+  "tau": {
+    "smile_intensity": 2.5,
+    "brow_furrow": 4.5,
+    "cheek_raise": 2.5,
+    "lip_corner_depress": 4.5,
+    "jaw_drop": 3.5,
+    "mouth_open_ratio": 3.5
+  }
+}

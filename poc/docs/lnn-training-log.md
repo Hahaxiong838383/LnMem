@@ -23,6 +23,8 @@ references:
 | 2 | 2026-05-08 | 08f44b5 | state_recognition | 验证: confusion matrix + threshold sweep + human verify | val_acc=70.2% | focused F1=0.87, transitioning F1=0.01 | — | kept | neutral 吞噬 transitioning/low_energy; 最优 boundary 阈值=0.45→F1=0.3123(+5.9%) |
 | 3 | 2026-05-08 | 137878c | multimodal_fusion | 真人验证: 三模态采集(face+mic+app)应覆盖所有状态 | 4/12 维锁死 0.5 | 12/12 维真实, 但无表情特征 | — | kept | 发现 feature_dim 设计缺陷: 无 AU6/AU12 → 不能检测安静的积极; Day 6 扩展 |
 | 4 | 2026-05-08 | — | multimodal_fusion | feature_dim 12→18: +6 AU 表情特征(smile/brow/cheek/lip/jaw/mouth)应修复 emotion 盲区 | 12 维无表情 | 18 维全通路, 138/138 tests PASS | +6 dim | kept | cc 主线 plumbing + codex AU extraction, 待重训验证 |
+| 5 | 2026-05-08 | — | multimodal_fusion + P-1 LNN-FIRST | LTC 演化替代静态查表：每个 persona 有自己的 (base, Δ, τ) 18 个数值，d(expr)/dt = (A(state)-expr)/τ 半隐式欧拉演化 | 静态查表 | 30/30 personas LTC profile + 900 信号重生成 + 半隐式欧拉数值稳定 | per-persona | kept | LNN 个性化首次真正生效；vboss_007 vs vboss_001 反应速度差 12×，外显程度差 14× |
+| 6 | 2026-05-08 | — | 5stage_memory | 把 5 阶段记忆建模为 5 个 LTC 单元串联：m₁(τ=30s) → m₂(5min) → m₃(1h) → m₄(1day) → m₅(∞ when confirmed)，重要性门 g 由 LLM 裁判输出 | 待实现 | memory_lnn.py 10/10 tests PASS + demo 4 项物理验证通过 | new module | kept | LnMem 项目核心模块；记忆从"LLM 文本游戏"升级为"动力学系统" |
 
 **status 取值**（仅 4 种）：
 - `kept` — 实验成功，保留 commit

@@ -5,6 +5,135 @@
 
 ---
 
+## v0.17 — 2026-05-08（Day 6.5 真人验证 + py-feat 集成 — 修复 Day 5 盲区）
+
+### ⭐ 真人验证里程碑（核心交付）
+
+**修复 Day 5 关键盲区**："安静微笑→positive" 模型从不触发 → 真人测试 100% 触发 ✅
+
+**关键证据 #74**：同一帧视频流（smile=0.76 brow=0.46）
+- vboss_001（内敛 base_smile=0.10）→ **emotional_positive 72%**
+- vboss_007（外向 base_smile=0.30）→ **focused 60%**
+
+**这是 LNN-FIRST P-1 准则真人级生效的硬证据**——FiLM/τ-bias 让不同 persona 对同样输入有不同解读。verify_persona_learned 的 10.5pp 合成差异在真人验证中复现。
+
+### vision/ 视觉感知层（架构升级）
+
+P-1 LNN-FIRST 准则下，视觉特征提取层与 LNN 内核解耦：
+- `vision/__init__.py`
+- `vision/au_extractor.py` — py-feat 0.6.2 集成（17 AU + 7 emotion）
+- `vision/feature_calibrator.py` — AUCaliper（gemini 调研产出）
+  - **EMA 动态 baseline**（α=0.01）
+  - **AU04 gamma 拉伸**（用力 0.19 → ~0.8）
+  - **AU01/02/05/11/17 相对归一化**（去高基线 bias）
+  - **AU06/12 直接用 raw**（基线极低无需减）
+  - **EMFACS 公式**（17 AU → 7 emotion 完整映射）
+
+### face_signals.py 升级
+
+- 修复 `brow_furrow` 公式 bug（旧公式数学上必然返回 0）
+- 新增 `FaceSignalConfig.use_pyfeat` 选项（向后兼容）
+
+### 修复的 4 个根因（详见 docs/principles/lnn-first.md §4.1）
+
+1. **训练-推理分布饱和**：合成数据 smile=0.98 vs 真人 0.37 → OOD
+2. **自写 AU 公式 bug**：mock 测试 PASS 但真人输入永远 0
+3. **py-feat 亚洲人脸 bias**（Rhim 2022 文献）：内眦赘皮误判 + 信号衰减
+4. **状态间特征区分度污染**：focused 状态 brow 偏移与 negative 重叠
+
+### 新增配套文档
+
+- `poc/docs/au-calibration-research.md` — py-feat 偏差矫正与 EMFACS 映射（gemini 调研产出，233 行）
+- `poc/docs/principles/lnn-first.md §4.1` — 视觉感知层与 LNN 内核边界 + 4 条踩坑铁律
+
+### Agent Team 协作（前台并行）
+
+| Agent | 产出 | 评价 |
+|-------|------|------|
+| **codex (gpt-5.3-codex)** | vision 模块 4 文件 + tests | 简版 sigmoid 校准（cc 主线整合 gemini 升级） |
+| **gemini (3-pro-preview)** | AUCaliper 高级方案 + EMFACS 公式 + Rhim 2022 文献支持 | 高质量调研（被 cc 主线整合到代码） |
+| **cc 主线** | 整合 + 测试 + diagnostic 工具 + checkpoint 备份 | 22/22 tests PASS |
+
+### 训练继续进行（双机并行）
+
+- **Air M5**：epoch 4/20，val_acc **91.5%**，bnd_f1 **0.565**（突破 0.5 AC）
+- **Studio M2 Max**：epoch 1/20（30c GPU 仅快 7%——CfC step-by-step 调度瓶颈）
+
+### Day 6.5 已知局限（P3 长期方向）
+
+emotional_negative anger 风格皱眉不触发：合成数据 LLM 推导让 focused 也有 brow +0.3~0.5 偏移，污染 negative 信号轴。
+**P3 修复**：用 FER2013/AffectNet 跑 py-feat 提取 AU 真实分布，约束 LLM 推导的 (base, Δ) 范围；focused brow 偏移限制在 +0.0~0.1。
+
+---
+
+## v0.16 — 2026-05-08（Day 6.5 P0+P0.5：LTC 演化 + 5 阶段记忆 LNN 化重构）
+
+### ⭐ 项目最高准则上线
+
+**P-1 LNN-FIRST**（`docs/principles/lnn-first.md`）—— 老板 2026-05-08 钦定：
+凡涉及"时间/演化/记忆/个性化"，第一性原理必须是 LTC/CfC 微分方程；
+用 LLM/规则替代 LTC 必须 ADR + 老板签字。
+21 处入口部署（CLAUDE/AGENTS/GEMINI/.cursorrules/poc README+spec 等）。
+
+**意义**：LnMem 唯一壁垒 = 记忆是动力学系统，LLM 只做重要性裁判 + 语言渲染。
+违反 = 沦为 mem0/zep 的 N+1 个克隆 = 项目失去存在意义。
+
+### P0 表情 LTC 演化（替代静态查表）
+
+| 模块 | Agent | 状态 |
+|------|-------|------|
+| `expression_dynamics.py` LTC 演化器 + ExpressionProfile schema | codex | ✅ 11/11 tests PASS |
+| HEXACO × FACS × τ 心理学映射表 | gemini | ✅ `docs/hexaco-au-tau-theory.md` |
+| LLM-driven persona profile 生成器（30 主人 × 18 数值） | cc + LLM | ✅ 30/30 个性化生效 |
+| `script_to_signals.py` LTC 集成 | cc | ✅ 37/37 tests PASS |
+| 900 个剧本重新生成 18-dim 信号（LTC 演化） | cc 后台 | ✅ 100% 含 profile |
+
+**LTC 公式（替代静态查表）**：
+```
+d(expr_i)/dt = (A_i^persona(state) - expr_i) / τ_i^persona
+A_i = base_i^persona + Δ_i^persona[state]
+半隐式欧拉离散化：expr[t+1] = (expr[t] + A·dt/τ) / (1 + dt/τ)
+```
+
+**个性化数值证据**（LNN-FIRST 真正生效）：
+- vboss_007（外向）：base_smile=0.30, **τ_smile=0.8s**, Δ@positive=+0.70 → day0 positive 帧 avg_smile=**0.98**
+- vboss_001（内敛）：base_smile=0.10, **τ_smile=10s**, Δ@positive=+0.20 → 全程克制
+- 反应速度差 12×，积极外显程度差 14×
+
+### P0.5 5 阶段记忆 LTC 链（项目核心模块）
+
+| 模块 | Agent | 状态 |
+|------|-------|------|
+| `docs/memory-dynamics.md` 5 阶段 ODE 公式文档 | cc | ✅ 330+ 行物理直觉 + 完整公式 |
+| `memory/memory_lnn.py` 5 阶段 LTC 链 + persona τ 个性化 | codex | ✅ 10/10 tests PASS |
+| `memory/importance_judge.py` LLM 重要性裁判（仅输出 g 标量） | codex | ✅ |
+| 半隐式欧拉数值稳定性修复 | cc | ✅ 任何 dt/τ 比都数值稳定 |
+| `scripts/memory_lnn_demo.py` 端到端物理验证 | cc | ✅ 4 个演示全通过 |
+
+**核心方程**：
+```
+m₁(刚发生)：    τ₁ ≈ 30s         dm₁/dt = -m₁/τ₁ + I(t)
+m₂(短期)：      τ₂ ≈ 5min        dm₂/dt = -m₂/τ₂ + g₁₂·m₁
+m₃(工作)：      τ₃ ≈ 1hour       dm₃/dt = -m₃/τ₃ + g₂₃·m₂
+m₄(长期)：      τ₄ ≈ 24hour      dm₄/dt = -m₄/τ₄ + g₃₄·m₃
+m₅(终身)：      τ₅ → ∞ (老板确认) dm₅/dt = -m₅/τ₅ + g₄₅·m₄
+```
+
+**物理验证（demo 输出）**：
+- m₁ τ=30s → 1min 衰减到 33%，5min 到 0.41%（指数衰减 ✓）
+- confirmed=True 后 m₅ 1 周后保持/累积，未确认 m₅ 自然衰减 ✓
+- persona 短τ 充电 0.94 → 停后 0.08（快忘）vs 长τ 充电 0.24 → 停后 0.24（慢忘）
+
+### 关键发现
+
+**LLM 在 LnMem 的合法位置只剩两类**：
+1. **重要性裁判**：输出 g_{i,i+1} ∈ [0,1] 标量门
+2. **语言渲染**：把 m_i 状态向量翻译成人类可读对话
+
+**记忆衰减、状态演化、表情外显，全部由 LTC ODE 驱动，不再是文本游戏。**
+
+---
+
 ## v0.15 — 2026-05-08（Day 6 P0: feature_dim 12→18 · AU 表情特征扩展）
 
 Day 5 真人验证暴露核心缺陷：12 维全认知特征，无表情信号 → 模型不能检测安静的积极。

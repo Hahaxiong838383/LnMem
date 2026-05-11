@@ -39,7 +39,8 @@ class _PersonaConditionedCfC(nn.Module):
         self.readout = nn.Linear(config.hidden_dim, out_dim)
 
     def _timespans_from_tau(self, tau_bias: Tensor) -> Tensor:
-        return torch.clamp(1.0 + 0.1 * torch.tanh(tau_bias), min=0.5, max=1.5)
+        import torch.nn.functional as F
+        return 0.5 + F.softplus(tau_bias)
 
     def _apply_film(self, hidden: Tensor, gamma: Tensor, beta: Tensor) -> Tensor:
         scale = 1.0 + 0.1 * torch.tanh(gamma)

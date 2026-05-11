@@ -1,0 +1,427 @@
+"""ProactiveQueryTrigger — 监听信号判断是否触发询问。
+
+触发条件（V0.3 Phase B 多通道版）：
+1. brow_burst: 连续 N 帧 brow_furrow > threshold（强烈皱眉，V0.2→V0.3 调严）
+2. low_vlm_conf: vlm_label.confidence < threshold（VLM 拿不准）
+3. **pose_held**（V0.3 新通道）: 滑窗 N 帧 head_pose stddev < threshold（长时间专注盯屏）
+
+每个通道独立 cooldown（按 frame_id 计），防同通道连续触发，保证弹窗 reason 多样化。
+
+触发后：emit TriggerEvent，清窗口 + 设 cooldown deadline。
+
+FB-09 fix (V0.2)：
+VLM 可能自报"未检测到人脸"等，此时 confidence=0 不应触发弹窗。
+加双重过滤：au_description 命中关键词 AND confidence < 0.1 -> 跳过。
+
+V0.3 Phase B 数据驱动决策（基于 2026-05-09~11 共 77979 帧实测）：
+- brow P75=0.936 → V0.2 0.85+10 帧每 2.5min 触发，过敏 → V0.3 默认 0.95+15 帧（每 8min）
+- smile_intensity / cheek_raise 49% 饱和到 1.0（信号病态），absolute threshold 失效 → 放弃
+- pose_held std<2.5°/60 帧每 2.3min 触发，加 300s cooldown 后 ~5min 一次合理
+"""
+from __future__ import annotations
+
+import json
+import logging
+import math
+from collections import deque
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+# V0.3 Phase B 阈值（数据驱动收紧）：
+# - brow window 10→15 帧 (15s @ 1fps)，过滤瞬间皱眉
+# - brow threshold 0.85→0.95，过滤老板日常 brow=0.85-0.93（P75）
+_BROW_BURST_WINDOW = 15
+_BROW_BURST_THRESHOLD = 0.95
+_LOW_VLM_CONF_THRESHOLD = 0.65
+
+# V0.3 Phase B 新增 pose_held 通道：
+# - 滑窗 60 帧（60s @ 1fps）
+# - max(pitch_std, yaw_std, roll_std) < 2.5°  → 头部基本不动 = 专注盯屏
+# - outlier pose（任一角 > 60°，py-feat 偶发错误）整窗作废，防误触
+_POSE_HELD_WINDOW = 60
+_POSE_HELD_STDDEV_THRESHOLD_DEG = 2.5
+_POSE_OUTLIER_ABS_THRESHOLD_DEG = 60.0
+
+# Cooldown（按 frame_id 计 / 1fps 即秒）：
+# - brow: 5min（强烈情绪，间隔短点）
+# - pose_held: 5min（专注状态，避免每隔 2min 就问）
+# - low_vlm_conf: 2min（VLM 拿不准是相对低强度信号）
+_COOLDOWN_FRAMES_BROW = 300
+_COOLDOWN_FRAMES_POSE_HELD = 300
+_COOLDOWN_FRAMES_LOW_VLM_CONF = 120
+
+# FB-09: VLM 自报无脸的关键词清单（中文 + 英文）
+# 中英双语必须都覆盖：gemini-3.1-pro-preview 在 prompt 不强制中文时会偶尔回英文
+# （5/10 04:32 实证：au_description="The image does not contain a face." 漏过）
+# 匹配采用 lower-case 包含语义，故英文项必须全部小写。
+VLM_NO_FACE_KEYWORDS_ZH = (
+    "未检测到人脸",
+    "图片中未出现人脸",
+    "图中未出现人脸",
+    "图片中未包含人脸",
+    "图中未包含人脸",
+    "无法识别",
+    "无法分析",
+    "无法检测",
+    "无法进行",
+)
+VLM_NO_FACE_KEYWORDS_EN = (
+    "does not contain a face",
+    "does not contain any face",
+    "no face detected",
+    "no face is detected",
+    "no face visible",
+    "cannot detect a face",
+    "cannot detect any face",
+    "unable to detect",
+    "unable to identify",
+    "unable to analyze",
+    "unable to analyse",
+    "image does not contain",
+    "no human face",
+)
+# FB-09 v3: VLM 偶尔返字面量 sentinel（gemini-3.1-pro-preview quirk）。
+# 实证 5/10 14:16 那条：au_description="None" + confidence=0.0 漏过 keyword 列表
+# 进入弹窗。这些值与 confidence=0 配合即视为无脸。
+# 必须全小写 + strip 后对照（避免 "Hello, none here" 类正常描述误命中——只匹配
+# au_description 整体等于 sentinel，不做子串）。
+VLM_NO_FACE_DESC_SENTINELS = frozenset({
+    "",
+    "none",
+    "null",
+    "n/a",
+    "na",
+    "no description",
+    "no_description",
+    "unknown",
+})
+# Public alias 保持向后兼容（旧测试可能 import VLM_NO_FACE_KEYWORDS）
+VLM_NO_FACE_KEYWORDS = VLM_NO_FACE_KEYWORDS_ZH + VLM_NO_FACE_KEYWORDS_EN
+VLM_NO_FACE_CONF_THRESHOLD = 0.1
+
+_log = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class TriggerEvent:
+    """触发询问事件（不可变）。"""
+    ts: str
+    frame_id: int
+    reason: str  # "brow_burst" | "low_vlm_conf" | "pose_held"
+    signal_snapshot: dict[str, float]
+    vlm_label: dict[str, Any] | None
+
+
+class ProactiveQueryTrigger:
+    """监听 signal pipeline 输出 dict，判断是否应触发询问。
+
+    V0.3 Phase B：三通道 + per-channel cooldown。
+    """
+
+    def __init__(
+        self,
+        brow_threshold: float = _BROW_BURST_THRESHOLD,
+        brow_window: int = _BROW_BURST_WINDOW,
+        vlm_conf_threshold: float = _LOW_VLM_CONF_THRESHOLD,
+        pose_held_window: int = _POSE_HELD_WINDOW,
+        pose_held_stddev_threshold_deg: float = _POSE_HELD_STDDEV_THRESHOLD_DEG,
+        pose_outlier_abs_threshold_deg: float = _POSE_OUTLIER_ABS_THRESHOLD_DEG,
+        cooldown_frames_brow: int = _COOLDOWN_FRAMES_BROW,
+        cooldown_frames_pose_held: int = _COOLDOWN_FRAMES_POSE_HELD,
+        cooldown_frames_low_vlm_conf: int = _COOLDOWN_FRAMES_LOW_VLM_CONF,
+        enable_pose_held: bool = True,
+        home: Path | None = None,
+    ) -> None:
+        self._brow_threshold = brow_threshold
+        self._brow_window_size = brow_window
+        self._vlm_conf_threshold = vlm_conf_threshold
+        self._brow_history: deque[float] = deque(maxlen=brow_window)
+        # V0.3 pose_held 状态：分别滑窗存 pitch / yaw / roll
+        # F2-04: enable_pose_held=False 时全程不维护 pose 滑窗（V0.2 真实禁用语义）
+        self._enable_pose_held = enable_pose_held
+        self._pose_window_size = pose_held_window
+        self._pose_stddev_threshold = pose_held_stddev_threshold_deg
+        self._pose_outlier_threshold = pose_outlier_abs_threshold_deg
+        self._pose_pitch: deque[float] = deque(maxlen=pose_held_window)
+        self._pose_yaw: deque[float] = deque(maxlen=pose_held_window)
+        self._pose_roll: deque[float] = deque(maxlen=pose_held_window)
+        # V0.3 per-channel cooldown：last_trigger_frame_id（None=从未触发）
+        self._cooldown_frames = {
+            "brow_burst": cooldown_frames_brow,
+            "pose_held": cooldown_frames_pose_held,
+            "low_vlm_conf": cooldown_frames_low_vlm_conf,
+        }
+        self._last_trigger_frame: dict[str, int | None] = {
+            "brow_burst": None,
+            "pose_held": None,
+            "low_vlm_conf": None,
+        }
+        # F1-01: 跟踪上一帧 frame_id，用于检测 stream 重启/跨天回退
+        self._last_seen_frame_id: int | None = None
+        self._home = home or Path.home()
+
+    def _in_cooldown(self, channel: str, frame_id: int) -> bool:
+        """True 若 channel 距上次触发不足 cooldown_frames。"""
+        last = self._last_trigger_frame.get(channel)
+        if last is None:
+            return False
+        delta = frame_id - last
+        if delta < 0:
+            # frame_id 回退（防御保险，正常已被 observe() 入口的单调性检查捕获）
+            self._last_trigger_frame[channel] = None
+            return False
+        cd = self._cooldown_frames[channel]
+        return delta < cd
+
+    def _mark_trigger(self, channel: str, frame_id: int) -> None:
+        self._last_trigger_frame[channel] = frame_id
+        self._last_seen_frame_id = frame_id
+
+    def _detect_and_handle_frame_rollback(self, frame_id: int) -> None:
+        """F1-01 (codex 一审)：frame_id 跨天会被重置（实测 5/9 fid=801→5/10 fid=194）。
+
+        在 observe() 入口主动检测：若 frame_id 比上次见过的小，视为 stream 重启
+        → 一次性 reset：
+        (a) 所有 channel cooldown 状态
+        (b) NF-01 (codex 二审)：brow_history + pose 滑窗 evidence
+            —— 防跨 session 旧 evidence 在 F3-06 修复下立即触发新 session 首帧
+        """
+        if self._last_seen_frame_id is not None and frame_id < self._last_seen_frame_id:
+            for ch in self._last_trigger_frame:
+                self._last_trigger_frame[ch] = None
+            # NF-01: rollback 必须清 evidence，否则 F3-06 "cooldown 内保留 evidence"
+            # 会让旧 session 的高 brow 窗口在新 session 首帧立即触发
+            self._brow_history.clear()
+            self._clear_pose_windows()
+        self._last_seen_frame_id = frame_id
+
+    def _is_vlm_self_report_no_face(self, vlm_label: dict[str, Any] | None) -> bool:
+        """判断 VLM 是否自报"未检测到人脸"。
+
+        两种 confidence=0 语义：
+        (a) VLM 看到脸但拿不准状态 → 应该问用户（correct）
+        (b) VLM 自报未检测到人脸 → 不该问用户（无效弹窗）
+
+        双重过滤：au_description 命中关键词 AND confidence < 0.1
+        """
+        if not vlm_label:
+            return False
+
+        conf = vlm_label.get("confidence", 1.0)
+        if not isinstance(conf, (int, float)) or conf >= VLM_NO_FACE_CONF_THRESHOLD:
+            return False
+
+        desc_raw = vlm_label.get("au_description")
+        # FB-09 v3: au_description 可能是字面量字符串 "None" 而非 Python None
+        if desc_raw is None:
+            desc = ""
+        else:
+            desc = str(desc_raw).strip()
+
+        # FB-09 v3 sentinel：au_description 整体等于已知占位字面量（含空串）→ 视为无脸
+        if desc.lower() in VLM_NO_FACE_DESC_SENTINELS:
+            return True
+
+        # 中文 keyword 直接匹配（保持原语义）；英文 keyword 走 lower-case 包含
+        if any(kw in desc for kw in VLM_NO_FACE_KEYWORDS_ZH):
+            return True
+        desc_lower = desc.lower()
+        return any(kw in desc_lower for kw in VLM_NO_FACE_KEYWORDS_EN)
+
+    def _log_vlm_no_face_skip(self, item: dict[str, Any], vlm_label: dict[str, Any] | None) -> None:
+        """记录 VLM 自报无脸导致的跳过事件到 ~/.lnmem/feedback/skipped_<date>.jsonl。"""
+        try:
+            feedback_dir = self._home / ".lnmem" / "feedback"
+            feedback_dir.mkdir(parents=True, exist_ok=True)
+
+            day = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
+            path = feedback_dir / f"skipped_{day}.jsonl"
+
+            record = {
+                "ts": str(item.get("ts", "")),
+                "frame_id": int(item.get("frame_id", 0)),
+                "reason": "vlm_no_face_skip",
+                "vlm_label": vlm_label,
+                "au_description": (vlm_label or {}).get("au_description", ""),
+            }
+
+            line = json.dumps(record, ensure_ascii=False) + "\n"
+            with path.open("a", encoding="utf-8") as f:
+                f.write(line)
+
+        except Exception as e:
+            _log.warning("Failed to log vlm_no_face_skip: %s", e)
+
+    @staticmethod
+    def _safe_float(x: Any) -> float | None:
+        """F2-03 (codex 一审)：脏数据防御 — None/str/NaN/inf 均返 None。
+
+        注：bool 是 int 的子类，需显式排除（True 会被误当 1.0）。
+        """
+        if isinstance(x, bool):
+            return None
+        if isinstance(x, (int, float)) and math.isfinite(x):
+            return float(x)
+        return None
+
+    def _clear_pose_windows(self) -> None:
+        self._pose_pitch.clear()
+        self._pose_yaw.clear()
+        self._pose_roll.clear()
+
+    def _update_pose_window(self, head_pose: dict[str, Any] | None) -> None:
+        """更新 pose 滑窗。
+
+        F2-03: head_pose 字段任意值通过 _safe_float 防御性 parse。
+        F3-05: roll 字段可选（schema 不固定，py-feat 偶缺）；缺则**仅不入 roll 滑窗**，
+              pitch/yaw 仍参与统计；不再用 0.0 兜底污染 std。
+        outlier (>60°) 任一轴触发 → 整窗作废。
+        """
+        if not self._enable_pose_held:
+            return  # F2-04: V0.2 真实禁用语义
+
+        if not isinstance(head_pose, dict):
+            self._clear_pose_windows()
+            return
+
+        pitch = self._safe_float(head_pose.get("pitch_deg"))
+        yaw = self._safe_float(head_pose.get("yaw_deg"))
+        roll = self._safe_float(head_pose.get("roll_deg"))  # 可缺
+
+        # 必须的轴（pitch/yaw）缺则清窗
+        if pitch is None or yaw is None:
+            self._clear_pose_windows()
+            return
+
+        # outlier：任一可用轴超阈值 → 整窗作废
+        out = self._pose_outlier_threshold
+        if abs(pitch) > out or abs(yaw) > out or (roll is not None and abs(roll) > out):
+            self._clear_pose_windows()
+            return
+
+        self._pose_pitch.append(pitch)
+        self._pose_yaw.append(yaw)
+        if roll is not None:
+            self._pose_roll.append(roll)
+        else:
+            # F3-05 corner case (实测 7.5% 帧无 roll)：
+            # 若 roll deque 已满（来自历史帧）而当前帧缺 roll，
+            # 不清 roll deque 会让 roll std 计算的窗口与 pitch/yaw 不对齐
+            # （roll 内容滞后）。清空 roll deque 强制后续仅 pitch/yaw 参与 max。
+            self._pose_roll.clear()
+
+    def _pose_held_max_stddev(self) -> float | None:
+        """返回滑窗内 max(pitch_std, yaw_std, [roll_std])，窗未满返 None。
+
+        F3-05: roll 滑窗满时才参与 max；不满（roll 字段间歇缺）时仅用 pitch/yaw。
+        """
+        if len(self._pose_pitch) < self._pose_window_size:
+            return None
+        n = self._pose_window_size
+
+        def _std(buf: deque[float]) -> float:
+            mean = sum(buf) / n
+            return math.sqrt(sum((v - mean) ** 2 for v in buf) / n)
+
+        candidates = [_std(self._pose_pitch), _std(self._pose_yaw)]
+        if len(self._pose_roll) == n:
+            candidates.append(_std(self._pose_roll))
+        return max(candidates)
+
+    def observe(self, item: dict[str, Any]) -> TriggerEvent | None:
+        """处理一条 signal pipeline 输出，返回 TriggerEvent 或 None。
+
+        V0.3 Phase B 通道优先级（per-channel cooldown 独立）：
+        1. low_vlm_conf（VLM 描述具体，先看）
+        2. brow_burst（强烈情绪）
+        3. pose_held（专注盯屏）
+        """
+        frame_id = int(item.get("frame_id", 0))
+        ts = str(item.get("ts", ""))
+
+        # F1-01: 跨天/daemon 重启会让 frame_id 回退；检测到回退则 reset cooldown
+        self._detect_and_handle_frame_rollback(frame_id)
+
+        if not item.get("face_detected"):
+            self._brow_history.clear()
+            self._clear_pose_windows()
+            return None
+
+        expression = item.get("expression") or {}
+        brow = float(expression.get("brow_furrow", 0.0))
+        self._brow_history.append(brow)
+        self._update_pose_window(item.get("head_pose"))
+
+        signal_snapshot = {
+            "brow_furrow": brow,
+            "smile_intensity": float(expression.get("smile_intensity", 0.0)),
+            "eye_closure": float(expression.get("eye_closure", 0.0)),
+            "cheek_raise": float(expression.get("cheek_raise", 0.0)),
+        }
+        vlm_label = item.get("vlm_label")
+
+        # 优先级 1: low_vlm_conf（有 VLM 描述更具体）
+        # F2-02 (codex 一审): no-face 自报**只**屏蔽 low_vlm_conf 通道，
+        # 仍允许 brow/pose 通道在同一帧评估（多通道独立性）
+        if isinstance(vlm_label, dict):
+            conf = vlm_label.get("confidence")
+            if isinstance(conf, (int, float)) and conf < self._vlm_conf_threshold:
+                if self._is_vlm_self_report_no_face(vlm_label):
+                    self._log_vlm_no_face_skip(item, dict(vlm_label))
+                    # 不 return — 继续看 brow_burst / pose_held
+                elif not self._in_cooldown("low_vlm_conf", frame_id):
+                    self._mark_trigger("low_vlm_conf", frame_id)
+                    return TriggerEvent(
+                        ts=ts,
+                        frame_id=frame_id,
+                        reason="low_vlm_conf",
+                        signal_snapshot=signal_snapshot,
+                        vlm_label=dict(vlm_label),
+                    )
+
+        # 优先级 2: brow_burst
+        # F3-06 (codex 一审): cooldown 内**不清窗**，evidence 保留供 cooldown 解禁后立即触发
+        if (
+            len(self._brow_history) >= self._brow_window_size
+            and all(b > self._brow_threshold for b in self._brow_history)
+        ):
+            if not self._in_cooldown("brow_burst", frame_id):
+                self._brow_history.clear()  # 仅触发时清窗，防同段 evidence 反复触发
+                self._mark_trigger("brow_burst", frame_id)
+                return TriggerEvent(
+                    ts=ts,
+                    frame_id=frame_id,
+                    reason="brow_burst",
+                    signal_snapshot=signal_snapshot,
+                    vlm_label=dict(vlm_label) if isinstance(vlm_label, dict) else None,
+                )
+            # cooldown 内：保留 brow_history，待 cooldown 解禁后下一帧立即触发
+
+        # 优先级 3: pose_held（V0.3 Phase B 新增）
+        # F2-04: enable_pose_held=False 时 _pose_held_max_stddev 永返 None（pitch deque 空）
+        max_std = self._pose_held_max_stddev()
+        if max_std is not None and max_std < self._pose_stddev_threshold:
+            if not self._in_cooldown("pose_held", frame_id):
+                self._mark_trigger("pose_held", frame_id)
+                # F2-03: pose snapshot 用 _safe_float，缺/脏返 None
+                head_pose = item.get("head_pose") or {}
+                signal_snapshot_with_pose = {
+                    **signal_snapshot,
+                    "pose_pitch_deg": self._safe_float(head_pose.get("pitch_deg")),
+                    "pose_yaw_deg": self._safe_float(head_pose.get("yaw_deg")),
+                    "pose_roll_deg": self._safe_float(head_pose.get("roll_deg")),
+                    "pose_max_stddev_deg": float(max_std),
+                }
+                # 清窗防同一段静止反复触发
+                self._clear_pose_windows()
+                return TriggerEvent(
+                    ts=ts,
+                    frame_id=frame_id,
+                    reason="pose_held",
+                    signal_snapshot=signal_snapshot_with_pose,
+                    vlm_label=dict(vlm_label) if isinstance(vlm_label, dict) else None,
+                )
+
+        return None

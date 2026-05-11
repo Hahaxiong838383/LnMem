@@ -1,8 +1,17 @@
-"""Day 3→6 剧本 → 18-dim FusionFrame 时间序列转换器（v1.0 / 2026-05-08）。
+"""Day 3→6→6.5 剧本 → 18-dim FusionFrame 时间序列转换器（v2.0 / 2026-05-08）。
 
 输入：``poc.src.data.event_schema.Script``（含 ScriptEvent 序列 + MultimodalHint）。
 输出：JSONL 信号流，每行一帧，向量长度 = ``poc.src.fusion.FEATURE_DIM`` (18)。
-Day 6 扩展：MultimodalHint 新增 6 维 AU 表情字段 → face dict 透传。
+
+Day 6 扩展：MultimodalHint 新增 6 维 AU 表情字段（已废弃，下面 v2.0 取代）。
+
+Day 6.5 v2.0 ⚠️ P-1 LNN-FIRST 强制升级：
+表情 6 维不再静态采样，而是用 LTC 微分方程 per-persona 演化。
+若提供 ``profile_dir``：
+  - 加载 vboss_<id>.json 的 ExpressionProfile
+  - 用 ``ExpressionDynamics`` 按 (state[t], τ_persona) 演化每帧表情
+  - 每个事件切换时表情自然过渡（不是阶跃）
+否则降级到 v1.0 静态注入（Day 6 行为）。
 
 转换流程：
 1. 遍历 Script.events
@@ -34,6 +43,12 @@ from typing import Any, Iterable, Iterator
 
 from .data.event_schema import Script, ScriptEvent
 from .fusion import FEATURE_DIM, FusionConfig, MultimodalFusion
+from .lnn.expression_dynamics import (
+    EXPRESSION_DIMS,
+    ExpressionDynamics,
+    ExpressionProfile,
+    load_profile,
+)
 
 
 # ---------- 输出帧 ----------
@@ -151,6 +166,7 @@ def script_to_signals(
     frame_rate_hz: float = 1.0,
     noise_sigma: float = 0.05,
     seed: int = 0,
+    profile: ExpressionProfile | None = None,
 ) -> Iterator[SignalFrame]:
     """生成器：把 Script 展开为 SignalFrame 序列。
 
@@ -159,6 +175,11 @@ def script_to_signals(
         frame_rate_hz: 帧率（默认 1Hz，对应 fusion.py PoC 取样率）
         noise_sigma: 高斯扰动标准差（建议 0.03-0.10）
         seed: 随机种子（同 seed → 可重现序列）
+        profile: ExpressionProfile（v2.0 LTC 演化模式）。
+                 None → v1.0 静态采样（向后兼容）。
+
+    P-1 LNN-FIRST：profile 提供时，6 维表情 hint 被 LTC 演化结果**覆盖**，
+    保证表情值是 per-persona 动力系统输出，不是静态查表。
     """
     if frame_rate_hz <= 0:
         raise ValueError(f"frame_rate_hz must be > 0, got {frame_rate_hz}")
@@ -169,6 +190,13 @@ def script_to_signals(
     rng = random.Random(seed)
     period_s = 1.0 / frame_rate_hz
     global_idx = 0
+
+    # v2.0 LTC 模式初始化
+    dynamics: ExpressionDynamics | None = None
+    expr_state: dict[str, float] | None = None
+    if profile is not None:
+        dynamics = ExpressionDynamics(profile)
+        expr_state = dict(profile.base)  # 初值 = 中性基线
 
     for event in script.events:
         n_frames = max(1, math.ceil(event.duration_s * frame_rate_hz))
@@ -181,6 +209,17 @@ def script_to_signals(
             frame_ts = event_start + timedelta(seconds=i * period_s)
             ts_iso = frame_ts.isoformat()
             fusion_input = _hint_to_fusion_input(event, ts_iso, global_idx)
+
+            # v2.0: 用 LTC 演化覆盖表情 6 维（per-persona, per-state）
+            if dynamics is not None and expr_state is not None:
+                expr_state = dynamics.step(
+                    current_expr=expr_state,
+                    state=event.state.value,
+                    dt=period_s,
+                )
+                for dim in EXPRESSION_DIMS:
+                    fusion_input["face"][dim] = expr_state[dim]
+
             fused = fusion.fuse(fusion_input)
             noisy_vec = _add_noise(fused.vector, rng, noise_sigma)
 
@@ -218,12 +257,30 @@ def script_file_to_signals_file(
     frame_rate_hz: float = 1.0,
     noise_sigma: float = 0.05,
     seed: int = 0,
+    profile_dir: Path | None = None,
 ) -> int:
-    """便捷端到端入口：JSON 剧本 → JSONL 信号流。"""
+    """便捷端到端入口：JSON 剧本 → JSONL 信号流。
+
+    profile_dir 提供时（v2.0 LTC 演化模式）：
+      自动按 script.persona_id 找 profile_dir/<persona_id>.json，加载 ExpressionProfile。
+      找不到时降级 v1.0（warn）。
+    """
     script = Script.from_json(script_path.read_text(encoding="utf-8"))
+
+    profile: ExpressionProfile | None = None
+    if profile_dir is not None:
+        profile_path = profile_dir / f"{script.persona_id}.json"
+        if profile_path.exists():
+            profile = load_profile(profile_path)
+        # 找不到 profile 不报错，降级 v1.0（向后兼容）
+
     return write_signals_jsonl(
         script_to_signals(
-            script, frame_rate_hz=frame_rate_hz, noise_sigma=noise_sigma, seed=seed
+            script,
+            frame_rate_hz=frame_rate_hz,
+            noise_sigma=noise_sigma,
+            seed=seed,
+            profile=profile,
         ),
         out_path,
     )

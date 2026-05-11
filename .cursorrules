@@ -3,8 +3,19 @@
 # Cursor 自动读取本文件作为项目级 system prompt。
 # 同等级别还有 .cursor/rules/ 目录支持，本仓库目前用单文件方案。
 
+## ⚠️ P-1 最高准则（先读，凌驾全部其他规则）
+
+**docs/principles/lnn-first.md — LNN-FIRST 项目最高准则**
+
+LnMem = Liquid neural Memory。记忆系统内核必须以 LNN（LTC/CfC 微分方程）为核心。
+凡涉及"时间 / 演化 / 记忆 / 个性化"，第一性原理必须是 LTC/CfC 微分方程；
+用 LLM/RNN/规则替代 LTC 必须有 ADR + 老板签字（详见 lnn-first.md §3）。
+
+老板 2026-05-08 钦定。违反此条 = 停下任务，提请复议。
+
 ## Mandatory Reads (in order)
 
+0. **docs/principles/lnn-first.md** — **P-1 最高准则**（LNN-FIRST），上面已强调
 1. **docs/STYLE.md** — LnMem 文档写作规范，**强制遵循**（4 级体裁分层 + L1 frontmatter + L2 万能公式 v1）
 2. **docs/development-harness.md** — LnMem 软件开发 harness（BRO-PDCA × 目标驱动验收），**强制遵循**。任何开发任务必须先 O 阶段书面化 AC + DoD，C 阶段附实测证据
 3. **docs/capability-specs/cognitive.md** — LnMem 认知能力规范。涉及意图预测 / 多模态信号 / 评估机制必读，§5 评估方法和产品能力同构（拒绝问卷/弹窗/评分）

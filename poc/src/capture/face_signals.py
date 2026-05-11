@@ -21,6 +21,8 @@ except ImportError:
 
 _AU_SCALE = 12.0
 _CHEEK_BASELINE_FACE_RATIO = 0.40
+_BROW_DIST_BASELINE = 0.17  # 中性时归一值（mediapipe 实测参考）
+_BROW_FURROW_SCALE = 5.0    # 调到让皱眉饱和 1.0、中性接近 0
 _EXPRESSION_DEFAULTS = {
     "smile_intensity": 0.0,
     "brow_furrow": 0.0,
@@ -38,6 +40,7 @@ class FaceSignalConfig:
     max_num_faces: int = 1
     min_detection_confidence: float = 0.5
     min_tracking_confidence: float = 0.5
+    use_pyfeat: bool = False
 
 
 class FaceSignalExtractor:
@@ -46,9 +49,17 @@ class FaceSignalExtractor:
     def __init__(self, config: FaceSignalConfig | None = None) -> None:
         self._config = config or FaceSignalConfig()
         self._face_mesh: Any | None = None
+        self._au_extractor: Any | None = None
 
     def open(self) -> None:
         """Initialize extractor. / 初始化面部提取器。"""
+        if self._config.use_pyfeat:
+            try:
+                from poc.src.vision.au_extractor import AUExtractor
+
+                self._au_extractor = AUExtractor()
+            except Exception:
+                self._au_extractor = None
         if not _MEDIAPIPE_AVAILABLE:
             self._face_mesh = None
             return
@@ -65,6 +76,7 @@ class FaceSignalExtractor:
         if self._face_mesh is not None and hasattr(self._face_mesh, "close"):
             self._face_mesh.close()
         self._face_mesh = None
+        self._au_extractor = None
 
     def capture_signals(self, frame: Any) -> dict[str, float | int]:
         """Capture one face signal set. / 采集单帧面部信号。"""
@@ -108,6 +120,20 @@ class FaceSignalExtractor:
         head_pitch_deg = (nose.y - center_y) / height * 35.0
         gaze_stability = _clamp01(1.0 - min(1.0, (abs(head_yaw_deg) + abs(head_pitch_deg)) / 120.0))
         expression = _extract_expression_features(landmarks=landmarks, landmarks_n=landmarks_n)
+        if self._au_extractor is not None and frame is not None:
+            try:
+                from poc.src.vision.feature_calibrator import calibrate_to_lnn_expression
+                au_dict, _emo, pose_dict = self._au_extractor.extract(frame)
+                expression = calibrate_to_lnn_expression(au_dict)
+                # LNN-FIRST: 头部姿态切到 py-feat img2pose（覆盖上面 MediaPipe landmark 估算）
+                if pose_dict:
+                    head_yaw_deg = float(pose_dict.get("yaw_deg", head_yaw_deg))
+                    head_pitch_deg = float(pose_dict.get("pitch_deg", head_pitch_deg))
+                    gaze_stability = _clamp01(
+                        1.0 - min(1.0, (abs(head_yaw_deg) + abs(head_pitch_deg)) / 120.0)
+                    )
+            except Exception:
+                expression = _extract_expression_features(landmarks=landmarks, landmarks_n=landmarks_n)
 
         return {
             "eye_closure": eye_closure,
@@ -151,7 +177,10 @@ def _extract_expression_features(landmarks: list[Any], landmarks_n: int) -> dict
     smile_intensity = _clamp01((mouth_center_y - corners_avg_y) / face_h * _AU_SCALE)
     lip_corner_depress = _clamp01((corners_avg_y - mouth_center_y) / face_h * _AU_SCALE)
     brow_dist = abs(float(brow_right.x) - float(brow_left.x))
-    brow_furrow = _clamp01(1.0 - brow_dist / face_w * _AU_SCALE)
+    brow_dist_norm = brow_dist / max(face_w, 1e-6)  # 中性时 ~0.22
+    brow_furrow = _clamp01(
+        (_BROW_DIST_BASELINE - brow_dist_norm) / _BROW_DIST_BASELINE * _BROW_FURROW_SCALE
+    )
 
     lip_gap = abs(float(mouth_down.y) - float(mouth_up.y))
     jaw_drop = _clamp01(lip_gap / face_h * _AU_SCALE)
