@@ -28,7 +28,22 @@ INTERVAL="${SUPERVISOR_INTERVAL:-30}"               # 检查 flag 间隔（秒�
 RESTART_COOLDOWN_S="${RESTART_COOLDOWN_S:-300}"     # 重启冷却（防 thrash，5min）
 DAEMON_WARMUP_S="${DAEMON_WARMUP_S:-30}"            # daemon 启动到 healthy 等待
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:9876/health}"
-START_DAEMON_SCRIPT="${START_DAEMON_SCRIPT:-$HOME/mycc/2-Projects/LnMem-poc/scripts/start-daemon.sh}"
+
+# 默认 START_DAEMON_SCRIPT 用 supervisor 自身位置推导（响应 codex F6 — 不硬编码 $HOME 路径）
+SCRIPT_SRC="${BASH_SOURCE[0]:-$0}"
+if command -v realpath >/dev/null 2>&1; then
+    SCRIPT_REAL="$(realpath "$SCRIPT_SRC" 2>/dev/null || echo "$SCRIPT_SRC")"
+else
+    SCRIPT_REAL="$(cd "$(dirname "$SCRIPT_SRC")" && pwd)/$(basename "$SCRIPT_SRC")"
+fi
+SCRIPT_DIR="$(dirname "$SCRIPT_REAL")"
+START_DAEMON_SCRIPT="${START_DAEMON_SCRIPT:-$SCRIPT_DIR/start-daemon.sh}"
+
+# 响应 codex F2 — kill 失败 backoff/熔断（防长期日志风暴）
+MAX_CONSECUTIVE_FAILURES="${MAX_CONSECUTIVE_FAILURES:-3}"   # 连续 N 次失败后进入 backoff
+BACKOFF_INTERVAL="${BACKOFF_INTERVAL:-600}"                  # backoff 模式间隔（10min）
+HIBERNATE_AFTER_FAILURES="${HIBERNATE_AFTER_FAILURES:-10}"  # 连续 N 次后进入 hibernation
+HIBERNATE_INTERVAL="${HIBERNATE_INTERVAL:-1800}"             # hibernation 间隔（30min）
 
 RESTART_FLAG="${RESTART_FLAG:-$HOME/.lnmem/RESTART_NEEDED}"
 SUPERVISOR_LOG="${SUPERVISOR_LOG:-$HOME/.lnmem/supervisor.log}"
@@ -105,6 +120,9 @@ EOF
 }
 
 # 验证 daemon 起来（poll /health）
+# NOTE: 响应 codex F5 — 此检查仅"进程可达"语义，不验证 frames_processed 增长。
+# 真假死场景（HTTP 响应但 pipeline 卡死）由 watchdog 负责再次检测 → 重新写 flag。
+# supervisor 职责边界：执行重启动作，不二次诊断 pipeline 健康。
 verify_daemon_up() {
     local i=0
     local max_iter=$((DAEMON_WARMUP_S * 2))  # 0.5s 间隔
@@ -123,6 +141,11 @@ verify_daemon_up() {
 # ---------- 主重启流程 ----------
 
 handle_restart_flag() {
+    # 响应 codex F1（TOCTOU）：当前读取-处理-删除 flag 流程非原子，watchdog 可能在
+    # 读取后到删除前再次写 flag，导致"第二次原因"被本次 rm 一并清掉。
+    # 影响：仅丢审计痕迹（不会漏重启），因为本轮已经处理。如要更强：
+    #   mv "$RESTART_FLAG" "$RESTART_FLAG.inflight.$$" 原子消费后再处理。
+    # PoC 阶段：风险接受（watchdog 写频率 1/min，supervisor 处理 < 60s）。
     local reason
     reason=$(tail -1 "$RESTART_FLAG" 2>/dev/null || echo "<unknown>")
     log INFO "RESTART_NEEDED detected: $reason"
@@ -176,12 +199,31 @@ main() {
     }
     log INFO "supervisor start: flag=$RESTART_FLAG interval=${INTERVAL}s cooldown=${RESTART_COOLDOWN_S}s"
     log INFO "start_daemon=$START_DAEMON_SCRIPT"
+    log INFO "backoff: max_fail=$MAX_CONSECUTIVE_FAILURES backoff_intv=${BACKOFF_INTERVAL}s hibernate_after=$HIBERNATE_AFTER_FAILURES"
+
+    # 响应 codex F2 — consecutive failure counter + backoff/hibernate
+    local consecutive_failures=0
+    local current_interval=$INTERVAL
 
     while true; do
         if [[ -f "$RESTART_FLAG" ]]; then
-            handle_restart_flag || log WARN "重启流程失败，下次循环重试"
+            if handle_restart_flag; then
+                consecutive_failures=0
+                current_interval=$INTERVAL
+            else
+                consecutive_failures=$((consecutive_failures + 1))
+                if [[ $consecutive_failures -ge $HIBERNATE_AFTER_FAILURES ]]; then
+                    current_interval=$HIBERNATE_INTERVAL
+                    log ERROR "consecutive_failures=$consecutive_failures ≥ $HIBERNATE_AFTER_FAILURES, 进入 hibernation (${HIBERNATE_INTERVAL}s 间隔)"
+                elif [[ $consecutive_failures -ge $MAX_CONSECUTIVE_FAILURES ]]; then
+                    current_interval=$BACKOFF_INTERVAL
+                    log WARN "consecutive_failures=$consecutive_failures ≥ $MAX_CONSECUTIVE_FAILURES, 进入 backoff (${BACKOFF_INTERVAL}s 间隔)"
+                else
+                    log WARN "重启流程失败 (consecutive=$consecutive_failures), 下次循环重试"
+                fi
+            fi
         fi
-        sleep "$INTERVAL"
+        sleep "$current_interval"
     done
 }
 

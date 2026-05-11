@@ -36,6 +36,8 @@ LOG_ROTATE_MB="${LOG_ROTATE_MB:-500}" # signals jsonl > 此 MB 触发 rotate
 WATCHDOG_LOG="${WATCHDOG_LOG:-$HOME/.lnmem/watchdog.log}"
 RESTART_FLAG="${RESTART_FLAG:-$HOME/.lnmem/RESTART_NEEDED}"
 SIGNALS_DIR="${SIGNALS_DIR:-$HOME/.lnmem/data}"
+# 响应 codex F4（supervisor 评审）— watchdog 把 silent SUPERVISOR_ERROR 外显到 log
+SUPERVISOR_ERROR_FLAG="${SUPERVISOR_ERROR_FLAG:-$HOME/.lnmem/SUPERVISOR_ERROR}"
 
 # ---------- 工具函数 ----------
 
@@ -145,6 +147,12 @@ check_log_rotation() {
 
 check_once() {
     local pid rss_gb last_frame_epoch now stale
+    # 响应 codex F4（supervisor 评审）— 把 SUPERVISOR_ERROR silent 状态外显
+    if [[ -f "$SUPERVISOR_ERROR_FLAG" ]]; then
+        local sup_err_reason
+        sup_err_reason=$(tail -1 "$SUPERVISOR_ERROR_FLAG" 2>/dev/null || echo "<unknown>")
+        log WARN "SUPERVISOR_ERROR 标记存在: $sup_err_reason — supervisor 无法自动重启 daemon，需人工介入"
+    fi
     pid=$(get_daemon_pid)
     if [[ -z "$pid" ]]; then
         mark_restart_needed "daemon process not found (PID lookup failed)"

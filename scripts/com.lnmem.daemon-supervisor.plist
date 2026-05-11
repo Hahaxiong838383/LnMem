@@ -66,6 +66,10 @@ Uninstall：
         <false/>
     </dict>
 
+    <!-- 响应 codex F7：防 crash-loop thrashing（supervisor 异常退出时 launchd 至少等 30s 再重启） -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
     <key>StandardOutPath</key>
     <string>/Users/rayman.chen/.lnmem/supervisor.stdout.log</string>
 
