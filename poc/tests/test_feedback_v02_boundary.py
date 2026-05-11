@@ -20,25 +20,31 @@ from poc.src.realtime.feedback.trigger import (
 )
 
 
-class TestNewThresholdConstants(unittest.TestCase):
-    def test_brow_window_is_10(self):
-        self.assertEqual(_BROW_BURST_WINDOW, 10)
+class TestV03ThresholdConstants(unittest.TestCase):
+    """V0.3 Phase B 阈值锁定（数据驱动收紧，由 2026-05-11 实测分布决定）。
 
-    def test_brow_threshold_is_0_85(self):
-        self.assertAlmostEqual(_BROW_BURST_THRESHOLD, 0.85)
+    取代 V0.2 的 0.85+10 帧锁定，详见 trigger.py V0.3 Phase B 注释。
+    """
 
-    def test_trigger_requires_10_consecutive_high_brow(self):
+    def test_brow_window_is_15(self):
+        self.assertEqual(_BROW_BURST_WINDOW, 15)
+
+    def test_brow_threshold_is_0_95(self):
+        self.assertAlmostEqual(_BROW_BURST_THRESHOLD, 0.95)
+
+    def test_trigger_requires_15_consecutive_high_brow(self):
         t = ProactiveQueryTrigger()
-        for i in range(9):
-            self.assertIsNone(t.observe(_brow_frame(0.9, fid=i)))
-        ev = t.observe(_brow_frame(0.9, fid=9))
+        for i in range(14):
+            self.assertIsNone(t.observe(_brow_frame(0.96, fid=i)))
+        ev = t.observe(_brow_frame(0.96, fid=14))
         self.assertIsNotNone(ev)
         self.assertEqual(ev.reason, "brow_burst")
 
-    def test_brow_below_85_no_trigger(self):
+    def test_brow_below_95_no_trigger(self):
+        """V0.3 阈值 0.95 下，brow=0.94 持续 20 帧仍不触发。"""
         t = ProactiveQueryTrigger()
-        for i in range(15):
-            self.assertIsNone(t.observe(_brow_frame(0.80, fid=i)))
+        for i in range(20):
+            self.assertIsNone(t.observe(_brow_frame(0.94, fid=i)))
 
 
 class TestEngineStop(unittest.TestCase):
@@ -61,8 +67,8 @@ class TestEngineStop(unittest.TestCase):
 
             eng = _engine(home, runner=runner)
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="Cursor"):
-                for i in range(10):
-                    eng.observe(_brow_frame(0.9, fid=i), home=home)
+                for i in range(15):
+                    eng.observe(_brow_frame(0.96, fid=i), home=home)
             self.assertTrue(ready.wait(timeout=2.0))
 
             t0 = time.time()
@@ -86,8 +92,8 @@ class TestSessionIdField(unittest.TestCase):
             sid = "test-session-abc-123"
             eng = _engine(home, runner=_mk_runner(label="match"), session_id=sid)
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="Cursor"):
-                for i in range(10):
-                    eng.observe(_brow_frame(0.9, fid=i), home=home)
+                for i in range(15):
+                    eng.observe(_brow_frame(0.96, fid=i), home=home)
             eng.stop(timeout_s=5.0)
 
             rec = _read_first_record(home)

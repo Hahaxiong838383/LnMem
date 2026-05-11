@@ -22,7 +22,7 @@ def _engine(home: Path, *, max_per_hour: int = 3, dnd_apps: tuple[str, ...] = ()
     return ProactiveQueryEngine(cfg, rate_limiter=rate_limiter, prompt_runner=runner)
 
 
-def _frame_brow(brow=0.9, fid=0, vlm=None):
+def _frame_brow(brow=0.96, fid=0, vlm=None):
     return {
         "ts": "2026-05-09T17:00:00",
         "frame_id": fid,
@@ -58,8 +58,8 @@ class TestEngine(unittest.TestCase):
             home = Path(tmp)
             eng = _engine(home, dry_run=True)
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="Cursor"):
-                for i in range(10):
-                    eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
+                for i in range(15):
+                    eng.observe(_frame_brow(brow=0.96, fid=i), home=home)
             stats = eng.stats()
             self.assertEqual(stats["triggered"], 1)
             self.assertEqual(stats["queried"], 1)
@@ -69,8 +69,8 @@ class TestEngine(unittest.TestCase):
             home = Path(tmp)
             eng = _engine(home, dnd_apps=("zoom",), dry_run=True)
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="zoom.us"):
-                for i in range(10):
-                    eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
+                for i in range(15):
+                    eng.observe(_frame_brow(brow=0.96, fid=i), home=home)
             stats = eng.stats()
             self.assertEqual(stats["triggered"], 1)
             self.assertEqual(stats["dnd_blocked"], 1)
@@ -82,11 +82,12 @@ class TestEngine(unittest.TestCase):
             eng = _engine(home, max_per_hour=1, dry_run=True)  # only 1/h
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="Cursor"):
                 # First burst → triggers + queries
-                for i in range(10):
-                    eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
+                for i in range(15):
+                    eng.observe(_frame_brow(brow=0.96, fid=i), home=home)
                 # Second burst → triggers but rate-blocked
-                for i in range(10, 20):
-                    eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
+                # 必须在 brow cooldown 外（默认 300 帧）；第一次触发 fid=14
+                for i in range(315, 330):
+                    eng.observe(_frame_brow(brow=0.96, fid=i), home=home)
             stats = eng.stats()
             self.assertEqual(stats["triggered"], 2)
             self.assertEqual(stats["queried"], 1)
@@ -98,8 +99,8 @@ class TestEngine(unittest.TestCase):
             runner = _mk_runner(label="match")
             eng = _engine(home, runner=runner)
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="Cursor"):
-                for i in range(10):
-                    eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
+                for i in range(15):
+                    eng.observe(_frame_brow(brow=0.96, fid=i), home=home)
             # Wait for background thread to finish
             for _ in range(20):
                 if (home / ".lnmem" / "feedback").exists() and any(
@@ -120,8 +121,8 @@ class TestEngine(unittest.TestCase):
             runner = _mk_runner(label="mismatch", true_state="focused")
             eng = _engine(home, runner=runner)
             with patch("poc.src.realtime.feedback.engine.get_frontmost_app", return_value="Cursor"):
-                for i in range(10):
-                    eng.observe(_frame_brow(brow=0.9, fid=i), home=home)
+                for i in range(15):
+                    eng.observe(_frame_brow(brow=0.96, fid=i), home=home)
             for _ in range(20):
                 files = list((home / ".lnmem" / "feedback").glob("queries_*.jsonl"))
                 if files:
