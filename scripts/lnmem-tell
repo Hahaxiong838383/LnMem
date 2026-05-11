@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# LnMem V0.3 CLI 客户端 — 用户主动告知 daemon 当前状态 (M0 W2 P0-1)
+#
+# 用法：
+#   lnmem-tell <true_state> [note]
+#   例：
+#     lnmem-tell focused "我在写文档"
+#     lnmem-tell fatigued
+#     lnmem-tell distracted "刚才被打断了"
+#
+# 合法 true_state（8 个，与 STATE_LABELS 对齐）：
+#   low_energy / focused / distracted / fatigued
+#   emotional_positive / emotional_negative / neutral / transitioning
+#
+# 行为：
+#   1. 从 ~/.lnmem/secret_token 读 token（chmod 600 校验，否则拒绝）
+#   2. 打 client_action_ts = now UTC
+#   3. curl POST http://127.0.0.1:9876/trigger_mismatch with X-LnMem-Token
+#   4. 解析响应，warning 红字提示
+
+set -euo pipefail
+
+TOKEN_PATH="${HOME}/.lnmem/secret_token"
+HEALTH_URL="${LNMEM_HEALTH_URL:-http://127.0.0.1:9876}"
+ENDPOINT="${HEALTH_URL}/trigger_mismatch"
+
+# ANSI 颜色
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+GREEN='\033[0;32m'
+NC='\033[0m'  # No Color
+
+usage() {
+    cat <<EOF
+用法: lnmem-tell <true_state> [note]
+
+合法 true_state:
+  low_energy / focused / distracted / fatigued
+  emotional_positive / emotional_negative / neutral / transitioning
+
+例:
+  lnmem-tell focused "我在写文档"
+  lnmem-tell fatigued
+EOF
+    exit 1
+}
+
+[[ $# -lt 1 || $# -gt 2 ]] && usage
+
+TRUE_STATE="$1"
+NOTE="${2:-}"
+
+# ---------- token 加载 + 权限检查 ----------
+if [[ ! -f "$TOKEN_PATH" ]]; then
+    echo -e "${RED}❌ secret_token 不存在: $TOKEN_PATH${NC}"
+    echo "   请先运行: scripts/lnmem-init-token.sh"
+    exit 2
+fi
+
+# macOS stat / Linux stat 不同
+MODE=$(stat -f%Lp "$TOKEN_PATH" 2>/dev/null || stat -c%a "$TOKEN_PATH" 2>/dev/null || echo "999")
+if [[ "$MODE" -gt 600 ]]; then
+    echo -e "${RED}❌ secret_token 权限过松（mode=$MODE > 600）${NC}"
+    echo "   chmod 600 $TOKEN_PATH 后重试"
+    exit 3
+fi
+
+TOKEN=$(tr -d '\n' < "$TOKEN_PATH")
+if [[ -z "$TOKEN" ]]; then
+    echo -e "${RED}❌ secret_token 文件为空${NC}"
+    exit 4
+fi
+
+# ---------- client_action_ts ----------
+# macOS date 不支持 %N，用 python3
+CLIENT_TS=$(python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())")
+
+# ---------- 构造 JSON body ----------
+if [[ -n "$NOTE" ]]; then
+    # 用 python3 安全 json.dumps 防 shell injection / 中文
+    BODY=$(python3 -c "
+import json, sys
+print(json.dumps({
+    'true_state': '$TRUE_STATE',
+    'note': sys.argv[1],
+    'client_action_ts': '$CLIENT_TS',
+}, ensure_ascii=False))
+" "$NOTE")
+else
+    BODY=$(python3 -c "
+import json
+print(json.dumps({
+    'true_state': '$TRUE_STATE',
+    'client_action_ts': '$CLIENT_TS',
+}, ensure_ascii=False))
+")
+fi
+
+# ---------- POST ----------
+RESPONSE=$(curl -s -w "\n%{http_code}" \
+    -X POST "$ENDPOINT" \
+    -H "Content-Type: application/json" \
+    -H "X-LnMem-Token: $TOKEN" \
+    -d "$BODY")
+
+HTTP_CODE=$(printf '%s' "$RESPONSE" | tail -1)
+BODY_RESP=$(printf '%s' "$RESPONSE" | sed '$d')
+
+# ---------- 解析 + 输出 ----------
+if [[ "$HTTP_CODE" == "200" ]]; then
+    EVENT_UUID=$(printf '%s' "$BODY_RESP" | python3 -c "import json,sys; print(json.loads(sys.stdin.read()).get('event_uuid','?'))")
+    FRAME_ID=$(printf '%s' "$BODY_RESP" | python3 -c "import json,sys; print(json.loads(sys.stdin.read()).get('frame_id','?'))")
+    ALIGN=$(printf '%s' "$BODY_RESP" | python3 -c "import json,sys; print(json.loads(sys.stdin.read()).get('alignment_latency_s','?'))")
+    WARN=$(printf '%s' "$BODY_RESP" | python3 -c "import json,sys; w=json.loads(sys.stdin.read()).get('warning'); print(w if w else '')")
+    PRED=$(printf '%s' "$BODY_RESP" | python3 -c "import json,sys; p=json.loads(sys.stdin.read()).get('pred_state'); print(p if p else '(daemon V0.3 Phase A 暂不返)')")
+    echo -e "${GREEN}✅ 反馈已写入${NC}"
+    echo "   event_uuid: $EVENT_UUID"
+    echo "   frame_id: $FRAME_ID"
+    echo "   true_state: $TRUE_STATE"
+    echo "   alignment_latency_s: $ALIGN"
+    echo "   daemon pred_state: $PRED"
+    if [[ -n "$WARN" ]]; then
+        echo -e "${YELLOW}⚠️  $WARN${NC}"
+    fi
+elif [[ "$HTTP_CODE" == "429" ]]; then
+    RETRY=$(printf '%s' "$BODY_RESP" | python3 -c "import json,sys; print(json.loads(sys.stdin.read()).get('retry_after_s','?'))")
+    echo -e "${YELLOW}⏳ rate-limited，请 ${RETRY}s 后重试${NC}"
+    exit 5
+elif [[ "$HTTP_CODE" == "401" ]]; then
+    echo -e "${RED}❌ 401 token 校验失败${NC}"
+    printf '%s\n' "$BODY_RESP"
+    exit 6
+elif [[ "$HTTP_CODE" == "503" ]]; then
+    echo -e "${YELLOW}⚠️  503 daemon 未就绪${NC}"
+    printf '%s\n' "$BODY_RESP"
+    exit 7
+else
+    echo -e "${RED}❌ HTTP $HTTP_CODE${NC}"
+    printf '%s\n' "$BODY_RESP"
+    exit 8
+fi

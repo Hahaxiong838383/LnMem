@@ -45,6 +45,14 @@ def _parse_event(raw: object) -> FeedbackEvent | None:
         if label not in {"match", "mismatch", "skip", "input"}:
             # 老旧格式或损坏，跳过
             return None
+        # V0.3 字段（缺失时 None，向后兼容 V0.2）
+        alignment_raw = raw.get("alignment_latency_s")
+        try:
+            alignment_v: float | None = (
+                float(alignment_raw) if alignment_raw is not None else None
+            )
+        except (TypeError, ValueError):
+            alignment_v = None
         return FeedbackEvent(
             ts=raw["ts"],
             frame_id=int(raw.get("frame_id", -1)),
@@ -57,6 +65,7 @@ def _parse_event(raw: object) -> FeedbackEvent | None:
             latency_s=float(raw.get("latency_s", 0.0)),
             session_id=raw.get("session_id"),
             event_uuid=raw.get("event_uuid"),
+            alignment_latency_s=alignment_v,
         )
     except (KeyError, TypeError, ValueError, AttributeError) as e:
         # fail-soft: log via warning (避免 silent fail 隐藏 bug)

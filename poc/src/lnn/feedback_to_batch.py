@@ -119,6 +119,8 @@ def _label_for_event(
 
     - mismatch + true_state 在 STATE_LABELS 中（含 alias normalize）
       → (idx, "mismatch_true_state")
+      M0 W2 P0-1 V0.3: reason="user_triggered" 时 source 改为 "user_triggered_mismatch"
+      （仍是 mismatch label，REWARD_MAP=-1.0，按 codex F1 严格统一）
     - match → (-1, "match_argmax_pending")，调用方填 argmax
     - skip / input → None（跳过，不入 batch）
     - mismatch 但 true_state 缺失或非法 → None（warning）
@@ -135,7 +137,12 @@ def _label_for_event(
                 RuntimeWarning,
             )
             return None
-        return STATE_NAME_TO_IDX[normalized], "mismatch_true_state"
+        # M0 W2 P0-1 V0.3: 区分 user_triggered vs 弹窗 mismatch（仅 source tag 用，不影响 reward）
+        source = (
+            "user_triggered_mismatch" if event.reason == "user_triggered"
+            else "mismatch_true_state"
+        )
+        return STATE_NAME_TO_IDX[normalized], source
     # skip / input
     return None
 
@@ -220,6 +227,7 @@ def build_training_batch(
     window_size: int = 60,
     date_prefix: str | None = None,
     include_skip_input: bool = False,
+    alignment_window_s: float = 5.0,
 ) -> TrainingBatch:
     """从磁盘加载 feedback + signals → 组装训练 batch。
 
@@ -237,6 +245,9 @@ def build_training_batch(
         过滤前缀，None=全部
     include_skip_input : bool
         是否把 skip/input 也纳入 batch（reward=0，按 F3-02 决策默认 False）
+    alignment_window_s : float
+        M0 W2 P0-1 V0.3: user_triggered 反馈对齐窗口，alignment_latency_s > 此值
+        的样本硬过滤不入训练批（响应 codex F3）。V0.2 老反馈无此字段 (None) → 不过滤。
 
     Returns
     -------
@@ -247,6 +258,9 @@ def build_training_batch(
     FeedbackDataError
         feedback / signals dir 不存在 或 无法组装任何样本
     """
+    # 延迟导入避免循环依赖
+    from poc.src.realtime.feedback.persistence import increment_user_triggered_metric
+
     events = load_events(feedback_dir, date_prefix=date_prefix)
     if include_skip_input:
         usable_events = events  # 所有 4 类都纳入
@@ -269,6 +283,21 @@ def build_training_batch(
     skipped = 0
 
     for ev in usable_events:
+        # V0.3: user_triggered 反馈先 alignment 硬过滤（响应 codex F3）
+        is_user_triggered = (ev.reason == "user_triggered")
+        if is_user_triggered:
+            increment_user_triggered_metric("total")
+            if ev.alignment_latency_s is not None and ev.alignment_latency_s > alignment_window_s:
+                warnings.warn(
+                    f"feedback_to_batch: user_triggered event {ev.event_uuid or ev.frame_id} "
+                    f"alignment_latency_s={ev.alignment_latency_s} > {alignment_window_s}, "
+                    f"硬过滤不入训练批",
+                    RuntimeWarning,
+                )
+                increment_user_triggered_metric("skipped_alignment")
+                skipped += 1
+                continue
+
         # label 选择
         label_pair = _label_for_event(ev)
         if label_pair is None:
@@ -289,6 +318,8 @@ def build_training_batch(
                 f"window (need {window_size}), skipping",
                 RuntimeWarning,
             )
+            if is_user_triggered:
+                increment_user_triggered_metric("skipped_no_signal")
             skipped += 1
             continue
 
@@ -297,6 +328,8 @@ def build_training_batch(
         rewards_list.append(ev.reward())
         frame_ids.append(ev.frame_id)
         sources.append(source)
+        if is_user_triggered:
+            increment_user_triggered_metric("assembled")
 
     if not xs:
         from poc.src.lnn.online_contracts import FeedbackDataError as _FDE

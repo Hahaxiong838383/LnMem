@@ -82,6 +82,8 @@ class FeedbackEvent:
     latency_s: float = 0.0
     session_id: str | None = None
     event_uuid: str | None = None
+    # M0 W2 P0-1 V0.3（user_triggered 通道）— 响应 codex F3
+    alignment_latency_s: float | None = None  # None = V0.2 老反馈（无此字段）
 
     def reward(self) -> float:
         """Map self.label → scalar reward（REWARD_MAP）."""
@@ -126,6 +128,11 @@ class OnlineAdapterConfig:
     output_dir: Path = field(
         default_factory=lambda: Path("poc/data/checkpoints/day12_online_lora")
     )
+
+    # M0 W2 P0-1 V0.3: user_triggered 反馈对齐窗口（响应 codex F3）
+    # alignment_latency_s = client_action_ts - trigger_ref_frame_ts
+    # > 此值的 user_triggered 反馈硬过滤不入训练批
+    alignment_window_s: float = 5.0
 
     # 复现
     seed: int = 42
