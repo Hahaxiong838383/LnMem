@@ -81,7 +81,9 @@ class DaemonApp:
         self._feedback_engine = self._build_feedback_engine()
         # M0 W2 P0-1 V0.3: user_triggered 状态
         self._secret_token: str | None = self._load_secret_token()
-        self._last_user_triggered_ts: float = 0.0  # rate-limit (monotonic)
+        # rate-limit 时间戳（monotonic）：初始用一个"久远的过去"防首次启动 60s 内误 rate-limit
+        # （monotonic clock 在 process start 时 ~0，若初始 0.0 → uptime=40s 时 elapsed=40<60 误报）
+        self._last_user_triggered_ts: float = -1e6
         self._user_triggered_lock = threading.Lock()
         # 最近一帧时间戳缓存（POST 接收时拿 trigger_ref_frame_ts）
         self._recent_frame_ts: dict[int, str] = {}  # frame_id → ISO8601 ts
