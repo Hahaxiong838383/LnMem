@@ -30,6 +30,7 @@ INTERVAL="${INTERVAL:-60}"           # 秒
 RSS_WARN_GB="${RSS_WARN_GB:-2.0}"    # > 此值发 warning 日志
 RSS_KILL_GB="${RSS_KILL_GB:-3.0}"    # > 此值标记 RESTART_NEEDED
 STALE_SECONDS="${STALE_SECONDS:-300}" # last_frame_ts 老于此值视为假死
+USER_IDLE_THRESHOLD="${USER_IDLE_THRESHOLD:-300}" # W1-P2-1: HIDIdleTime > 此值视为用户离开/显示器休眠，跳过 STALE
 LOG_ROTATE_MB="${LOG_ROTATE_MB:-500}" # signals jsonl > 此 MB 触发 rotate
 
 WATCHDOG_LOG="${WATCHDOG_LOG:-$HOME/.lnmem/watchdog.log}"
@@ -72,6 +73,16 @@ get_rss_gb() {
     fi
     # 转 GB（保留 2 位小数）
     awk "BEGIN { printf \"%.2f\", $rss_kb / 1024 / 1024 }"
+}
+
+# 取系统/用户输入空闲秒数（HIDIdleTime, 跨 Intel/Apple Silicon）
+# 用途：W1-P2-1 watchdog 误报修复 — 川哥扣屏幕 → display sleep → 摄像头停帧
+# 不算 daemon hung；HIDIdleTime > USER_IDLE_THRESHOLD 时跳过 STALE 检测。
+# 失败返 -1（视为未知，按现行 STALE 逻辑兜底）。
+get_user_idle_sec() {
+    ioreg -c IOHIDSystem 2>/dev/null \
+        | awk '/HIDIdleTime/ {print int($NF/1000000000); exit}' \
+        | grep -E '^[0-9]+$' || echo "-1"
 }
 
 # 取 daemon /health.last_frame_ts（ISO8601 → epoch）
@@ -155,13 +166,21 @@ check_once() {
         log DEBUG "RSS=${rss_gb}GB OK (PID $pid)"
     fi
 
-    # last_frame_ts 假死检查
+    # last_frame_ts 假死检查（W1-P2-1: 加 user idle 过滤防误报）
     last_frame_epoch=$(get_last_frame_epoch)
     if [[ "$last_frame_epoch" != "-1" ]]; then
         now=$(date +%s)
         stale=$(( now - last_frame_epoch ))
         if (( stale > STALE_SECONDS )); then
-            mark_restart_needed "last_frame_ts ${stale}s ago > ${STALE_SECONDS}s staleness threshold"
+            # 5/11 早上误报根因：川哥扣 MacBook 屏幕 → display sleep → 摄像头硬件关
+            # → daemon 拿不到帧 → last_frame_ts 停更 ≠ daemon hung
+            # 解：若用户输入空闲 > USER_IDLE_THRESHOLD，视为预期 idle，跳过 RESTART_NEEDED
+            idle=$(get_user_idle_sec)
+            if [[ "$idle" != "-1" ]] && (( idle > USER_IDLE_THRESHOLD )); then
+                log INFO "last_frame_ts ${stale}s ago but user idle ${idle}s > ${USER_IDLE_THRESHOLD}s — likely display sleep, skip STALE"
+            else
+                mark_restart_needed "last_frame_ts ${stale}s ago > ${STALE_SECONDS}s staleness threshold (user idle ${idle}s)"
+            fi
         else
             log DEBUG "last_frame_ts ${stale}s ago OK"
         fi
