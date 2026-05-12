@@ -46,5 +46,27 @@ class LnMemSyntheticDataGenerator:
         raise NotImplementedError(f"M0 W2 todo: unsupported SynthSpec.kind {spec.kind!r}")
 
     def stats(self) -> dict:
-        """Return cumulative generator stats. 返回当前累计占比统计。"""
-        raise NotImplementedError("M0 W2 todo: aggregate generator and monitor stats")
+        """Return cumulative generator stats. 聚合 type1/2/3 + monitor。
+
+        type_1 已实现，type_2/type_3 stats 仍 stub（NotImplementedError 时跳过）。
+        """
+        agg: dict = {}
+        for backend in (self.type1, self.type2, self.type3):
+            if hasattr(backend, "stats"):
+                try:
+                    s = backend.stats()
+                    if isinstance(s, dict):
+                        agg.update(s)
+                except NotImplementedError:
+                    pass
+                except Exception:  # noqa: BLE001
+                    pass
+        try:
+            ms = self.monitor.stats()
+            if isinstance(ms, dict):
+                agg["monitor"] = ms
+        except NotImplementedError:
+            pass
+        except Exception:  # noqa: BLE001
+            pass
+        return agg
