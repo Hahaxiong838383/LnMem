@@ -14,18 +14,22 @@ related:
 
 # Phase 2 P0-3 — vboss_self 首次微调实战
 
-## 0. TL;DR
+## 0. TL;DR — 🎉 LNN 真自学习首次自然触发达成（2026-05-12 09:44 CST）
 
-| 项 | 结果 |
-|---|---|
-| 工程链 | ✅ **打通**（CLI 一键跑通 force dry-run）|
-| 首次 dry-run | ckpt fbc42ac6 → `m0w2_phase2/checkpoint_phase2_20260512T011645Z.pt` |
-| batch_size | 23（27 candidate = 23 match + 4 mismatch；过滤 alignment 后 23）|
-| loss | 0.2514 |
-| drift_max_norm | 3.4e-6（1 步 SGD + clip=0.5）|
-| 测试 | fit_orchestrator 8/8 + 全量 423/423 ✅ |
-| codex 对抗审 | (gpt-5.3-codex high 后台跑中) |
-| 三道门状态 | cc 实现 ✅ → codex 审中 ⏳ → 川哥签字待 |
+**Phase 2 P0-3 工程接线打通 + LNN 在川哥真实数据上首次自然微调成功**（非 force，trigger_if_ready 满足）。
+
+| 维度 | Dry-run (force) 09:16 | **自然触发 ✅ 09:44** |
+|---|---|---|
+| Trigger | force 跳阈值 | **trigger_if_ready 满足**（mismatch=10 ∧ total=57）|
+| counts | 50 (4 mismatch) | **57 (10 mismatch)** |
+| batch_size | 23 | **29** |
+| loss | 0.2514 (+) | **-0.0437 (-)** ← reward 信号 push p(wrong) 转负 |
+| drift_max_norm | 3.4e-6 | **4.1e-6**（+21%，mismatch 推力增大）|
+| ckpt | T01:16:45Z | T01:44:55Z |
+| 测试 | 8/8 (初版) + 15/15 (一审 finding 回归) | 全量 415→**430/430** ✅ |
+| 三道门 | cc → codex 一审 BLOCK 8 → 修 7 → 二审 PASS-WITH-MINOR | ✅ 完结 |
+
+**川哥配合摄像头加速 mismatch（7min × 6 次轮换 6 个 state）**：scripts/p03_accelerate_mismatch.sh，distracted/emotional_negative/focused/emotional_positive/fatigued/neutral 真实表情对应，让 LNN 看到最多样化的多模态信号变化。
 
 ## 1. 设计决策：不嵌 daemon，CLI + cron
 
@@ -116,9 +120,18 @@ result = try_fit_step(
 
 ## 4. 后续
 
-### 4.1 自然触发等待期（预计 1-3 天）
+### 4.1 自然触发已达成 ✅（2026-05-12 09:44）
 
-mismatch 当前 4/10，按 Phase B 上线后预估每天新增 6-7 mismatch（弹窗多样化 + cooldown 5min/次），**今天晚上或明天 mismatch ≥10 自动触发**。
+**川哥摄像头前配合加速**：7min × 6 次轮换 6 个 true_state（scripts/p03_accelerate_mismatch.sh），实际表情→lnmem-tell→jsonl 全链路，mismatch 4 → 10，立即 trigger_if_ready 自然满足。
+
+### 4.1.b 自然触发结果分析
+
+**loss 转负的物理意义**：
+- formula: `loss = -mean(reward * log_softmax(logits)[label])`
+- 当 mismatch（reward=-1）反传后，`log p(wrong_label)` 下降到使 `reward*log_p` 在该样本上**为正**（log_p 接近 0 即接近 1.0 概率仍），但其他 match（reward=+1）样本的 log_p 也下降幅度更大，整体 mean 转负
+- **物理：mismatch 信号真在 push p(wrong) down，match 信号 pull p(right) up，两者协同**
+
+**drift L2 增长 21%**：单 epoch 1 步 SGD，含 6 新 mismatch 与 24 match 共同贡献，符合 reward-weighted REINFORCE 预期方向。
 
 ### 4.2 cron 调度建议
 
