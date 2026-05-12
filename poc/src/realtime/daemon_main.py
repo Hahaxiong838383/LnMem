@@ -245,7 +245,7 @@ class DaemonApp:
         -------
         (status_code, response_body) : tuple[int, dict]
         """
-        # 1. 字段校验
+        # === 阶段 A: 字段快速校验（不动 cooldown 状态） ===
         true_state = body.get("true_state")
         if not isinstance(true_state, str) or true_state not in _VALID_TRUE_STATES:
             return 400, {
@@ -255,9 +255,16 @@ class DaemonApp:
         label = body.get("label", "mismatch")
         if label not in ("mismatch", "input"):
             return 400, {"error": "invalid_label", "valid": ["mismatch", "input"]}
+        note = body.get("note")
+        if note is not None and not isinstance(note, str):
+            return 400, {"error": "invalid_note"}
 
-        # 2. rate-limit（响应 codex F6）— 判定 + 立即设 last_ts 都在 lock 内 atomic
-        # （否则并发竞争 race：5 个 thread 都能拿到 elapsed > 60，都通过）
+        # === 阶段 B: cooldown 预检（lock 内，不占位） ===
+        # codex daily check 2026-05-12: 原实现"先占位再校验" → 无效请求会消耗 60s 配额，
+        # 让紧随的合法请求被 429。改两阶段 lock：
+        #   B 预检 → 失败 429（不占位）
+        #   C 深度校验（lock 外，开销大；失败直接 4xx 不污染配额）
+        #   D double-check + 占位（lock 内，防 B→D 期间并发抢占）
         now_mono = time.monotonic()
         with self._user_triggered_lock:
             elapsed = now_mono - self._last_user_triggered_ts
@@ -266,9 +273,8 @@ class DaemonApp:
                     "error": "rate_limited",
                     "retry_after_s": round(_USER_TRIGGERED_RATE_LIMIT_SECONDS - elapsed, 1),
                 }
-            # 立即占位防并发，后续逻辑失败时不回滚（牺牲公平换 atomic）
-            self._last_user_triggered_ts = now_mono
 
+        # === 阶段 C: 深度校验（lock 外，失败不污染配额） ===
         # 3. frame_id 处理（用户指认 OR fallback 最近帧）
         latest_fid = self.latest_frame_id()
         if latest_fid == 0:
@@ -277,7 +283,6 @@ class DaemonApp:
         if user_frame_id is not None:
             if not isinstance(user_frame_id, int) or user_frame_id <= 0:
                 return 400, {"error": "invalid_frame_id"}
-            # 检查 frame_id 是否在最近 window 范围内（在 _recent_frame_ts 缓存中）
             if self.get_recent_frame_ts(user_frame_id) is None:
                 return 503, {
                     "error": "frame_not_in_range",
@@ -290,7 +295,6 @@ class DaemonApp:
 
         trigger_ref_frame_ts = self.get_recent_frame_ts(frame_id)
         if trigger_ref_frame_ts is None:
-            # 兜底：用 daemon 此刻时间（不精确但允许，alignment_latency_s 会 ~0）
             trigger_ref_frame_ts = datetime.now(timezone.utc).isoformat()
 
         # 4. client_action_ts 处理
@@ -316,12 +320,8 @@ class DaemonApp:
                 f"此样本写入但 feedback_to_batch 会硬过滤不入训练批"
             )
 
-        # 7. 写入 JSONL
+        # 7. 构造 record
         event_uuid = str(uuid4())
-        note = body.get("note")
-        if note is not None and not isinstance(note, str):
-            return 400, {"error": "invalid_note"}
-
         record = {
             "ts": datetime.now(timezone.utc).isoformat(),
             "frame_id": frame_id,
@@ -329,7 +329,7 @@ class DaemonApp:
             "client_action_ts": client_action_ts,
             "alignment_latency_s": round(alignment_latency_s, 3),
             "reason": "user_triggered",
-            "signal": None,                  # V0.3: signal 仅审计；不参与训练（响应 codex F2）
+            "signal": None,
             "vlm_label": None,
             "user_response": {
                 "label": label,
@@ -344,13 +344,26 @@ class DaemonApp:
                 "cmdline": "user_triggered",
             },
         }
+
+        # === 阶段 D: cooldown double-check + 占位（lock 内） ===
+        # 阶段 B→C 之间并发请求可能抢占；double-check 防 TOCTOU
+        now_mono2 = time.monotonic()
+        with self._user_triggered_lock:
+            elapsed2 = now_mono2 - self._last_user_triggered_ts
+            if elapsed2 < _USER_TRIGGERED_RATE_LIMIT_SECONDS:
+                return 429, {
+                    "error": "rate_limited",
+                    "retry_after_s": round(_USER_TRIGGERED_RATE_LIMIT_SECONDS - elapsed2, 1),
+                }
+            self._last_user_triggered_ts = now_mono2
+
+        # === 阶段 E: 写 JSONL（lock 外，rate-limit 已占位） ===
         try:
             append_query(record)
         except Exception as exc:  # noqa: BLE001
             logging.error("trigger_mismatch append_query failed: %s", exc)
             return 500, {"error": "write_failed", "detail": str(exc)}
 
-        # 8. rate-limit ts 已在 step 2 内 atomic 占位，无需重复设
         return 200, {
             "ok": True,
             "event_uuid": event_uuid,

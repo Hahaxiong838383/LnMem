@@ -166,6 +166,41 @@ def test_07_rate_limit_second_call_429(handle):
     assert "retry_after_s" in resp2
 
 
+def test_07b_invalid_request_does_not_consume_quota(handle):
+    """codex daily check 2026-05-12: 无效请求不应占 60s rate-limit 配额。
+
+    复现：原实现先占位 _last_user_triggered_ts，后做 frame_id 校验
+    → invalid_frame_id (400) 之后立即合法请求被错误 429。
+    修复后：invalid 请求 4xx 不占配额，紧随合法请求应 200。
+    """
+    # 1. invalid_frame_id（frame_id 必须 int > 0）
+    code1, resp1 = handle({"true_state": "focused", "frame_id": 0})
+    assert code1 == 400
+    assert resp1["error"] == "invalid_frame_id"
+    # 2. 紧随合法请求应 200（配额未被无效请求消耗）
+    code2, resp2 = handle({"true_state": "focused"})
+    assert code2 == 200, f"修复后无效请求不应占配额，实际 {code2} {resp2}"
+
+
+def test_07c_invalid_true_state_does_not_consume_quota(handle):
+    """阶段 A 字段校验失败（true_state 非法）也不占配额。"""
+    code1, resp1 = handle({"true_state": "not_a_state"})
+    assert code1 == 400
+    assert "invalid_true_state" in resp1["error"]
+    code2, _ = handle({"true_state": "focused"})
+    assert code2 == 200
+
+
+def test_07d_frame_not_in_range_does_not_consume_quota(handle):
+    """frame_id 在合法范围检查失败（503）也不占配额。"""
+    # frame_id 远大于 latest_fid (latest=100 in mock) → frame_not_in_range
+    code1, resp1 = handle({"true_state": "focused", "frame_id": 999999})
+    assert code1 == 503
+    assert resp1["error"] == "frame_not_in_range"
+    code2, _ = handle({"true_state": "focused"})
+    assert code2 == 200
+
+
 def test_08_concurrent_post_only_one_succeeds(handle):
     """case 8: 5 并发 POST → 仅 1 成功，其余 429."""
     results = []
