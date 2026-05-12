@@ -33,5 +33,23 @@ class ParserConfig:
     )
 
     def validate(self) -> None:
-        """Validate config invariants. 校验配置边界，真实实现阶段补齐。"""
-        raise NotImplementedError("M0 W2 todo: validate parser config bounds")
+        """Validate config invariants. 校验配置边界。"""
+        if not self.llm_model or not isinstance(self.llm_model, str):
+            raise ValueError(f"llm_model must be non-empty str, got {self.llm_model!r}")
+        if not self.gliner_model or not isinstance(self.gliner_model, str):
+            raise ValueError(f"gliner_model must be non-empty str")
+        if not (0.0 <= self.temperature <= 2.0):
+            raise ValueError(f"temperature must be in [0, 2], got {self.temperature}")
+        if self.max_retries < 0:
+            raise ValueError(f"max_retries must be ≥ 0, got {self.max_retries}")
+        if self.timeout_seconds <= 0:
+            raise ValueError(f"timeout_seconds must be > 0, got {self.timeout_seconds}")
+        if not self.fallback_order:
+            raise ValueError("fallback_order must contain at least one BackendKind")
+        seen: set[BackendKind] = set()
+        for k in self.fallback_order:
+            if not isinstance(k, BackendKind):
+                raise ValueError(f"fallback_order items must be BackendKind, got {type(k).__name__}")
+            if k in seen:
+                raise ValueError(f"fallback_order has duplicate {k}")
+            seen.add(k)
