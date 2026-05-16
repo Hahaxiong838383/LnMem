@@ -17,10 +17,17 @@
       --demo-from-ts 2026-05-16T14:14:46 \
       --demo-to-ts   2026-05-16T14:25:40
 
+V0.3.7 ADR-010 codex F1 (P0) 修复（2026-05-17）：
+  - 废弃原 simulate_schmitt 自写状态机（与 trigger.observe 语义不一致：
+    缺 window_stable / latch 时机不同 / cooldown 内不 latch 等差异 → 阈值推荐系统性偏差）。
+  - 改用 count_brow_burst_fires() 直接调 ProactiveQueryTrigger(use_schmitt_ema=True).observe()
+    对每帧回放，与生产 trigger 状态机 1:1 同构。
+  - 一致性回归测试见 poc/tests/test_feedback_trigger.py::TestSweepConsistency。
+
 参考：
   - ADR-005（dual signal_path raw vs calibrated）
   - ADR-006（threshold-auto-recalibration 占位）
-  - ADR-010（脉冲信号 vs strict-deque 不匹配根因）
+  - ADR-010（脉冲信号 vs strict-deque 不匹配根因 + F1 sweep-trigger 同构）
   - ROADMAP TODO-1
 """
 from __future__ import annotations
@@ -29,7 +36,6 @@ import glob
 import json
 import math
 import os
-from collections import deque
 from pathlib import Path
 from typing import Iterable
 
@@ -70,40 +76,64 @@ def quantile(sorted_vals: list[float], q: float) -> float:
     return sorted_vals[lo] * (1.0 - frac) + sorted_vals[hi] * frac
 
 
-def simulate_schmitt(
+def count_brow_burst_fires(
     values: list[float],
     alpha: float,
     thr_high: float,
     thr_low: float,
-    min_samples: int = 5,
+    brow_window: int = 5,
     cooldown_frames: int = 300,
 ) -> int:
-    """模拟 Schmitt + EMA 触发，返回触发次数。
+    """通过 ProactiveQueryTrigger 真实回放 raw_AU04 序列，统计 brow_burst 触发次数。
 
-    语义同 trigger.py.ProactiveQueryTrigger 的 use_schmitt_ema=True 分支：
-      - EMA 每帧更新；
-      - 上升沿 ema≥thr_high 且未在 cooldown 内 → fire；fire 后 cooldown_frames 不再 fire；
-      - 下降沿 ema≤thr_low 解除 above 状态（允许下一次上升沿）。
+    F1 (P0) ADR-010 修复（2026-05-17 codex review）：
+      之前 simulate_schmitt 手写状态机与 trigger.observe 语义不一致
+      （window_stable 处理 / latch 时机 / cooldown 内是否 latch 等都有差异），
+      在同一输入下 sweep 少算触发数，导致参数推荐系统性偏向"更激进阈值"。
+
+      本函数改为直接调 ProactiveQueryTrigger(use_schmitt_ema=True).observe()
+      逐帧回放，与生产 trigger 1:1 同构。
+
+    参数：
+      values: 帧序列 raw_AU04（已过滤 face_detected=True；NaN/Inf 已在 extract_raw_au04
+              内剔除，故 trigger 内 NaN 防御不会被触发）
+      alpha: EMA α
+      thr_high, thr_low: Schmitt 滞回上下沿
+      brow_window: trigger window_stable 门（demo=5 / work=15）
+      cooldown_frames: brow_burst 通道 cooldown
+
+    返回：brow_burst 触发次数。
     """
     if not values:
         return 0
+    # 局部 import 避免循环依赖 & 让脚本无需 trigger 也能解析
+    from poc.src.realtime.feedback.trigger import ProactiveQueryTrigger
+    trig = ProactiveQueryTrigger(
+        brow_window=brow_window,
+        signal_path="raw",
+        use_schmitt_ema=True,
+        brow_ema_alpha=alpha,
+        brow_thr_high=thr_high,
+        brow_thr_low=thr_low,
+        cooldown_frames_brow=cooldown_frames,
+        # 隔离其他通道，专测 brow_burst：
+        # - low_vlm_conf：item.vlm_label=None → 不进通道
+        # - pose_held：enable_pose_held=False → 永远 max_std=None 不触发
+        enable_pose_held=False,
+    )
     fires = 0
-    ema: float | None = None
-    above = False
-    samples_since_reset = 0
-    last_fire_idx = -10**9
     for i, v in enumerate(values):
-        ema = v if ema is None else alpha * v + (1.0 - alpha) * ema
-        samples_since_reset += 1
-        in_cd = (i - last_fire_idx) < cooldown_frames
-        if not above and ema >= thr_high:
-            above = True
-            if samples_since_reset >= min_samples and not in_cd:
-                fires += 1
-                last_fire_idx = i
-                samples_since_reset = 0
-        elif above and ema <= thr_low:
-            above = False
+        item = {
+            "ts": "",
+            "frame_id": i,
+            "face_detected": True,
+            "raw_au": {"AU04": float(v)},
+            "expression": {},  # 走 raw 路径，brow_furrow 不读
+            "vlm_label": None,
+        }
+        ev = trig.observe(item)
+        if ev is not None and ev.reason == "brow_burst":
+            fires += 1
     return fires
 
 
@@ -194,14 +224,14 @@ def main() -> None:
                 thr_hi = alpha_to_quantiles[a][q]
                 for g in gap_ratios:
                     thr_lo = thr_hi * g
-                    n_demo = simulate_schmitt(
+                    n_demo = count_brow_burst_fires(
                         demo_raw, a, thr_hi, thr_lo,
-                        min_samples=args.min_samples,
+                        brow_window=args.min_samples,
                         cooldown_frames=args.cooldown_frames,
                     )
-                    n_full = simulate_schmitt(
+                    n_full = count_brow_burst_fires(
                         all_raw, a, thr_hi, thr_lo,
-                        min_samples=args.min_samples,
+                        brow_window=args.min_samples,
                         cooldown_frames=args.cooldown_frames,
                     )
                     candidates.append((a, q, thr_hi, thr_lo, n_demo, n_full))

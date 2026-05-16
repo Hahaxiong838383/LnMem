@@ -991,3 +991,216 @@ class TestSchmittEmaBrowBurst(unittest.TestCase):
             pose_fires, 15,
             f"pose_held 误报过多 ({pose_fires})，可能 Schmitt+EMA 改动影响了 pose 通道",
         )
+
+
+class TestSweepConsistency(unittest.TestCase):
+    """F1 (P0) ADR-010 codex review: sweep 必须与生产 trigger.observe 1:1 同构。
+
+    旧 simulate_schmitt 自写状态机与 trigger.py 的 Schmitt+EMA 分支语义不一致
+    （window_stable 门 / latch 时机 / cooldown 是否阻挡 latch 等），导致 sweep
+    在同一序列下少算触发数，阈值推荐系统性偏向"更激进阈值"。
+
+    本类校验：
+      1) count_brow_burst_fires 与逐帧直接调 trigger.observe 数值一致；
+      2) Schmitt+EMA 容忍 1 帧 dropout（脉冲信号语义）；
+      3) cooldown 边界、回落 re-arm、空输入边界。
+    """
+
+    @staticmethod
+    def _frame(brow: float, fid: int):
+        return {
+            "ts": "",
+            "frame_id": fid,
+            "face_detected": True,
+            "raw_au": {"AU04": float(brow)},
+            "expression": {},
+            "vlm_label": None,
+        }
+
+    def _trigger_fires(
+        self,
+        values,
+        alpha=0.40,
+        thr_high=0.55,
+        thr_low=0.30,
+        brow_window=5,
+        cooldown_frames=30,
+    ):
+        """Ground truth: 直接逐帧调 trigger.observe 数 brow_burst。"""
+        trig = ProactiveQueryTrigger(
+            brow_window=brow_window,
+            signal_path="raw",
+            use_schmitt_ema=True,
+            brow_ema_alpha=alpha,
+            brow_thr_high=thr_high,
+            brow_thr_low=thr_low,
+            cooldown_frames_brow=cooldown_frames,
+            enable_pose_held=False,
+        )
+        fires = 0
+        for i, v in enumerate(values):
+            ev = trig.observe(self._frame(v, i))
+            if ev is not None and ev.reason == "brow_burst":
+                fires += 1
+        return fires
+
+    def test_sweep_helper_matches_trigger_observe_on_high_plateau(self):
+        """5 帧 0.9 高位 → trigger 触发 N 次，count_brow_burst_fires 必须返回同样的 N。"""
+        from scripts.sweep_brow_threshold_quantile import count_brow_burst_fires
+
+        values = [0.9] * 5 + [0.1] * 500 + [0.9] * 5  # 两段高位 + 长 gap > cooldown=30
+        truth = self._trigger_fires(values)
+        sweep = count_brow_burst_fires(
+            values, alpha=0.40, thr_high=0.55, thr_low=0.30,
+            brow_window=5, cooldown_frames=30,
+        )
+        self.assertEqual(sweep, truth, "sweep helper 与 trigger.observe 必须 1:1 同构")
+        self.assertGreaterEqual(truth, 2, "5 帧 0.9 + gap + 5 帧 0.9 应触发 ≥ 2 次")
+
+    def test_sweep_helper_handles_pulse_dropout(self):
+        """1 帧 dropout 不应破坏触发（ADR-010 脉冲容忍核心场景）。"""
+        from scripts.sweep_brow_threshold_quantile import count_brow_burst_fires
+
+        # 4 帧 0.9 + 1 帧 0.3 + 4 帧 0.9：EMA 平滑后不应跌破 thr_low=0.30
+        values = [0.9] * 4 + [0.3] + [0.9] * 4
+        truth = self._trigger_fires(values)
+        sweep = count_brow_burst_fires(
+            values, alpha=0.40, thr_high=0.55, thr_low=0.30,
+            brow_window=5, cooldown_frames=30,
+        )
+        self.assertEqual(sweep, truth)
+        self.assertGreaterEqual(truth, 1, "脉冲 dropout 不应丢失触发")
+
+    def test_sweep_helper_matches_trigger_on_cooldown_boundary(self):
+        """cooldown 内多次过 thr_high 只能 fire 1 次；cooldown 解禁后回落 + 重升才 re-fire。"""
+        from scripts.sweep_brow_threshold_quantile import count_brow_burst_fires
+
+        # 30 帧 cooldown：高位 → 10 帧低位（cooldown 内）→ 高位 → 等 cooldown 过 → 回落 → 重升
+        values = (
+            [0.9] * 5            # fire #1
+            + [0.1] * 10         # cooldown 内回落（解 above）
+            + [0.9] * 10         # cooldown 内重升 → 不 fire（still cd）
+            + [0.1] * 25         # cooldown 过 + 回落 thr_low 解 above
+            + [0.9] * 8          # 重升 → fire #2
+        )
+        truth = self._trigger_fires(values, cooldown_frames=30)
+        sweep = count_brow_burst_fires(
+            values, alpha=0.40, thr_high=0.55, thr_low=0.30,
+            brow_window=5, cooldown_frames=30,
+        )
+        self.assertEqual(sweep, truth)
+
+    def test_sweep_helper_empty_input(self):
+        from scripts.sweep_brow_threshold_quantile import count_brow_burst_fires
+        self.assertEqual(
+            count_brow_burst_fires([], alpha=0.40, thr_high=0.55, thr_low=0.30),
+            0,
+        )
+
+    def test_sweep_helper_matches_trigger_on_random_walk(self):
+        """伪随机长序列（保证非平凡）逐帧对照，杜绝隐藏边界 case。"""
+        import random
+        from scripts.sweep_brow_threshold_quantile import count_brow_burst_fires
+
+        rng = random.Random(20260517)
+        # 1000 帧：60% 低位 0-0.3，30% 中位 0.3-0.55，10% 高位 0.55-0.95
+        values = []
+        for _ in range(1000):
+            r = rng.random()
+            if r < 0.6:
+                values.append(rng.uniform(0.0, 0.3))
+            elif r < 0.9:
+                values.append(rng.uniform(0.3, 0.55))
+            else:
+                values.append(rng.uniform(0.55, 0.95))
+        truth = self._trigger_fires(values, cooldown_frames=50)
+        sweep = count_brow_burst_fires(
+            values, alpha=0.40, thr_high=0.55, thr_low=0.30,
+            brow_window=5, cooldown_frames=50,
+        )
+        self.assertEqual(sweep, truth, f"random walk sweep={sweep} ≠ trigger={truth}")
+
+
+class TestRuntimeConfigResolve(unittest.TestCase):
+    """F5 (P1) ADR-010 codex review: resolve_runtime_config() 必须每次重读 env/file。
+
+    旧实现：daemon_main 直接 import trigger._BROW_EMA_ALPHA_RAW 等模块级常量，
+    而这些常量在 module import 时按 _TRIGGER_MODE 一次性固化 → 运行时切
+    ~/.lnmem/trigger_mode 或 env 不会反映到已 import 模块。
+
+    本测试用 monkeypatch env 模拟"运行时切 mode"，验证 resolve_runtime_config()
+    返回新值（与 module-level _TRIGGER_MODE 解耦）。
+    """
+
+    def setUp(self):
+        import os as _os
+        self._saved_mode = _os.environ.get("LNMEM_TRIGGER_MODE")
+        self._saved_sp = _os.environ.get("LNMEM_SIGNAL_PATH")
+
+    def tearDown(self):
+        import os as _os
+        for k, v in [
+            ("LNMEM_TRIGGER_MODE", self._saved_mode),
+            ("LNMEM_SIGNAL_PATH", self._saved_sp),
+        ]:
+            if v is None:
+                _os.environ.pop(k, None)
+            else:
+                _os.environ[k] = v
+
+    def test_env_change_reflects_immediately(self):
+        """运行时改 env 后立即调 resolve_runtime_config 应返回新 mode。"""
+        import os as _os
+        from poc.src.realtime.feedback.trigger import resolve_runtime_config
+
+        _os.environ["LNMEM_TRIGGER_MODE"] = "demo"
+        _os.environ["LNMEM_SIGNAL_PATH"] = "raw"
+        cfg = resolve_runtime_config()
+        self.assertEqual(cfg["mode"], "demo")
+        self.assertEqual(cfg["signal_path"], "raw")
+        # demo profile 字段：window=5, thr_high_raw=0.42
+        self.assertEqual(cfg["brow_burst_window"], 5)
+        self.assertAlmostEqual(cfg["brow_thr_high_raw"], 0.42, places=4)
+
+        _os.environ["LNMEM_TRIGGER_MODE"] = "work"
+        _os.environ["LNMEM_SIGNAL_PATH"] = "calibrated"
+        cfg2 = resolve_runtime_config()
+        self.assertEqual(cfg2["mode"], "work")
+        self.assertEqual(cfg2["signal_path"], "calibrated")
+        # work profile 字段：window=15, thr_high_raw=0.55
+        self.assertEqual(cfg2["brow_burst_window"], 15)
+        self.assertAlmostEqual(cfg2["brow_thr_high_raw"], 0.55, places=4)
+
+    def test_invalid_mode_falls_back_to_file_or_default(self):
+        """env 非法值（非 demo/work）→ 走 file 路径；file 也无则 default work。
+
+        本机 ~/.lnmem/trigger_mode 可能存在（如 demo session 残留），所以这里
+        用 tempfile + monkeypatch HOME 隔离测试环境，确保 fallback 真到 default。
+        """
+        import os as _os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            saved_home = _os.environ.get("HOME")
+            _os.environ["HOME"] = tmp
+            _os.environ["LNMEM_TRIGGER_MODE"] = "garbage"
+            _os.environ.pop("LNMEM_SIGNAL_PATH", None)
+            try:
+                from poc.src.realtime.feedback.trigger import resolve_runtime_config
+                cfg = resolve_runtime_config()
+                self.assertEqual(cfg["mode"], "work")
+                self.assertEqual(cfg["signal_path"], "calibrated")
+            finally:
+                if saved_home is None:
+                    _os.environ.pop("HOME", None)
+                else:
+                    _os.environ["HOME"] = saved_home
+
+    def test_resolve_returns_independent_dict(self):
+        """两次调用返回独立 dict，互不污染（防误共享 mutable state）。"""
+        from poc.src.realtime.feedback.trigger import resolve_runtime_config
+
+        a = resolve_runtime_config()
+        b = resolve_runtime_config()
+        a["mode"] = "polluted"
+        self.assertNotEqual(b["mode"], "polluted")

@@ -188,3 +188,65 @@ snapshot 字段同步加 NaN 兜底。
 - 00:05: replay 验收 41x 提升 + 638 帧无回归
 - 00:08: codex 复审 5 finding（F3 已被 V0.3.6 修复）
 - 00:10: 本段落盘 + commit
+
+---
+
+## V0.3.7 川哥端到端实测 + codex F5 修复（2026-05-17 00:30 完成）
+
+### 川哥实测黄金证据
+
+V0.3.6 daemon 清洁重启后川哥真坐摄像头前皱眉，5min 内：
+
+| 时间 | 类型 | raw_AU04 | ema | above_high | 川哥响应 |
+|---|---|---|---|---|---|
+| 11:16 | pose_held | 0.459 | 0.456 | True | match ✅ |
+| 12:39 | **brow_burst** | 0.655 | 0.437 | True | match ✅ |
+| 13:56 | **brow_burst** | 0.547 | 0.431 | True | mismatch |
+| 15:10 | **brow_burst** | 0.877 | 0.560 | True | mismatch |
+| 18:00 | **brow_burst** | 0.496 | 0.431 | True | mismatch |
+
+**brow_burst 5min 内 4 次反复触发** ✅ V0.3.6 cooldown × latch 死锁修复 + NaN 防御彻底见效。
+
+### 川哥 3 mismatch 的双重价值
+
+1. **e2e 链路黄金证据**：trigger → 弹窗 → 用户响应 → 落盘 queries.jsonl 全链路通
+2. **ADR-007 必要性活样本**：raw_AU04 0.50-0.87 触发但川哥说"不是我"，
+   = 合成数据训出的 base ckpt 在川哥脸上 V-A 映射不准 → ADR-007 AffectNet 真人化训练的强需求证据
+3. **这 3 个 mismatch 是 LNN 训练黄金数据**：直接喂入 fit_orchestrator 优化 OnlineLoRAAdapter
+   tau_drift，让模型学到"raw_AU04 高但情绪不负面"的川哥个体 baseline
+
+### codex F5 修复（同夜并行处理）
+
+trigger.py 加 `_MODE_PROFILES` 字典 + `resolve_runtime_config()` 函数：daemon 每次构建
+trigger 都重读 env / ~/.lnmem/{trigger_mode,signal_path}，从根上消除 codex F5 警告的
+"daemon module-level 配置漂移面"。Backward-compat module-level 常量保留（旧测试 0 影响）。
+
+### codex 5 findings 闭环最新进展
+
+| # | 级别 | V0.3.5 状态 | V0.3.6 状态 | V0.3.7 状态 |
+|---|------|------------|-------------|-------------|
+| F1 | P0 | ⏳ | ⏳ | ⏳ spawn_task |
+| F2 | P1 | ⏳ | ⏳ | ⏳ spawn_task |
+| F3 | P1 | ⏳ | ✅ 已修 | ✅ |
+| F4 | P1 | ⏳ | ⏳ | ⏳ spawn_task（需产品定案）|
+| **F5** | **P1** | ⏳ | ⏳ | ✅ **已修** |
+
+剩 F1/F2/F4 进 spawn_task 明日处理。
+
+### V0.3.7 pytest
+
+557 全过（V0.3.6 552 + F5 新增 5 个 resolve_runtime_config 测试），0 回归。
+
+### 配套发现 — 待治：py-feat 假阳性脸（spawn_task 已挂）
+
+实测 16:00-16:30 共 1800 帧川哥离开电脑期间：face_detected=True 100% + raw_AU04
+全 NaN + head_pose pitch=3.075° std=0°（py-feat 缓存/冻结值）→ pose_held 每 30s
+误触发 75 次纯噪声。spawn_task 已挂队列。
+
+### V0.3.7 时间线
+
+- 00:15: 川哥回电脑前实测，4 brow_burst + 1 pose_held + 5min 内验证 e2e 链路
+- 00:20: 发现 py-feat 假阳性脸 1.5h 75 次 pose_held 噪声 → spawn_task 挂队列
+- 00:25: codex F5 实施（_MODE_PROFILES + resolve_runtime_config）
+- 00:32: pytest 557 全过验证 F5 修复无回归
+- 00:35: 本段落盘 + commit + push

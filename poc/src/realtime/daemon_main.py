@@ -396,7 +396,8 @@ class DaemonApp:
         """
         from pathlib import Path
         from poc.src.realtime.lnn_inferencer import RealtimeLNNInferencer
-        from poc.src.realtime.feedback import trigger as _trig_mod
+        # F5 (P1): 用 resolve_runtime_config() 而非 import-time 快照
+        from poc.src.realtime.feedback.trigger import resolve_runtime_config
 
         ckpt_env = os.environ.get("LNMEM_LNN_CKPT")
         ckpt_path: Path | None = None
@@ -421,7 +422,7 @@ class DaemonApp:
         return RealtimeLNNInferencer(
             ckpt_path=ckpt_path,
             persona_idx=int(os.environ.get("LNMEM_PERSONA_IDX", "30")),
-            signal_path=_trig_mod._SIGNAL_PATH,
+            signal_path=resolve_runtime_config()["signal_path"],
         )
 
     def _build_feedback_engine(self) -> ProactiveQueryEngine:
@@ -438,39 +439,59 @@ class DaemonApp:
         cfg = EngineConfig(rate=rate, dnd=dnd, enable_prompt=True)
         # FB-03: 把 daemon.toml 的 query_confidence_threshold 接到 trigger
         # ADR-005 F-08 fix: daemon 启动时根据 signal_path 显式传 brow 阈值 + signal_path 实例属性
-        # 测试默认值 = calibrated 0.95 不变（保持测试稳定），daemon 运行时按 module-level 切
         # TODO-1 (ADR-010): raw 路径下默认启用 Schmitt + EMA，显式传 brow_thr_high/low + α
-        from poc.src.realtime.feedback import trigger as _trig_mod
-        _sp = _trig_mod._SIGNAL_PATH
+        # F5 (P1) ADR-010 codex review (2026-05-17)：
+        #   每次构建 trigger 时调 resolve_runtime_config()，**不再** 读 module-level
+        #   _SIGNAL_PATH / _BROW_*_RAW 等 import-time 快照常量。
+        #   这样运行时切 ~/.lnmem/trigger_mode 或测试 monkeypatch env 都能立刻反映。
+        from poc.src.realtime.feedback.trigger import resolve_runtime_config
+        _cfg = resolve_runtime_config()
+        _sp = _cfg["signal_path"]
+        _mode = _cfg["mode"]
         _brow_thr = (
-            _trig_mod._BROW_BURST_THRESHOLD_RAW if _sp == "raw"
-            else _trig_mod._BROW_BURST_THRESHOLD_CAL
+            _cfg["brow_burst_threshold_raw"] if _sp == "raw"
+            else _cfg["brow_burst_threshold_cal"]
         )
         # raw 路径才启用 Schmitt+EMA；calibrated 仍走 legacy strict-deque（向后兼容）
         if _sp == "raw":
             trigger = ProactiveQueryTrigger(
                 vlm_conf_threshold=fb.query_confidence_threshold,
                 brow_threshold=_brow_thr,
+                brow_window=_cfg["brow_burst_window"],
+                pose_held_window=_cfg["pose_held_window"],
+                pose_held_stddev_threshold_deg=_cfg["pose_held_stddev_threshold_deg"],
+                pose_outlier_abs_threshold_deg=_cfg["pose_outlier_abs_threshold_deg"],
+                cooldown_frames_brow=_cfg["cooldown_frames_brow"],
+                cooldown_frames_pose_held=_cfg["cooldown_frames_pose_held"],
+                cooldown_frames_low_vlm_conf=_cfg["cooldown_frames_low_vlm_conf"],
                 signal_path=_sp,
                 use_schmitt_ema=True,
-                brow_ema_alpha=_trig_mod._BROW_EMA_ALPHA_RAW,
-                brow_thr_high=_trig_mod._BROW_THR_HIGH_RAW,
-                brow_thr_low=_trig_mod._BROW_THR_LOW_RAW,
+                brow_ema_alpha=_cfg["brow_ema_alpha_raw"],
+                brow_thr_high=_cfg["brow_thr_high_raw"],
+                brow_thr_low=_cfg["brow_thr_low_raw"],
             )
             logging.getLogger(__name__).info(
-                "trigger init: signal_path=%s schmitt_ema=ON alpha=%.2f thr_high=%.2f thr_low=%.2f",
-                _sp, _trig_mod._BROW_EMA_ALPHA_RAW,
-                _trig_mod._BROW_THR_HIGH_RAW, _trig_mod._BROW_THR_LOW_RAW,
+                "trigger init: mode=%s signal_path=%s schmitt_ema=ON alpha=%.2f thr_high=%.2f thr_low=%.2f cooldown=%d",
+                _mode, _sp,
+                _cfg["brow_ema_alpha_raw"], _cfg["brow_thr_high_raw"], _cfg["brow_thr_low_raw"],
+                _cfg["cooldown_frames_brow"],
             )
         else:
             trigger = ProactiveQueryTrigger(
                 vlm_conf_threshold=fb.query_confidence_threshold,
                 brow_threshold=_brow_thr,
+                brow_window=_cfg["brow_burst_window"],
+                pose_held_window=_cfg["pose_held_window"],
+                pose_held_stddev_threshold_deg=_cfg["pose_held_stddev_threshold_deg"],
+                pose_outlier_abs_threshold_deg=_cfg["pose_outlier_abs_threshold_deg"],
+                cooldown_frames_brow=_cfg["cooldown_frames_brow"],
+                cooldown_frames_pose_held=_cfg["cooldown_frames_pose_held"],
+                cooldown_frames_low_vlm_conf=_cfg["cooldown_frames_low_vlm_conf"],
                 signal_path=_sp,
             )
             logging.getLogger(__name__).info(
-                "trigger init: signal_path=%s brow_threshold=%.2f (legacy strict-deque)",
-                _sp, _brow_thr,
+                "trigger init: mode=%s signal_path=%s brow_threshold=%.2f (legacy strict-deque)",
+                _mode, _sp, _brow_thr,
             )
         return ProactiveQueryEngine(
             cfg,

@@ -59,50 +59,100 @@ def _detect_setting(env_key: str, file_path: str, valid: set, default: str) -> s
         pass
     return default
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Mode profiles：demo / work 两套参数集中定义，便于运行时按 mode 字符串解析。
+# F5 (P1) ADR-010 codex review (2026-05-17)：
+#   之前 daemon_main 直接 import _BROW_EMA_ALPHA_RAW 等 module-level 常量，
+#   而这些常量在 module import 时按 _TRIGGER_MODE 一次性固化 → 运行时切换
+#   ~/.lnmem/trigger_mode 或 env 不会反映到已 import 模块。
+#   现在改成 _MODE_PROFILES + resolve_runtime_config()：daemon 每次构建 trigger
+#   都重读 env/file，按当前 mode 选 profile，从根上消除"配置看似切了实际没切"。
+# ──────────────────────────────────────────────────────────────────────────────
+_MODE_PROFILES: dict[str, dict] = {
+    "demo": {
+        "brow_burst_window": 5,
+        "brow_burst_threshold_cal": 0.80,
+        "brow_burst_threshold_raw": 0.40,  # raw 路径 demo 阈值（≈ P76）
+        "low_vlm_conf_threshold": 0.65,
+        "pose_held_window": 20,
+        "pose_held_stddev_threshold_deg": 3.5,
+        "pose_outlier_abs_threshold_deg": 60.0,
+        "cooldown_frames_brow": 30,
+        "cooldown_frames_pose_held": 30,
+        "cooldown_frames_low_vlm_conf": 30,
+        # TODO-1 (ADR-010) Schmitt+EMA 参数（sweep_brow_threshold_quantile 2026-05-16）：
+        #   α=0.40 平滑掉脉冲 1 帧 dropout；thr_high=0.42 ≈ P85；thr_low=0.22 ~50% 滞回。
+        #   demo session (638 帧) 模拟触发 5 次 ≥ ADR-010 验收阈 2 次。
+        "brow_ema_alpha_raw": 0.40,
+        "brow_thr_high_raw": 0.42,
+        "brow_thr_low_raw": 0.22,
+    },
+    "work": {
+        "brow_burst_window": 15,
+        "brow_burst_threshold_cal": 0.95,
+        # ADR-005 数据驱动: raw_au.AU04 P91=0.55，每天 ~5-6 次触发（work 节奏）
+        "brow_burst_threshold_raw": 0.55,
+        "low_vlm_conf_threshold": 0.65,
+        "pose_held_window": 60,
+        "pose_held_stddev_threshold_deg": 2.5,
+        "pose_outlier_abs_threshold_deg": 60.0,
+        "cooldown_frames_brow": 300,
+        "cooldown_frames_pose_held": 300,
+        "cooldown_frames_low_vlm_conf": 120,
+        # TODO-1 (ADR-010) work 模式 Schmitt+EMA：α=0.40 + thr_high=0.55 (≈P95) + thr_low=0.30
+        #   demo session 触发 2 次 / 7 日全量 ~405 次（~60/日，~每 12 min）。
+        "brow_ema_alpha_raw": 0.40,
+        "brow_thr_high_raw": 0.55,
+        "brow_thr_low_raw": 0.30,
+    },
+}
+
+
+def resolve_runtime_config() -> dict:
+    """每次调都重读 env / ~/.lnmem/{trigger_mode,signal_path} → 返回当前 profile。
+
+    F5 (P1) ADR-010 修复：daemon 启动 / 测试构造 trigger 时都通过此函数拿配置，
+    不再读 module-level _TRIGGER_MODE / _SIGNAL_PATH（那些是 import-time 快照）。
+
+    返回字段：
+      - mode: "demo" | "work"
+      - signal_path: "raw" | "calibrated"
+      - 加 _MODE_PROFILES[mode] 的所有键
+    """
+    mode = _detect_setting(
+        "LNMEM_TRIGGER_MODE", "~/.lnmem/trigger_mode", {"demo", "work"}, "work"
+    )
+    signal_path = _detect_setting(
+        "LNMEM_SIGNAL_PATH", "~/.lnmem/signal_path", {"raw", "calibrated"}, "calibrated"
+    )
+    out: dict = {"mode": mode, "signal_path": signal_path}
+    out.update(_MODE_PROFILES[mode])
+    return out
+
+
+# Backward-compat module-level 常量（import-time 快照；新代码请用 resolve_runtime_config）：
+#   - 其他 module / test 已直接 import 它们，删除会破环兼容性；
+#   - F5 修复后 daemon 不再依赖它们的"运行时正确性"，所以保留无负担。
 _TRIGGER_MODE = _detect_setting(
     "LNMEM_TRIGGER_MODE", "~/.lnmem/trigger_mode", {"demo", "work"}, "work"
 )
 _SIGNAL_PATH = _detect_setting(
     "LNMEM_SIGNAL_PATH", "~/.lnmem/signal_path", {"raw", "calibrated"}, "calibrated"
 )
-
-if _TRIGGER_MODE == "demo":
-    _BROW_BURST_WINDOW = 5
-    _BROW_BURST_THRESHOLD_CAL = 0.80
-    _BROW_BURST_THRESHOLD_RAW = 0.40  # raw 路径下 demo 阈值（≈ P76）
-    _LOW_VLM_CONF_THRESHOLD = 0.65
-    _POSE_HELD_WINDOW = 20
-    _POSE_HELD_STDDEV_THRESHOLD_DEG = 3.5
-    _POSE_OUTLIER_ABS_THRESHOLD_DEG = 60.0
-    _COOLDOWN_FRAMES_BROW = 30
-    _COOLDOWN_FRAMES_POSE_HELD = 30
-    _COOLDOWN_FRAMES_LOW_VLM_CONF = 30
-    # TODO-1 (ADR-010) demo 模式 Schmitt+EMA 参数（sweep_brow_threshold_quantile 2026-05-16）：
-    #   α=0.40 平滑掉脉冲信号的 1 帧 dropout；
-    #   thr_high=0.42 ≈ P85 of EMA(raw_AU04)，比 work 模式更敏感；
-    #   thr_low=0.22 留 ~50% 滞回带防震荡。
-    #   demo session (638 帧) 模拟触发 5 次 ≥ ADR-010 验收阈 2 次。
-    _BROW_EMA_ALPHA_RAW = 0.40
-    _BROW_THR_HIGH_RAW = 0.42
-    _BROW_THR_LOW_RAW = 0.22
-else:  # work (default)
-    _BROW_BURST_WINDOW = 15
-    _BROW_BURST_THRESHOLD_CAL = 0.95
-    # ADR-005 数据驱动: raw_au.AU04 P91=0.55，每天 ~5-6 次触发（与 work 节奏一致）
-    _BROW_BURST_THRESHOLD_RAW = 0.55
-    _LOW_VLM_CONF_THRESHOLD = 0.65
-    _POSE_HELD_WINDOW = 60
-    _POSE_HELD_STDDEV_THRESHOLD_DEG = 2.5
-    _POSE_OUTLIER_ABS_THRESHOLD_DEG = 60.0
-    _COOLDOWN_FRAMES_BROW = 300
-    _COOLDOWN_FRAMES_POSE_HELD = 300
-    _COOLDOWN_FRAMES_LOW_VLM_CONF = 120
-    # TODO-1 (ADR-010) work 模式 Schmitt+EMA 参数（sweep_brow_threshold_quantile 2026-05-16）：
-    #   α=0.40 + thr_high=0.55 (≈P95 of EMA) + thr_low=0.30；
-    #   demo session 触发 2 次 / 7 日全量 ~405 次（~60/日，~每 12 min 一次，匹配 work 节奏）。
-    _BROW_EMA_ALPHA_RAW = 0.40
-    _BROW_THR_HIGH_RAW = 0.55
-    _BROW_THR_LOW_RAW = 0.30
+_init_profile = _MODE_PROFILES[_TRIGGER_MODE]
+_BROW_BURST_WINDOW = _init_profile["brow_burst_window"]
+_BROW_BURST_THRESHOLD_CAL = _init_profile["brow_burst_threshold_cal"]
+_BROW_BURST_THRESHOLD_RAW = _init_profile["brow_burst_threshold_raw"]
+_LOW_VLM_CONF_THRESHOLD = _init_profile["low_vlm_conf_threshold"]
+_POSE_HELD_WINDOW = _init_profile["pose_held_window"]
+_POSE_HELD_STDDEV_THRESHOLD_DEG = _init_profile["pose_held_stddev_threshold_deg"]
+_POSE_OUTLIER_ABS_THRESHOLD_DEG = _init_profile["pose_outlier_abs_threshold_deg"]
+_COOLDOWN_FRAMES_BROW = _init_profile["cooldown_frames_brow"]
+_COOLDOWN_FRAMES_POSE_HELD = _init_profile["cooldown_frames_pose_held"]
+_COOLDOWN_FRAMES_LOW_VLM_CONF = _init_profile["cooldown_frames_low_vlm_conf"]
+_BROW_EMA_ALPHA_RAW = _init_profile["brow_ema_alpha_raw"]
+_BROW_THR_HIGH_RAW = _init_profile["brow_thr_high_raw"]
+_BROW_THR_LOW_RAW = _init_profile["brow_thr_low_raw"]
 
 # F-08 fix (codex v0.3 二审 2026-05-16)：
 # _BROW_BURST_THRESHOLD 永远 = _BROW_BURST_THRESHOLD_CAL（calibrated 默认 0.95）
