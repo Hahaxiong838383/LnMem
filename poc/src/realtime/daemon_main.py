@@ -388,7 +388,22 @@ class DaemonApp:
         dnd = DNDConfig(apps=fb.dnd_apps)
         cfg = EngineConfig(rate=rate, dnd=dnd, enable_prompt=True)
         # FB-03: 把 daemon.toml 的 query_confidence_threshold 接到 trigger
-        trigger = ProactiveQueryTrigger(vlm_conf_threshold=fb.query_confidence_threshold)
+        # ADR-005 F-08 fix: daemon 启动时根据 signal_path 显式传 brow 阈值 + signal_path 实例属性
+        # 测试默认值 = calibrated 0.95 不变（保持测试稳定），daemon 运行时按 module-level 切
+        from poc.src.realtime.feedback import trigger as _trig_mod
+        _sp = _trig_mod._SIGNAL_PATH
+        _brow_thr = (
+            _trig_mod._BROW_BURST_THRESHOLD_RAW if _sp == "raw"
+            else _trig_mod._BROW_BURST_THRESHOLD_CAL
+        )
+        trigger = ProactiveQueryTrigger(
+            vlm_conf_threshold=fb.query_confidence_threshold,
+            brow_threshold=_brow_thr,
+            signal_path=_sp,
+        )
+        logging.getLogger(__name__).info(
+            "trigger init: signal_path=%s brow_threshold=%.2f", _sp, _brow_thr,
+        )
         return ProactiveQueryEngine(
             cfg,
             trigger=trigger,

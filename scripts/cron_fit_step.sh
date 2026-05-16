@@ -138,11 +138,14 @@ fi
 EXIT_CODE=$?
 
 # 解析 JSON 结果（不抛错）+ 追加 history
+# F-09 fix (codex v0.3 二审 2026-05-16): 加 signal_path 元数据，从 result.metadata 透传
+# 兼容旧 report（没有 metadata.signal_path）→ 'unknown'
 PARSED=$("$VENV_PY" -c "
 import json, sys
 try:
     with open('$REPORT_FILE') as f:
         r = json.load(f)
+    meta = r.get('metadata') or {}
     out = {
         'job_id': '$JOB_ID',
         'ts': '$JOB_TS',
@@ -154,6 +157,8 @@ try:
         'metrics': r.get('metrics'),
         'ckpt_out_path': r.get('ckpt_out_path'),
         'error': r.get('error'),
+        'signal_path': meta.get('signal_path', 'unknown'),
+        'adr_label': meta.get('adr_label', 'unknown'),
     }
     print(json.dumps(out, ensure_ascii=False))
 except Exception as e:

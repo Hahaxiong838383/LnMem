@@ -607,3 +607,99 @@ class TestV03DefaultThresholds(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSignalPathSwitching(unittest.TestCase):
+    """ADR-005 (2026-05-16): dual signal_path（raw_au.AU04 vs expression.brow_furrow）。
+
+    raw 模式：trigger 用 item['raw_au']['AU04']，阈值 0.55（P91 数据驱动）
+    calibrated 模式（默认）：trigger 用 item['expression']['brow_furrow']，阈值 0.95
+    """
+
+    def _frame_with_raw_au(self, raw_au04=0.0, exp_brow=0.0, fid=1):
+        """构造同时含 raw_au.AU04 + expression.brow_furrow 的 item。"""
+        return {
+            "ts": "2026-05-16T08:00:00Z",
+            "frame_id": fid,
+            "face_detected": True,
+            "raw_au": {"AU04": raw_au04},  # py-feat 原始
+            "expression": {
+                "brow_furrow": exp_brow,  # calibration 后
+                "smile_intensity": 0.0,
+                "eye_closure": 0.0,
+                "cheek_raise": 0.0,
+            },
+            "vlm_label": None,
+        }
+
+    def _run_until_event(self, t, frame_factory, n=20):
+        """跑 n 帧或直到触发（不让后续帧把 event 覆盖回 None）。"""
+        for i in range(n):
+            event = t.observe(frame_factory(i))
+            if event is not None:
+                return event
+        return None
+
+    def test_signal_snapshot_records_both_paths(self):
+        """signal_snapshot 同时记 raw + calibrated 双值（A/B 离线对照锚点）。
+
+        F-08 fix (codex v0.3 二审 2026-05-16)：显式锁定 _SIGNAL_PATH=calibrated +
+        显式传 brow_threshold=0.95，不依赖运行时环境的 ~/.lnmem/signal_path 文件。
+        """
+        # F-08 fix v2 (codex 二审 2026-05-16): 直接传 signal_path 实例参数，不动 module-level
+        t = ProactiveQueryTrigger(signal_path="calibrated")
+        event = self._run_until_event(
+            t,
+            lambda i: self._frame_with_raw_au(raw_au04=0.3, exp_brow=0.99, fid=i),
+        )
+        self.assertIsNotNone(event)
+        sig = event.signal_snapshot
+        self.assertIn("raw_au_AU04", sig)
+        self.assertIn("brow_furrow", sig)
+        self.assertIn("brow_used_path", sig)
+        self.assertIn("brow_used_value", sig)
+        self.assertEqual(sig["raw_au_AU04"], 0.3)
+        self.assertEqual(sig["brow_furrow"], 0.99)
+
+    def test_calibrated_path_uses_expression_brow_furrow(self):
+        """calibrated 模式：raw_au.AU04 高但 expression.brow_furrow 低 → 不触发。"""
+        t = ProactiveQueryTrigger(signal_path="calibrated")
+        # raw 0.99 高但 calibrated 0.1 低 → calibrated 阈值 0.95 不满足
+        event = self._run_until_event(
+            t,
+            lambda i: self._frame_with_raw_au(raw_au04=0.99, exp_brow=0.10, fid=i),
+        )
+        self.assertIsNone(event, "calibrated 模式应只看 expression.brow_furrow，raw_au 0.99 不应触发")
+
+    def test_raw_path_uses_raw_au04(self):
+        """raw 模式：expression.brow_furrow 低但 raw_au.AU04 > 0.55 → 触发。"""
+        import poc.src.realtime.feedback.trigger as tg
+        t = ProactiveQueryTrigger(
+            signal_path="raw",
+            brow_threshold=tg._BROW_BURST_THRESHOLD_RAW,  # 0.55
+        )
+        # raw 0.70 高（> 0.55）但 calibrated 0.05 低 → raw 阈值 0.55 满足
+        event = self._run_until_event(
+            t,
+            lambda i: self._frame_with_raw_au(raw_au04=0.70, exp_brow=0.05, fid=i),
+        )
+        self.assertIsNotNone(event, "raw 模式应看 raw_au.AU04，0.70 > 0.55 应触发")
+        self.assertEqual(event.signal_snapshot["brow_used_path"], "raw")
+        self.assertEqual(event.signal_snapshot["brow_used_value"], 0.70)
+
+    def test_raw_path_no_raw_au_field_fallback_to_zero(self):
+        """raw 模式但 item 缺 raw_au 字段（旧 daemon 数据兼容）→ 用 0 fallback 不触发。"""
+        t = ProactiveQueryTrigger(signal_path="raw")
+        # 构造缺 raw_au 的 item（仅 expression.brow_furrow 高）
+        def factory(i):
+            return {
+                "ts": "2026-05-16T08:00:00Z",
+                "frame_id": i,
+                "face_detected": True,
+                "expression": {"brow_furrow": 0.99, "smile_intensity": 0.0,
+                               "eye_closure": 0.0, "cheek_raise": 0.0},
+                # 无 raw_au 字段
+                "vlm_label": None,
+            }
+        event = self._run_until_event(t, factory)
+        self.assertIsNone(event, "raw 模式缺 raw_au 字段应 fallback 0，不应触发")

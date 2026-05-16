@@ -32,25 +32,69 @@ from typing import Any
 # V0.3 Phase B 阈值（数据驱动收紧）：
 # - brow window 10→15 帧 (15s @ 1fps)，过滤瞬间皱眉
 # - brow threshold 0.85→0.95，过滤老板日常 brow=0.85-0.93（P75）
-_BROW_BURST_WINDOW = 15
-_BROW_BURST_THRESHOLD = 0.95
-_LOW_VLM_CONF_THRESHOLD = 0.65
+#
+# V0.3.1（2026-05-16 川哥钦定 dual-mode）：LNMEM_TRIGGER_MODE 切 demo / work
+# V0.3.2（2026-05-16 ADR-005 川哥钦定 dual signal_path）：
+#   - 5/16 D-1 数据分析发现 expression.brow_furrow 被 calibration 函数 polarized
+#     川哥 raw_au.AU04 P75=0.395, P91=0.55, P99=0.757，calibration gamma 拉伸把 raw>0.19 全 clamp 到 1.0
+#   - 新增 LNMEM_SIGNAL_PATH = raw / calibrated 切换
+#     * calibrated（默认，向后兼容）：brow_burst 用 expression.brow_furrow（旧阈值 0.95）
+#     * raw（v0.3.2 推荐）：brow_burst 用 raw_au.AU04（新数据驱动阈值 0.55 = P91）
+#   - signal_path 用 ~/.lnmem/signal_path 文件 + env 变量双源（与 trigger_mode 同范式）
+import os as _os
 
-# V0.3 Phase B 新增 pose_held 通道：
-# - 滑窗 60 帧（60s @ 1fps）
-# - max(pitch_std, yaw_std, roll_std) < 2.5°  → 头部基本不动 = 专注盯屏
-# - outlier pose（任一角 > 60°，py-feat 偶发错误）整窗作废，防误触
-_POSE_HELD_WINDOW = 60
-_POSE_HELD_STDDEV_THRESHOLD_DEG = 2.5
-_POSE_OUTLIER_ABS_THRESHOLD_DEG = 60.0
+def _detect_setting(env_key: str, file_path: str, valid: set, default: str) -> str:
+    """优先级：env 变量 > 文件 > default"""
+    env_val = _os.environ.get(env_key, "").strip().lower()
+    if env_val in valid:
+        return env_val
+    file_full = _os.path.expanduser(file_path)
+    try:
+        if _os.path.exists(file_full):
+            with open(file_full) as _f:
+                file_val = _f.read().strip().lower()
+            if file_val in valid:
+                return file_val
+    except Exception:
+        pass
+    return default
 
-# Cooldown（按 frame_id 计 / 1fps 即秒）：
-# - brow: 5min（强烈情绪，间隔短点）
-# - pose_held: 5min（专注状态，避免每隔 2min 就问）
-# - low_vlm_conf: 2min（VLM 拿不准是相对低强度信号）
-_COOLDOWN_FRAMES_BROW = 300
-_COOLDOWN_FRAMES_POSE_HELD = 300
-_COOLDOWN_FRAMES_LOW_VLM_CONF = 120
+_TRIGGER_MODE = _detect_setting(
+    "LNMEM_TRIGGER_MODE", "~/.lnmem/trigger_mode", {"demo", "work"}, "work"
+)
+_SIGNAL_PATH = _detect_setting(
+    "LNMEM_SIGNAL_PATH", "~/.lnmem/signal_path", {"raw", "calibrated"}, "calibrated"
+)
+
+if _TRIGGER_MODE == "demo":
+    _BROW_BURST_WINDOW = 5
+    _BROW_BURST_THRESHOLD_CAL = 0.80
+    _BROW_BURST_THRESHOLD_RAW = 0.40  # raw 路径下 demo 阈值（≈ P76）
+    _LOW_VLM_CONF_THRESHOLD = 0.65
+    _POSE_HELD_WINDOW = 20
+    _POSE_HELD_STDDEV_THRESHOLD_DEG = 3.5
+    _POSE_OUTLIER_ABS_THRESHOLD_DEG = 60.0
+    _COOLDOWN_FRAMES_BROW = 30
+    _COOLDOWN_FRAMES_POSE_HELD = 30
+    _COOLDOWN_FRAMES_LOW_VLM_CONF = 30
+else:  # work (default)
+    _BROW_BURST_WINDOW = 15
+    _BROW_BURST_THRESHOLD_CAL = 0.95
+    # ADR-005 数据驱动: raw_au.AU04 P91=0.55，每天 ~5-6 次触发（与 work 节奏一致）
+    _BROW_BURST_THRESHOLD_RAW = 0.55
+    _LOW_VLM_CONF_THRESHOLD = 0.65
+    _POSE_HELD_WINDOW = 60
+    _POSE_HELD_STDDEV_THRESHOLD_DEG = 2.5
+    _POSE_OUTLIER_ABS_THRESHOLD_DEG = 60.0
+    _COOLDOWN_FRAMES_BROW = 300
+    _COOLDOWN_FRAMES_POSE_HELD = 300
+    _COOLDOWN_FRAMES_LOW_VLM_CONF = 120
+
+# F-08 fix (codex v0.3 二审 2026-05-16)：
+# _BROW_BURST_THRESHOLD 永远 = _BROW_BURST_THRESHOLD_CAL（calibrated 默认 0.95）
+# observe() 内部按 _SIGNAL_PATH 选用 _RAW 还是 _CAL，不让模块默认值随运行时环境变化。
+# 这样所有现有测试（断言默认 0.95）保持稳定 ≡ "测试环境无关"
+_BROW_BURST_THRESHOLD = _BROW_BURST_THRESHOLD_CAL
 
 # FB-09: VLM 自报无脸的关键词清单（中文 + 英文）
 # 中英双语必须都覆盖：gemini-3.1-pro-preview 在 prompt 不强制中文时会偶尔回英文
@@ -133,8 +177,10 @@ class ProactiveQueryTrigger:
         cooldown_frames_low_vlm_conf: int = _COOLDOWN_FRAMES_LOW_VLM_CONF,
         enable_pose_held: bool = True,
         home: Path | None = None,
+        signal_path: str = "calibrated",  # ADR-005 F-08 fix: 实例属性，不读 module-level
     ) -> None:
         self._brow_threshold = brow_threshold
+        self._signal_path = signal_path if signal_path in ("raw", "calibrated") else "calibrated"
         self._brow_window_size = brow_window
         self._vlm_conf_threshold = vlm_conf_threshold
         self._brow_history: deque[float] = deque(maxlen=brow_window)
@@ -349,13 +395,25 @@ class ProactiveQueryTrigger:
             self._clear_pose_windows()
             return None
 
+        # ADR-005 dual signal_path（2026-05-16）：
+        #   - raw 模式：brow = raw_au.AU04（py-feat 原始皱眉强度，避免 calibration polarization）
+        #   - calibrated 模式（默认，向后兼容）：brow = expression.brow_furrow
+        # F-08 fix: signal_path 是实例属性 self._signal_path（构造时传入），不读 module-level
         expression = item.get("expression") or {}
-        brow = float(expression.get("brow_furrow", 0.0))
+        raw_au = item.get("raw_au") or {}
+        if self._signal_path == "raw":
+            brow = float(raw_au.get("AU04", 0.0))
+        else:
+            brow = float(expression.get("brow_furrow", 0.0))
         self._brow_history.append(brow)
         self._update_pose_window(item.get("head_pose"))
 
+        # signal_snapshot 同时记 raw 与 calibrated 两路，便于 A/B 离线分析
         signal_snapshot = {
-            "brow_furrow": brow,
+            "brow_furrow": float(expression.get("brow_furrow", 0.0)),  # calibrated（兼容）
+            "raw_au_AU04": float(raw_au.get("AU04", 0.0)),              # raw（新增）
+            "brow_used_path": self._signal_path,                         # 用了哪条
+            "brow_used_value": brow,                                     # 实际用于决策的值
             "smile_intensity": float(expression.get("smile_intensity", 0.0)),
             "eye_closure": float(expression.get("eye_closure", 0.0)),
             "cheek_raise": float(expression.get("cheek_raise", 0.0)),

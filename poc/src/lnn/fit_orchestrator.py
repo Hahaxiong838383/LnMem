@@ -303,6 +303,12 @@ def try_fit_step(
         ckpt_out["online_adapter_schema"] = _CKPT_SCHEMA_VERSION
 
         # F3-01 (codex 一审): metadata 补齐完整 OnlineAdapterConfig 快照 + 数据过滤统计
+        # F-09 fix (codex v0.3 二审 2026-05-16): 加 signal_path 元数据，便于 A/B 归因
+        try:
+            from poc.src.realtime.feedback import trigger as _trig_mod
+            _signal_path = _trig_mod._SIGNAL_PATH
+        except Exception:
+            _signal_path = "unknown"
         ckpt_out["phase2_metadata"] = {
             "fired_at_utc": fired_at,
             "schema_version": _CKPT_SCHEMA_VERSION,
@@ -312,6 +318,8 @@ def try_fit_step(
             "force": force,
             "counts": counts,
             "metrics": metrics,
+            "signal_path": _signal_path,  # F-09: A/B 归因锚点
+            "adr_label": f"post-ADR-005 (signal_path={_signal_path})",
             "batch_size": int(batch.x.shape[0]),
             "batch_sources": list(batch.label_sources),
             "batch_skipped_count": int(batch.skipped_count),
@@ -356,6 +364,9 @@ def try_fit_step(
         metadata={
             "batch_size": int(batch.x.shape[0]),
             "schema_version": _CKPT_SCHEMA_VERSION,
+            # F-09 fix (codex v0.3 二审): A/B 归因锚点（cron history 透传）
+            "signal_path": _signal_path,
+            "adr_label": f"post-ADR-005 (signal_path={_signal_path})",
         },
     )
 

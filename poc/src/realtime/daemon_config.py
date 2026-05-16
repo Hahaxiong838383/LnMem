@@ -99,6 +99,27 @@ def default_config_path() -> Path:
     return Path.home() / ".lnmem" / "daemon.toml"
 
 
+def _dual_mode_query_max(toml_value: int) -> int:
+    """V0.3.1 dual-mode: demo 模式覆盖 query_max_per_hour 到 60（1min 1 个）。
+
+    优先级：env LNMEM_TRIGGER_MODE > ~/.lnmem/trigger_mode 文件 > toml 默认值。
+    与 trigger.py 同源逻辑一致。
+    """
+    import os as _os
+    mode = _os.environ.get("LNMEM_TRIGGER_MODE", "").strip().lower()
+    if mode not in ("demo", "work"):
+        mode_file = _os.path.expanduser("~/.lnmem/trigger_mode")
+        try:
+            if _os.path.exists(mode_file):
+                with open(mode_file) as _f:
+                    mode = _f.read().strip().lower()
+        except Exception:
+            mode = ""
+    if mode == "demo":
+        return 60  # 1min 1 询问，足够 demo 节奏
+    return toml_value  # work: toml 配置 (默认 3)
+
+
 def load_config(
     path: str | Path | None = None,
     device_override: str | None = None,
@@ -137,7 +158,8 @@ def load_config(
         ),
         feedback=FeedbackConfig(
             query_min_per_hour=int(merged["feedback"]["query_min_per_hour"]),
-            query_max_per_hour=int(merged["feedback"]["query_max_per_hour"]),
+            # V0.3.1 dual-mode (2026-05-16 川哥钦定): demo 时 rate-limit 放宽到 60/h（1min 1 个）
+            query_max_per_hour=_dual_mode_query_max(int(merged["feedback"]["query_max_per_hour"])),
             query_confidence_threshold=float(merged["feedback"]["query_confidence_threshold"]),
             dnd_apps=tuple(str(a) for a in merged["feedback"]["dnd_apps"]),
         ),
