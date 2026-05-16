@@ -548,30 +548,35 @@ def main() -> None:
         signal.signal(sig, lambda _signum, _frame: app.stop())
 
     # W2-P0-bugfix（2026-05-16）：SIGUSR1 → faulthandler dump 所有线程栈
-    # 用于"daemon HTTP 假死但进程还在"的事后复盘。watchdog 重启前会 kill -USR1，
-    # 给 1s 写盘窗口。dump 路径与 watchdog DAEMON_TRACEBACK_DUMP 默认值对齐。
+    # 用于"daemon HTTP 假死但进程还在"的事后复盘。watchdog 重启前会 kill -USR1。
+    #
+    # ⚠️ 已知 issue（2026-05-16 实测）：daemon 进程内 faulthandler.register 注册成功
+    # （lsof 显示 fd 持有 dump 文件）但 SIGUSR1 触发后文件不增长。
+    # 单文件 sanity test（同 venv python）工作正常。
+    # 推测：OpenCV / threading 库可能 hook SIGUSR1 抢占，或 GIL/C 扩展 block 影响。
+    # 待深挖根因（>1h，已 backlog）。
+    #
+    # 不影响 watchdog 核心 RESTART 功能：watchdog 用 mtime+size 双校验，
+    # dump 未写入会 log "NOT OBSERVED" WARN，但 RESTART_NEEDED 仍会被 mark。
+    # 即"SIGUSR1 dump 是 nice-to-have，不是 watchdog 重启路径的依赖项"。
     import faulthandler as _fh
     _dump_path = os.path.expanduser(os.environ.get(
         "DAEMON_TRACEBACK_DUMP", "~/.lnmem/daemon_traceback.log"
     ))
-
-    def _sigusr1_dump(_signum, _frame):
-        # codex F-03 fix：dump 失败时至少 log，不再完全静默
-        # watchdog 端有 mtime 外部校验作为补充观测；这里只做最小内部 log
-        try:
-            os.makedirs(os.path.dirname(_dump_path), exist_ok=True)
-            with open(_dump_path, "a") as _f:
-                _f.write(f"\n===== SIGUSR1 dump {datetime.now(timezone.utc).isoformat()} PID={os.getpid()} =====\n")
-                _fh.dump_traceback(file=_f, all_threads=True)
-                _f.flush()
-        except Exception as exc:
-            # dump 自身不应让 daemon 进一步崩溃，但失败要外显
-            try:
-                logging.getLogger(__name__).warning("SIGUSR1 dump failed: %s", exc)
-            except Exception:
-                pass  # 最后兜底，logger 也炸了就纯静默
-
-    signal.signal(signal.SIGUSR1, _sigusr1_dump)
+    try:
+        os.makedirs(os.path.dirname(_dump_path), exist_ok=True)
+        # 用 O_APPEND 打开常驻文件供 faulthandler 写入（不可关闭，必须保持引用）
+        _dump_file_handle = open(_dump_path, "ab", buffering=0)
+        _fh.register(signal.SIGUSR1, file=_dump_file_handle, all_threads=True, chain=False)
+        logging.getLogger(__name__).info(
+            "SIGUSR1 faulthandler registered → dump path=%s (known issue: dump may not write in daemon ctx, see comment)",
+            _dump_path,
+        )
+    except Exception as _reg_exc:
+        # 注册失败不阻止 daemon 启动，但要明确 log
+        logging.getLogger(__name__).warning(
+            "SIGUSR1 faulthandler.register failed: %s — dump will be unavailable", _reg_exc
+        )
     try:
         app.serve_forever()
     except KeyboardInterrupt:

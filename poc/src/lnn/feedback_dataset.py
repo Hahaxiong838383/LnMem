@@ -15,12 +15,40 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from poc.src.lnn.online_contracts import (
     FeedbackDataError,
     FeedbackEvent,
 )
+
+
+# F-06 fix (codex 三审 2026-05-16): ts 数值化比较，防仓内多格式（'Z' / '+00:00' / 本地偏移 / 小数秒）
+# 字典序错位导致水位线误过滤/漏过滤。
+def _parse_iso_ts_utc(ts: str | None) -> datetime | None:
+    """Parse ISO8601 ts → tz-aware datetime in UTC. Returns None on parse failure.
+
+    支持格式：
+    - 标准带 Z: '2026-05-16T08:14:09Z'
+    - +00:00 后缀: '2026-05-16T08:14:09+00:00'
+    - 含微秒: '2026-05-16T07:25:08.124540Z'
+    - 本地时区偏移: '2026-05-16T16:14:09+08:00' → 自动归一化到 UTC
+    """
+    if not ts or not isinstance(ts, str):
+        return None
+    try:
+        # Python 3.9 fromisoformat 不支持 'Z' 后缀，先转 '+00:00'
+        if ts.endswith("Z"):
+            ts = ts[:-1] + "+00:00"
+        dt = datetime.fromisoformat(ts)
+    except (ValueError, TypeError):
+        return None
+    # naive datetime（无 tz）视为 UTC（PoC 内部约定）
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    # 归一化到 UTC
+    return dt.astimezone(timezone.utc)
 
 
 def _parse_event(raw: object) -> FeedbackEvent | None:
@@ -82,6 +110,7 @@ def load_events(
     feedback_dir: Path,
     *,
     date_prefix: str | None = None,
+    min_event_ts: str | None = None,
 ) -> tuple[FeedbackEvent, ...]:
     """Load all feedback events from `feedback_dir/queries_*.jsonl`.
 
@@ -91,6 +120,11 @@ def load_events(
         反馈目录（e.g. `~/.lnmem/feedback/`）
     date_prefix : str | None
         过滤前缀（e.g. `2026-05-10`）。None = 全部
+    min_event_ts : str | None
+        ⚠️ F-03 fix (codex 二审，2026-05-16) — 增量消费水位线
+        如不 None：仅返回 `ev.ts > min_event_ts` 的 events（防 cron 重复训练同批数据）。
+        值通常为上次 fit 成功后写入 ckpt phase2_metadata['fired_at_utc']。
+        ISO8601 字符串字典序 ≡ 时间序，故直接 str 比较即可。
 
     Returns
     -------
@@ -109,6 +143,17 @@ def load_events(
     pattern = "queries_*.jsonl"
     if date_prefix:
         pattern = f"queries_{date_prefix}*.jsonl"
+
+    # F-06 fix (codex 三审): 预解析 min_event_ts 到 UTC datetime，做数值比较
+    min_dt: datetime | None = None
+    if min_event_ts is not None:
+        min_dt = _parse_iso_ts_utc(min_event_ts)
+        if min_dt is None:
+            import warnings
+            warnings.warn(
+                f"FeedbackDataset: min_event_ts={min_event_ts!r} unparseable, ignoring watermark",
+                RuntimeWarning,
+            )
 
     events: list[FeedbackEvent] = []
     for path in sorted(feedback_dir.glob(pattern)):
@@ -129,6 +174,12 @@ def load_events(
                         continue
                     ev = _parse_event(raw)
                     if ev is not None:
+                        # F-03 + F-06 fix: 增量水位线 — 用 UTC datetime 数值比较（防字符串字典序错位）
+                        if min_dt is not None:
+                            ev_dt = _parse_iso_ts_utc(ev.ts)
+                            if ev_dt is not None and ev_dt <= min_dt:
+                                continue
+                            # ev.ts 不可解析时不过滤（fail-soft，让后续阶段决定是否跳过）
                         events.append(ev)
                         # __init__ frozen=True；append 前调 reward() 提前发现非法 label
         except OSError as e:

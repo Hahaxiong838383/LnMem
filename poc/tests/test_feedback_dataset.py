@@ -249,3 +249,89 @@ class TestFilteringAndCounts:
         events = load_events(feedback_dir)
         dist = count_by_label(events)
         assert dist == {"match": 1, "mismatch": 1, "skip": 1, "input": 1}
+
+
+class TestMinEventTsWatermark:
+    """F-03 + F-06 fix (codex 二审/三审, 2026-05-16): min_event_ts 增量水位线"""
+
+    def _write_events(self, d: Path, events: list[tuple[str, str]]) -> None:
+        """events: list of (ts, label)"""
+        import json as _json
+        with (d / "queries_2026-05-16.jsonl").open("w", encoding="utf-8") as f:
+            for ts, label in events:
+                row = {
+                    "ts": ts,
+                    "frame_id": 0,
+                    "reason": "pose_held",
+                    "signal": {},
+                    "vlm_label": None,
+                    "user_response": {"label": label, "true_state": None, "note": None},
+                    "latency_s": 0.0,
+                }
+                f.write(_json.dumps(row) + "\n")
+
+    def test_min_event_ts_filters_strictly_greater(self, tmp_path: Path) -> None:
+        """ev.ts <= min_event_ts → 过滤；ev.ts > min_event_ts → 保留"""
+        self._write_events(tmp_path, [
+            ("2026-05-16T08:00:00Z", "match"),    # 早，过滤
+            ("2026-05-16T08:14:09Z", "match"),    # 等于 watermark，过滤（<= 严格）
+            ("2026-05-16T08:14:10Z", "mismatch"), # 晚 1s，保留
+            ("2026-05-16T09:00:00Z", "match"),    # 晚，保留
+        ])
+        events = load_events(tmp_path, min_event_ts="2026-05-16T08:14:09Z")
+        assert len(events) == 2
+        assert events[0].label == "mismatch"
+        assert events[1].label == "match"
+
+    def test_min_event_ts_handles_microseconds(self, tmp_path: Path) -> None:
+        """events.ts 可能含微秒，水位线无 → 仍要数值比较正确"""
+        self._write_events(tmp_path, [
+            ("2026-05-16T08:14:09.123456Z", "match"),
+            ("2026-05-16T08:14:09.999999Z", "match"),
+            ("2026-05-16T08:14:10.000000Z", "mismatch"),
+        ])
+        events = load_events(tmp_path, min_event_ts="2026-05-16T08:14:09.500000Z")
+        assert len(events) == 2
+
+    def test_min_event_ts_mixed_format_z_vs_offset(self, tmp_path: Path) -> None:
+        """F-06: events.ts 用 '+00:00' / 水位线用 'Z' → 数值比较应等价（无字典序错位）"""
+        self._write_events(tmp_path, [
+            # 用 +00:00 后缀（仓内 daemon_main.py:326 .isoformat() 输出格式）
+            ("2026-05-16T08:00:00+00:00", "match"),
+            ("2026-05-16T09:00:00+00:00", "mismatch"),
+        ])
+        events = load_events(tmp_path, min_event_ts="2026-05-16T08:30:00Z")
+        assert len(events) == 1
+        assert events[0].label == "mismatch"
+
+    def test_min_event_ts_compact_format_should_NOT_work_as_iso(self, tmp_path: Path) -> None:
+        """codex 三审：紧凑格式 '20260516T...' 不是合法 ISO8601 → 解析失败 → warning + 不过滤"""
+        import warnings as _w
+        self._write_events(tmp_path, [
+            ("2026-05-16T08:00:00Z", "match"),
+            ("2026-05-16T09:00:00Z", "mismatch"),
+        ])
+        with _w.catch_warnings(record=True) as caught:
+            _w.simplefilter("always")
+            events = load_events(tmp_path, min_event_ts="20260516T084500Z")
+        # 不可解析 → warning + 不过滤（返全部）
+        assert len(events) == 2
+        assert any("unparseable" in str(w.message).lower() for w in caught), "expected unparseable warning"
+
+    def test_min_event_ts_none_returns_all(self, tmp_path: Path) -> None:
+        """min_event_ts=None → 行为不变（向后兼容）"""
+        self._write_events(tmp_path, [
+            ("2026-05-16T08:00:00Z", "match"),
+            ("2026-05-16T09:00:00Z", "mismatch"),
+        ])
+        events = load_events(tmp_path, min_event_ts=None)
+        assert len(events) == 2
+
+    def test_min_event_ts_filter_returns_empty_when_all_old(self, tmp_path: Path) -> None:
+        """所有 events ts < watermark → 返空（cron 应判 below_threshold）"""
+        self._write_events(tmp_path, [
+            ("2026-05-15T08:00:00Z", "mismatch"),
+            ("2026-05-16T08:00:00Z", "mismatch"),
+        ])
+        events = load_events(tmp_path, min_event_ts="2026-05-16T08:14:09Z")
+        assert len(events) == 0

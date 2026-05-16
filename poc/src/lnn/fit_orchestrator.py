@@ -82,11 +82,14 @@ def _empty_counts() -> dict[str, int]:
     return {"match": 0, "mismatch": 0, "skip": 0, "input": 0, "total": 0}
 
 
-def _gather_counts(feedback_dir: Path) -> dict[str, int]:
-    """fail-soft 计数 feedback events（无 events 返零计数）。"""
+def _gather_counts(feedback_dir: Path, *, min_event_ts: str | None = None) -> dict[str, int]:
+    """fail-soft 计数 feedback events（无 events 返零计数）。
+
+    F-03 fix (codex 二审 2026-05-16): min_event_ts 透传 load_events 实现增量水位线。
+    """
     counts = _empty_counts()
     try:
-        events = load_events(feedback_dir)
+        events = load_events(feedback_dir, min_event_ts=min_event_ts)
     except FeedbackDataError:
         return counts
     counts.update(count_by_label(events))
@@ -104,6 +107,7 @@ def try_fit_step(
     online_config: OnlineAdapterConfig | None = None,
     force: bool = False,
     alignment_window_s: float = 5.0,
+    min_event_ts: str | None = None,
 ) -> FitRunResult:
     """一站式入口：阈值检查 → load_ckpt → build_batch → fit_step → save_ckpt。
 
@@ -136,9 +140,10 @@ def try_fit_step(
         online_config = OnlineAdapterConfig()
 
     # === 阶段 1: trigger 阈值检查（force=True 时跳过，但仍统计 counts） ===
+    # F-03 fix: min_event_ts 透传 trigger 决策 + counts 与 fit 实际批保持一致
     if not force:
         try:
-            ready, counts = trigger_if_ready(feedback_dir, online_config)
+            ready, counts = trigger_if_ready(feedback_dir, online_config, min_event_ts=min_event_ts)
         except Exception as e:  # noqa: BLE001
             return FitRunResult(
                 triggered=False, counts=_empty_counts(),
@@ -150,7 +155,7 @@ def try_fit_step(
                 reason=_REASON_BELOW_THRESHOLD,
             )
     else:
-        counts = _gather_counts(feedback_dir)
+        counts = _gather_counts(feedback_dir, min_event_ts=min_event_ts)
         if counts["total"] == 0:
             return FitRunResult(
                 triggered=False, counts=counts, reason=_REASON_NO_FEEDBACK,
@@ -221,6 +226,7 @@ def try_fit_step(
             window_size=cfg.sequence_length,
             include_skip_input=False,
             alignment_window_s=alignment_window_s,
+            min_event_ts=min_event_ts,  # F-03: 增量水位线透传
         )
     except FeedbackDataError as e:
         return FitRunResult(
@@ -274,8 +280,14 @@ def try_fit_step(
     # === 阶段 7: unwrap + 保存新 ckpt（F1-01/F1-02/F3-01/F3-03 修复） ===
     try:
         ckpt_out_dir.mkdir(parents=True, exist_ok=True)
-        fired_at = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        ckpt_out_path = ckpt_out_dir / f"checkpoint_phase2_{fired_at}.pt"
+        # 文件名继续用紧凑格式（避免冒号在文件名引发问题）
+        _now_utc = datetime.now(timezone.utc)
+        fired_at_filename = _now_utc.strftime("%Y%m%dT%H%M%SZ")
+        # F-03 fix (codex 二审 2026-05-16): metadata 中 fired_at_utc 改用标准 ISO8601
+        # 原因：cron 读 fired_at_utc 作 min_event_ts 与 events.ts (标准 ISO8601) 字典序比较时，
+        # 紧凑格式 "20260516T081409Z" < 标准 "2026-05-16T..." → 全过滤错位（实测 bug）
+        fired_at = _now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+        ckpt_out_path = ckpt_out_dir / f"checkpoint_phase2_{fired_at_filename}.pt"
 
         # F1-01 + F1-02 (codex 一审): unwrap state_model.personalization 回 base_adapter
         # 让 state_dict 的 key 与原 day12 ckpt 一致（personalization.embedding.weight ...）

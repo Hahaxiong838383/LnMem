@@ -45,6 +45,8 @@ from poc.src.lnn.online_contracts import (
 def trigger_if_ready(
     feedback_dir: Path,
     config: OnlineAdapterConfig,
+    *,
+    min_event_ts: str | None = None,
 ) -> tuple[bool, dict[str, int]]:
     """检查反馈累积是否达到首次 / 增量微调触发条件。
 
@@ -56,6 +58,10 @@ def trigger_if_ready(
     - feedback_dir 不存在 → 返回 (False, zero counts)，不抛错
       （首次部署 / 目录尚未生成时，调度方应"暂无数据"而非"硬错"）
 
+    F-03 fix (codex 二审 2026-05-16): min_event_ts 增量水位线
+    - 不为 None 时只统计 ts > min_event_ts 的 events
+    - 防 cron 把同一批历史 mismatch 反复触发 fit（counts 与 fit 实际批保持一致）
+
     Returns
     -------
     (should_trigger, counts) where counts contains keys
@@ -63,7 +69,7 @@ def trigger_if_ready(
     """
     counts = {"match": 0, "mismatch": 0, "skip": 0, "input": 0, "total": 0}
     try:
-        events = load_events(feedback_dir)
+        events = load_events(feedback_dir, min_event_ts=min_event_ts)
     except FeedbackDataError:
         # F3-03: feedback_dir missing → fail-soft 返零计数（不抛）
         return False, counts

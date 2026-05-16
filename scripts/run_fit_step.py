@@ -73,14 +73,23 @@ def main() -> int:
         "--alignment-window-s", type=float, default=5.0,
         help="user_triggered alignment 硬过滤窗口（秒，默认 5.0）",
     )
+    p.add_argument(
+        "--min-event-ts", type=str, default=None,
+        help=(
+            "F-03 fix (codex 二审 2026-05-16): 增量水位线，仅 fit ts > 此 ISO8601 字符串的 events。"
+            "通常传上次 fit 后 ckpt 的 phase2_metadata['fired_at_utc']，防 cron 反复训练同一批"
+            "历史数据导致漂移偏置。"
+        ),
+    )
     args = p.parse_args()
 
-    print(f"feedback_dir: {args.feedback_dir}", file=sys.stderr)
-    print(f"signals_dir:  {args.signals_dir}", file=sys.stderr)
-    print(f"ckpt_in:      {args.ckpt_in}", file=sys.stderr)
-    print(f"ckpt_out_dir: {args.ckpt_out_dir}", file=sys.stderr)
-    print(f"persona_idx:  {args.persona_idx} (vboss_self if 30)", file=sys.stderr)
-    print(f"force:        {args.force}", file=sys.stderr)
+    print(f"feedback_dir:  {args.feedback_dir}", file=sys.stderr)
+    print(f"signals_dir:   {args.signals_dir}", file=sys.stderr)
+    print(f"ckpt_in:       {args.ckpt_in}", file=sys.stderr)
+    print(f"ckpt_out_dir:  {args.ckpt_out_dir}", file=sys.stderr)
+    print(f"persona_idx:   {args.persona_idx} (vboss_self if 30)", file=sys.stderr)
+    print(f"force:         {args.force}", file=sys.stderr)
+    print(f"min_event_ts:  {args.min_event_ts or '<none, full feedback>'}", file=sys.stderr)
     print("", file=sys.stderr)
 
     result = try_fit_step(
@@ -91,6 +100,7 @@ def main() -> int:
         persona_idx=args.persona_idx,
         force=args.force,
         alignment_window_s=args.alignment_window_s,
+        min_event_ts=args.min_event_ts,
     )
 
     # 结构化 stdout（便于 jq / 监控管道）

@@ -228,6 +228,7 @@ def build_training_batch(
     date_prefix: str | None = None,
     include_skip_input: bool = False,
     alignment_window_s: float = 5.0,
+    min_event_ts: str | None = None,
 ) -> TrainingBatch:
     """从磁盘加载 feedback + signals → 组装训练 batch。
 
@@ -261,7 +262,8 @@ def build_training_batch(
     # 延迟导入避免循环依赖
     from poc.src.realtime.feedback.persistence import increment_user_triggered_metric
 
-    events = load_events(feedback_dir, date_prefix=date_prefix)
+    # F-03 fix (codex 二审, 2026-05-16): min_event_ts 增量水位线透传防 cron 重复训练
+    events = load_events(feedback_dir, date_prefix=date_prefix, min_event_ts=min_event_ts)
     if include_skip_input:
         usable_events = events  # 所有 4 类都纳入
     else:
