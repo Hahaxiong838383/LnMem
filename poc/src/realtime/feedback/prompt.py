@@ -20,7 +20,7 @@ _STATE_OPTIONS = (
     "fatigued 疲劳",
     "distracted 分心",
     "transitioning 过渡",
-    "idle 中性",
+    "neutral 中性",  # ADR-008 F-02 fix (2026-05-16): idle → neutral 词表统一（与 STATE_LABELS 一致）
 )
 
 

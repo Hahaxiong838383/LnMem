@@ -21,6 +21,7 @@ V0.2 既有反馈（无 V0.3 新字段）仍兼容读取（V0.3 字段缺失 = N
 from __future__ import annotations
 
 import json
+import os
 import threading
 from collections import Counter
 from datetime import datetime, timezone
@@ -93,7 +94,24 @@ def append_query(record: dict[str, Any], home: Path | None = None) -> Path:
     """追加一条反馈记录到当日 jsonl。返回写入路径。
 
     V0.3：自动累加 trigger_types counter（按 record["reason"]）。
+    ADR-008 F-08 fix (2026-05-16): 自动补 multi-user schema 必备字段，便于 ADR-007 训练复现
     """
+    # ADR-008 F-08 fix: 自动补缺字段（向后兼容）
+    record.setdefault("user_id", os.environ.get("LNMEM_USER_ID", "vboss_self"))
+    record.setdefault("persona_idx", int(os.environ.get("LNMEM_PERSONA_IDX", "30")))
+    record.setdefault("extractor_version", os.environ.get("LNMEM_EXTRACTOR_VERSION", "py-feat-0.7"))
+    record.setdefault("signal_path", _detect_signal_path())
+    # label_source 由调用方传入（user_active / user_passive_response / system_inferred）
+    record.setdefault("label_source", "user_passive_response")
+    # frame_hash 优先用 raw_au 内容 hash（唯一标识帧），fallback to event_uuid
+    if "frame_hash" not in record:
+        sig = record.get("signal") or {}
+        raw_au = sig.get("raw_au") or {}
+        if raw_au:
+            import hashlib
+            payload = json.dumps(raw_au, sort_keys=True).encode()
+            record["frame_hash"] = "sha8:" + hashlib.sha256(payload).hexdigest()[:8]
+
     path = queries_path(home=home)
     line = json.dumps(record, ensure_ascii=False) + "\n"
     with path.open("a", encoding="utf-8") as f:
@@ -104,6 +122,24 @@ def append_query(record: dict[str, Any], home: Path | None = None) -> Path:
         with _COUNTER_LOCK:
             _TRIGGER_TYPES_COUNTER[reason] += 1
     return path
+
+
+def _detect_signal_path() -> str:
+    """读取当前 signal_path（与 trigger.py 同源）"""
+    import os as _os
+    env_val = _os.environ.get("LNMEM_SIGNAL_PATH", "").strip().lower()
+    if env_val in ("raw", "calibrated"):
+        return env_val
+    mode_file = _os.path.expanduser("~/.lnmem/signal_path")
+    try:
+        if _os.path.exists(mode_file):
+            with open(mode_file) as _f:
+                v = _f.read().strip().lower()
+            if v in ("raw", "calibrated"):
+                return v
+    except Exception:
+        pass
+    return "calibrated"
 
 
 __all__ = [
