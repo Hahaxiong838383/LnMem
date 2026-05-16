@@ -1,8 +1,24 @@
 # LnMem · 以 LNN 为心脏的记忆系统
 
-> **如果你是 Claude Code / Codex 第一次到这里**：跳到 [给 AI 同事的 30 秒入口](#给-ai-同事的-30-秒入口)。
-> **如果你是工程师**：读 [快速开始](#快速开始)。
-> **如果你是投资人/老板**：读 [`docs/product-definition.md`](docs/product-definition.md) §0 §1。
+> **🤖 AI 同事 / 工程师快速上手**：先看 [**ROADMAP.md**](ROADMAP.md)（当下状态 + TODO + 经验教训，3 分钟一览全局）
+> **🚀 投资人 / 老板**：读 [`docs/product-definition.md`](docs/product-definition.md) §0 §1
+> **📋 决策记录**：[`docs/decisions/`](docs/decisions/) 9 个 ADR
+
+## ⚡ 最新进展（2026-05-16）
+
+**单日 6 commits / 7 ADRs / 522 tests / 5 轮 codex + 3 轮 gemini 协作**
+
+| 里程碑 | 状态 |
+|---|---|
+| dual signal_path (raw_au.AU04) 上线 | ✅ [ADR-005](docs/decisions/005-trigger-uses-raw-au04-signal-path-dual.md) |
+| dual replay 揭穿 calibration polarization（共识仅 0.4%） | ✅ commit `602506d` |
+| Phase 4 LNN realtime 接入 daemon（margin/entropy 落盘） | ✅ commit `3c10834` |
+| 锁定规模化 5 阶段路线（base 真人化 + User-LoRA + 拒绝 RAG） | ✅ [ADR-007/008/009](docs/decisions/) |
+| LNN spike 暴露 base ckpt OOD（0% 准确率，证实 ADR-007 必要） | 🔍 |
+
+**当前 daemon /health**：`lnn.enabled=true · ckpt_sha8=10cc41c3 · signal_path=raw · history_len=60`
+
+详细路线见 [**ROADMAP.md**](ROADMAP.md)。
 
 ---
 

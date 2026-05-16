@@ -1,0 +1,194 @@
+# LnMem ROADMAP & TODO（GitHub 首页快速一览）
+
+> **AI 同事进入项目第一站**：本文件是项目整体进度 + 后续优先级总览，3 分钟看完即可掌握项目当下状态。
+>
+> 详细决策记录见 [`docs/decisions/`](docs/decisions/)，工作纪律见 [`CLAUDE.md`](CLAUDE.md)。
+
+---
+
+## 当前阶段：M0 W2 后期（PoC → M1 过渡）
+
+**主分支**：`poc/lnn-validation`
+**最近核心 commit**：`3c10834` (Phase 4 LNN 实时接入 daemon)
+**项目哲学锚**：[ADR-009 拒绝 RAG 捷径，坚守 LNN-FIRST](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md)
+
+## 2026-05-16 单日重大进展 🚀
+
+> **PoC 假设决定性验证日**：5/12 LNN 首次自然触发 + 5/16 揭穿 calibration polarization + LNN realtime 接入
+
+### 6 commits / 7 ADRs / 522 tests / 5 轮 codex + 3 轮 gemini 协作
+
+| Commit | 内容 | 影响 |
+|---|---|---|
+| [`4031ee0`](../../commit/4031ee0) | watchdog HTTP 假死修复 + SIGUSR1 + Phase B 复盘 | daemon 健康度从"假活"→真活 |
+| [`168d7ec`](../../commit/168d7ec) | fit-cron + 增量水位线防漂移 | PoC 持续学习闭环真闭合 |
+| [`9a5c9ad`](../../commit/9a5c9ad) | **ADR-005 dual signal_path** (raw_au.AU04) | 修 calibration polarization 22% 信息熵损失 |
+| [`602506d`](../../commit/602506d) | dual replay 离线 A/B 对照 | 揭穿 calibrated 通道 99.6% 是假皱眉信号 |
+| [`ec0e109`](../../commit/ec0e109) | 4 个 ADR (006/007/008/009) + 词表 + schema | 锁定规模化 5 阶段路线 |
+| [`3c10834`](../../commit/3c10834) | **Phase 4 LNN realtime 接入 daemon** | margin/entropy 落盘 signals jsonl |
+
+### 决定性 PoC 假设证据
+
+1. **D-1 信号熵分析**：raw_au.AU04 熵 83% vs calibrated polarized 61%（损失 22%）
+2. **Dual Replay**：calibrated 与 raw 两路 trigger 共识仅 0.4% → 99.6% 假皱眉
+3. **Spike 暴露 base ckpt OOD**：LNN 在川哥真人脸上 state 准确率 0%（说 focused 时 LNN 预测 emotional_negative）
+4. **Phase 4 验证 LNN realtime 工作**：daemon /health 显示 LNN forward margin=0.9994 但**虚假自信** — 完全证实 ADR-007 必要性
+
+---
+
+## 7 个 ADR 决策链（007-009 是今日新增的规模化路线）
+
+| ADR | 主题 | 状态 |
+|---|---|---|
+| [ADR-001](docs/decisions/001-route-b-single-founder-ai-mode.md) | Route B 单创业者 AI 模式 | accepted |
+| [ADR-002](docs/decisions/002-adversarial-review-m0-skeleton.md) | M0 骨架对抗审查 | accepted |
+| [ADR-003](docs/decisions/003-calibration-violates-lnn-first-bypass-to-raw.md) | calibration 信息退化（口径修订） | superseded by 005 |
+| [ADR-004](docs/decisions/004-ab-experiment-raw-vs-calibrated.md) | A/B 实验框架 | accepted |
+| [ADR-005](docs/decisions/005-trigger-uses-raw-au04-signal-path-dual.md) | dual signal_path 最小改动方案 | accepted |
+| [ADR-006](docs/decisions/006-threshold-auto-recalibration.md) | trigger 阈值自动重校准 | placeholder |
+| **[ADR-007](docs/decisions/007-base-ckpt-realhuman-affectnet.md)** | **base ckpt 真人化（AffectNet V-A）** | accepted（M1 启动前必做） |
+| **[ADR-008](docs/decisions/008-user-lora-multi-user-schema.md)** | **User-LoRA + multi-user schema** | accepted（M3 启动前必做） |
+| **[ADR-009](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md)** | **拒绝 RAG 捷径，坚守 LNN-FIRST** | accepted（哲学级） |
+
+---
+
+## TODO（按 PoC 资源分配铁律排序）
+
+### 🔥 立即（M0 W3 早期，本周）
+
+- [ ] **TODO-1 Schmitt Trigger + EMA + dynamic quantile threshold**（codex F-04 + gemini #2）
+  - margin/entropy 阈值不再拍脑袋，用 sweep 分位数 + 滞回防震荡
+  - 工时：1-2h
+  - 前置：scripts/sweep_margin_quantile.py 已就绪
+- [ ] **TODO-2 dual replay v2 — 包含 LNN 预测对照**
+  - 现有 dual replay 只对比 trigger 通道
+  - 加 LNN forward 预测，对比"calibrated ckpt vs raw ckpt 在同 events 上预测差异"
+  - 工时：1.5h
+- [ ] **TODO-3 daemon stable 跑 7 天累积 raw 路径真实信号**
+  - 不动代码，纯数据收集
+  - 数据用于 ADR-007 base ckpt 真人化训练
+  - 目标：≥1000 events with user feedback（当前 < 100）
+
+### ⭐ 短期（M0 W3-W4）
+
+- [ ] **TODO-4 ADR-007 实施：AffectNet 数据准备**
+  - 下载 AffectNet（学术 license）
+  - py-feat 跑 AU 提取 + V-A 标注对照
+  - 设计 V-A → 8 state 离散映射 sweep
+  - 工时：1-2 天
+- [ ] **TODO-5 ADR-007 实施：base ckpt v2 重训**
+  - 用 AffectNet + 川哥真信号训新 base
+  - A/B 对比 v1（合成数据）vs v2（真人）准确率
+  - 工时：1-2 天
+- [ ] **TODO-6 对话流自然询问替代 macOS 弹窗**（cognitive.md 合规）
+  - 当前 daemon 用 macOS dialog 弹窗，cognitive.md §33-37 明确禁止
+  - 集成 mycc 后端 chat UI 做"对话流询问"
+  - 工时：1 周（涉及前后端联调）
+
+### 🌅 中期（M1-M2 / 1-3 个月）
+
+- [ ] **TODO-7 ADR-008 实施：multi-user schema 工程化**
+  - users.json 路由层
+  - feedback / signals jsonl 加 user_id 字段（schema 已就绪，工程化路由层未做）
+  - fit_orchestrator 多 persona batch 改造
+  - 工时：1 周
+- [ ] **TODO-8 ADR-008 实施：User-LoRA per persona**
+  - OnlineLoRAAdapter 改造为多 user LoRA 路由
+  - 验证 5-10 user 同时学习不互相污染
+  - 工时：1 周
+- [ ] **TODO-9 SIGUSR1 dump 不工作根因排查**（known issue）
+  - faulthandler.register 在 daemon ctx 不写文件（OpenCV 抢占？）
+  - 不阻塞 watchdog 重启核心，但调试时需要
+  - 工时：1h 调研
+
+### 🚀 长期（M3+ / 3 个月以上）
+
+- [ ] **TODO-10 联邦学习（Flower 框架）**
+  - 多用户 LoRA 加密上传聚合
+  - gemini 警告 Apple sandbox 限制需先验证
+- [ ] **TODO-11 边缘推理 + 云端集中学习**
+  - 推理在用户端（隐私 + 低延迟）
+  - 类似 Apple Private Federated Learning
+- [ ] **TODO-12 居家 + 车载场景化分层 ckpt**
+  - §10.1 第 5 项 "居家+车载双场景统一架构"
+
+---
+
+## 当前 daemon 实时状态（2026-05-16 20:00 CST）
+
+```bash
+$ curl localhost:9876/health | jq
+{
+  "status": "ok",
+  "uptime_s": 110,
+  "frames_processed": 110,
+  "feedback": {
+    "observed": 110,
+    "triggered": 0,
+    "queried": 0
+  },
+  "lnn": {                          # ← Phase 4 新增
+    "enabled": true,
+    "ckpt_sha8": "10cc41c3",        # 最新 raw 路径 ckpt
+    "persona_idx": 30,              # vboss_self
+    "signal_path": "raw",           # ADR-005 raw 通道
+    "history_len": 60,              # warmup 完成
+    "fail_count": 0                 # 无错
+  }
+}
+
+$ tail -1 ~/.lnmem/data/signals_*.jsonl | jq '.lnn'
+{
+  "status": "ok",
+  "predicted_state": "emotional_positive",  # ← LNN 实时预测（虚假自信，证实 ADR-007 必要）
+  "top_prob": 0.9995,
+  "margin": 0.9994,
+  "entropy": 0.0066,
+  "ckpt_sha8": "10cc41c3",
+  "signal_path": "raw"
+}
+```
+
+---
+
+## 经验教训（一天 5 轮 codex + 3 轮 gemini 协作沉淀）
+
+### Team 协同的真实价值
+
+1. **codex 对抗审查救了 3 个 CRITICAL bug**：cc v0.1 LNN 接入方案直接落地会全链路崩溃（state_model.forward 签名漏传 persona_idx + fusion 输入 schema 错位 + LNMEM_SIGNAL_PATH 切换变量虚构）
+2. **gemini 给出 outside-in 关键视角**：margin > entropy（8 分类下）+ AffectNet > FER2013 + RAG 捷径警告 + Flower 联邦推荐
+3. **cc 撤回 3 次错误方案**：D-2 calibration table（违反 P-1） → v0.1 全链路重写（codex 否决）→ v0.2 raw 旁路 LoRA（过度工程）→ v0.3 最小改动（最终成功）
+
+### 哲学锚定 > 工程便利
+
+- **ADR-009 拒绝 RAG 捷径**：gemini 直接建议 "M3 前插 RAG/长上下文捷径"（Pi/Character.ai 都用），但 LnMem 差异化恰好是"不靠 RAG"。**坚守 P-1 LNN-FIRST 比 5-10x 工程难度更重要**。
+- **lnn-first.md §4.1 明确视觉感知层不受 P-1 约束**：cc 把 calibration 定性为"违反 P-1"是论证不准确，codex F-03 揪出并修订为"AU04 算法信息退化"。**哲学条款使用要精确**。
+
+### 数据驱动 > 拍脑袋
+
+- **dual replay** 用 4 天 241K 帧数据证明 calibrated/raw 触发共识仅 0.4% — 比任何理论分析都有说服力
+- **quantile sweep** 给出数据驱动阈值（thr=0.55 P91 → 每天 5-6 次触发），不再凭直觉
+- **spike-then-implement** 把 5-7h 工程缩到 2h（spike 验证后才进实施）
+
+### codex 多轮审查的复利
+
+| 任务 | codex 一审 finding | 修后 codex 二审 finding | 修后 codex 三审 finding |
+|---|---|---|---|
+| daemon watchdog | 5 (1 CRITICAL) | 3 (2 MEDIUM) | - |
+| fit cron | 5 (3 HIGH) | 3 (2 HIGH) | 3 (1 HIGH + 1 MED) |
+| raw 路径设计 | 7 (3 CRITICAL) | 2 HIGH (F-08/F-09) | - |
+| X 方案 v0.2 | 8 (1 CRITICAL + 5 HIGH) | - | - |
+
+每轮 codex 都揪出实质问题，**默认采纳 + 修复 + 再审**是最稳模式。
+
+---
+
+## 给 AI 同事的快速 onboarding（3 步）
+
+1. 读本文件了解当前阶段
+2. 读 [`CLAUDE.md`](CLAUDE.md) 工作纪律（三道门 + P-1 LNN-FIRST）
+3. 看最近 3 个 ADR：[007 base 真人化](docs/decisions/007-base-ckpt-realhuman-affectnet.md) / [008 multi-user](docs/decisions/008-user-lora-multi-user-schema.md) / [009 拒绝 RAG](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md)
+
+---
+
+**最后更新**：2026-05-16 20:05 CST（cc 单日 6 commits + 7 ADRs + 522 tests 后落盘）
