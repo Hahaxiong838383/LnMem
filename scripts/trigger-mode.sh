@@ -110,16 +110,33 @@ switch_mode() {
         return 0
     fi
 
-    mkdir -p "$(dirname "$MODE_FILE")"
-    printf '%s\n' "$target" > "$MODE_FILE"
-    echo "✅ 模式已写入 $MODE_FILE → $target"
-    echo ""
+    # codex F3 (MEDIUM)：--force 时若已有未处理的 RESTART_NEEDED，拒绝绕过——
+    # bypass_cooldown 改全局 last_action_ts，会把"别人/旧请求"也一并放行。
+    if [[ "$force" == "1" && -f "$RESTART_FLAG" ]]; then
+        echo "⚠️  检测到已有 RESTART_NEEDED 未被 supervisor 消费，拒绝 --force（避免放行旧请求）" >&2
+        echo "   请等当前 flag 处理完，或手动检查 ${SUPERVISOR_LOG}" >&2
+        return 1
+    fi
 
+    # codex F2 (HIGH·TOCTOU)：等冷却前后对照 last_action_ts，发现刷新（supervisor 处理了别的 flag）就再等一轮。
+    local ts_before ts_after
+    ts_before=$(cat "$LAST_ACTION_TS_FILE" 2>/dev/null || echo "")
     if [[ "$force" == "1" ]]; then
         bypass_cooldown
     else
         wait_for_cooldown
+        ts_after=$(cat "$LAST_ACTION_TS_FILE" 2>/dev/null || echo "")
+        if [[ "$ts_before" != "$ts_after" ]]; then
+            echo "ℹ️  cooldown 等待中 supervisor 刷新了 last_action_ts，再等一轮"
+            wait_for_cooldown
+        fi
     fi
+
+    # codex F1 (HIGH·回滚安全)：MODE_FILE 写入挪到 cooldown 后，避免 Ctrl+C 留下"配置已切换但 daemon 未重启"的不一致。
+    mkdir -p "$(dirname "$MODE_FILE")"
+    printf '%s\n' "$target" > "$MODE_FILE"
+    echo "✅ 模式已写入 $MODE_FILE → $target"
+    echo ""
 
     # 触发 daemon 重启
     date '+%Y-%m-%dT%H:%M:%S%z' > "$RESTART_FLAG"
@@ -133,8 +150,17 @@ switch_mode() {
         i=$((i + 2))
     done
     if [[ -f "$RESTART_FLAG" ]]; then
-        echo "⚠️  60s 内 RESTART_NEEDED 未被消费。supervisor 已在冷却或异常，请查 ${SUPERVISOR_LOG}"
-        echo "   （cooldown 检查见 daemon_supervisor.sh handle_restart_flag；如确需立刻切换可加 --force）"
+        # codex F5 (LOW)：估算剩余 cooldown，方便现场排障判断是 cooldown 还是 supervisor 死
+        local last_epoch remain
+        last_epoch=$(cat "$LAST_ACTION_TS_FILE" 2>/dev/null || echo "0")
+        [[ "$last_epoch" =~ ^[0-9]+$ ]] || last_epoch=0
+        remain=$(( COOLDOWN_S - ($(date +%s) - last_epoch) ))
+        if (( remain > 0 )); then
+            echo "⚠️  60s 内 RESTART_NEEDED 未被消费。可能仍在 cooldown（约剩 ${remain}s）或 supervisor 异常，请查 ${SUPERVISOR_LOG}"
+        else
+            echo "⚠️  60s 内 RESTART_NEEDED 未被消费。cooldown 已过期但仍未处理，supervisor 异常，请查 ${SUPERVISOR_LOG}"
+        fi
+        echo "   （如确需立刻切换可加 --force；cooldown 逻辑见 daemon_supervisor.sh handle_restart_flag）"
         return 1
     fi
 
@@ -171,6 +197,13 @@ for arg in "$@"; do
     esac
 done
 ACTION="${ACTION:-status}"
+
+# codex F4 (LOW)：--force 仅对 demo/work 切换有意义；status 带 --force 应明确报错而非静默忽略。
+if [[ "$ACTION" == "status" && "$FORCE" == "1" ]]; then
+    echo "Usage: $0 {demo|work|status} [--force]" >&2
+    echo "--force 仅支持 demo/work（status 不重启 daemon，无需绕过 cooldown）" >&2
+    exit 2
+fi
 
 case "$ACTION" in
     demo)  switch_mode demo "$FORCE" ;;

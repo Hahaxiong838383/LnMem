@@ -1,9 +1,9 @@
 ---
 adr-id: 010
-title: brow_burst 触发条件与 raw_AU04 脉冲信号不匹配（TODO-1 Schmitt+EMA 强证据）
-status: identified（待 ADR-006/TODO-1 实施修复）
+title: brow_burst 脉冲信号 vs strict-deque 不匹配 — Schmitt+EMA 修复（implemented）
+status: implemented（2026-05-16 当晚 TODO-1 全栈实施完成，replay 验收达标）
 date: 2026-05-16
-deciders: 川哥 + cc + codex（V0.3.4 加固后实测发现）
+deciders: 川哥 + cc + codex（V0.3.4 加固后实测发现 → 同夜 Schmitt+EMA 修复）
 supersedes: —
 superseded-by: —
 related: ADR-005（dual signal_path）/ ADR-006（threshold-auto-recalibration）/ ROADMAP TODO-1
@@ -82,4 +82,59 @@ deque 里只要有 1 个低帧 → `all() = False` → 永远不触发。
 - 22:35: 写 replay_trigger_diagnose.py 第一版
 - 22:42: 加 to-ts 窗口对齐 daemon session
 - 22:50: 数据驱动定位根因（脉冲信号 vs strict-deque 判定不匹配）
-- 22:55: 本 ADR 落盘
+- 22:55: 本 ADR identified 状态落盘
+- 23:00-23:30: TODO-1 全栈实施（trigger.py Schmitt 状态机 + EMA + window_stable + daemon raw 路径默认 opt-in + sweep_brow_threshold_quantile.py 数据驱动阈值 + 14 个新单测 + replay 验收）
+- 23:35: status → implemented
+
+---
+
+## TODO-1 实施记录（V0.3.5 — 2026-05-16 23:30 完成）
+
+### 设计采纳
+
+| Option | 实施 | 备注 |
+|---|---|---|
+| A 放宽 strict > 为 K=4 | ❌ 未采纳 | 只解症状不解根因，仍受脉冲分布影响 |
+| **B EMA 平滑** | ✅ α=0.40（sweep 选定） | `_brow_ema` 状态 + face_undetected 自动 reset |
+| **C Schmitt 滞回** | ✅ thr_high/thr_low（数据驱动） | 上升沿需 window_stable，下降沿无条件解锁防死锁 |
+| D LNN margin/entropy 取代 | 留 M3+ | 见 ROADMAP 长期段 |
+
+### 数据驱动阈值（`scripts/sweep_brow_threshold_quantile.py`）
+
+| 模式 | EMA α | thr_high | thr_low | gap_ratio |
+|---|---|---|---|---|
+| demo | 0.40 | 0.42 | 0.22 | 0.52 |
+| work | 0.40 | 0.55 | 0.30 | 0.55 |
+
+由 5/10-5/16 共 7 日 raw_au.AU04 全量 quantile + demo session 638 帧仿真触发数双重约束选定。
+
+### Replay 验收（同一份数据 638 帧）
+
+| 模式 | brow_burst | pose_held | 总 fire |
+|---|---|---|---|
+| Baseline V0.3.4 | **0** ❌ | 6 | 6 |
+| Schmitt+EMA V0.3.5 | **4** ✅ | 6（不变） | 10 |
+
+**ADR-010 验收标准：brow_burst ≥ 2 → 实际 4，超额达标。pose_held 完全不变 = 无误报。**
+
+### 工程关键点
+
+- `daemon_main.py:455-458`：raw 路径下默认 `use_schmitt_ema=True`，calibrated 路径保持 strict-deque 向后兼容
+- `_brow_above_high` Schmitt 状态机：
+  - 上升沿 latch：需要 `len(brow_history) >= window_size` AND `ema >= thr_high`（防单帧噪声 spike 假触发）
+  - 下降沿解锁：`ema <= thr_low` 无条件清 latch（防"高位 dropout 进入低位"死锁）
+- EMA 在 face_undetected 时同步 reset，与 brow_history 清窗对齐
+- 552 pytest 全过（538 旧 + 14 新增 Schmitt+EMA 测试）
+
+### 配套产出
+
+- 触发实现：`poc/src/realtime/feedback/trigger.py`（Schmitt+EMA opt-in 分支）
+- daemon 集成：`poc/src/realtime/daemon_main.py:445-458`
+- 阈值 sweep：`scripts/sweep_brow_threshold_quantile.py`（224 行）
+- 新单测：`poc/tests/test_feedback_trigger.py`（+14 case，993 行）
+- replay 验收：`scripts/replay_trigger_diagnose.py --schmitt-ema`
+
+### 后续 TODO（不在本 ADR 范围）
+
+- 多用户 baseline 个性化阈值（gemini #4 警告"川哥个体过拟合"风险） → ADR-008 User-LoRA 实施时一并解决
+- VLM low_conf 通道是否也需类似平滑 → 待数据积累后评估

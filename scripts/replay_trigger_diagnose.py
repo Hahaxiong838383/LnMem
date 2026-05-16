@@ -42,6 +42,13 @@ def main() -> None:
     p.add_argument("--to-ts", default="9999", help="ISO ts upper bound (exclusive)")
     p.add_argument("--demo", action="store_true",
                    help="强制 demo 配置（即使当前 trigger_mode=work 也跑 demo 阈值）")
+    p.add_argument("--schmitt-ema", action="store_true",
+                   help="TODO-1 (ADR-010): 启用 Schmitt+EMA 触发模式（α=0.40 + thr_high/low 数据驱动）")
+    p.add_argument("--ema-alpha", type=float, default=0.40)
+    p.add_argument("--thr-high", type=float, default=None,
+                   help="Schmitt 进入阈，默认 demo=0.42 / work=0.55")
+    p.add_argument("--thr-low", type=float, default=None,
+                   help="Schmitt 退出阈，默认 demo=0.22 / work=0.30")
     p.add_argument("--top", type=int, default=20)
     args = p.parse_args()
 
@@ -65,6 +72,19 @@ def main() -> None:
         cd_pose = _COOLDOWN_FRAMES_POSE_HELD
         cd_vlm = _COOLDOWN_FRAMES_LOW_VLM_CONF
 
+    # TODO-1 (ADR-010): 可选 Schmitt+EMA 模式
+    schmitt_kwargs: dict = {}
+    if args.schmitt_ema:
+        thr_hi = args.thr_high if args.thr_high is not None else (0.42 if args.demo else 0.55)
+        thr_lo = args.thr_low if args.thr_low is not None else (0.22 if args.demo else 0.30)
+        schmitt_kwargs = dict(
+            use_schmitt_ema=True,
+            brow_ema_alpha=args.ema_alpha,
+            brow_thr_high=thr_hi,
+            brow_thr_low=thr_lo,
+        )
+        print(f"# Schmitt+EMA ON: α={args.ema_alpha} thr_high={thr_hi} thr_low={thr_lo}")
+
     trig = ProactiveQueryTrigger(
         brow_threshold=brow_thr,
         brow_window=brow_window,
@@ -74,6 +94,7 @@ def main() -> None:
         cooldown_frames_pose_held=cd_pose,
         cooldown_frames_low_vlm_conf=cd_vlm,
         signal_path="raw",
+        **schmitt_kwargs,
     )
 
     # 计数器

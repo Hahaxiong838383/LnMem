@@ -77,6 +77,14 @@ if _TRIGGER_MODE == "demo":
     _COOLDOWN_FRAMES_BROW = 30
     _COOLDOWN_FRAMES_POSE_HELD = 30
     _COOLDOWN_FRAMES_LOW_VLM_CONF = 30
+    # TODO-1 (ADR-010) demo 模式 Schmitt+EMA 参数（sweep_brow_threshold_quantile 2026-05-16）：
+    #   α=0.40 平滑掉脉冲信号的 1 帧 dropout；
+    #   thr_high=0.42 ≈ P85 of EMA(raw_AU04)，比 work 模式更敏感；
+    #   thr_low=0.22 留 ~50% 滞回带防震荡。
+    #   demo session (638 帧) 模拟触发 5 次 ≥ ADR-010 验收阈 2 次。
+    _BROW_EMA_ALPHA_RAW = 0.40
+    _BROW_THR_HIGH_RAW = 0.42
+    _BROW_THR_LOW_RAW = 0.22
 else:  # work (default)
     _BROW_BURST_WINDOW = 15
     _BROW_BURST_THRESHOLD_CAL = 0.95
@@ -89,6 +97,12 @@ else:  # work (default)
     _COOLDOWN_FRAMES_BROW = 300
     _COOLDOWN_FRAMES_POSE_HELD = 300
     _COOLDOWN_FRAMES_LOW_VLM_CONF = 120
+    # TODO-1 (ADR-010) work 模式 Schmitt+EMA 参数（sweep_brow_threshold_quantile 2026-05-16）：
+    #   α=0.40 + thr_high=0.55 (≈P95 of EMA) + thr_low=0.30；
+    #   demo session 触发 2 次 / 7 日全量 ~405 次（~60/日，~每 12 min 一次，匹配 work 节奏）。
+    _BROW_EMA_ALPHA_RAW = 0.40
+    _BROW_THR_HIGH_RAW = 0.55
+    _BROW_THR_LOW_RAW = 0.30
 
 # F-08 fix (codex v0.3 二审 2026-05-16)：
 # _BROW_BURST_THRESHOLD 永远 = _BROW_BURST_THRESHOLD_CAL（calibrated 默认 0.95）
@@ -178,12 +192,45 @@ class ProactiveQueryTrigger:
         enable_pose_held: bool = True,
         home: Path | None = None,
         signal_path: str = "calibrated",  # ADR-005 F-08 fix: 实例属性，不读 module-level
+        # TODO-1 (ADR-010) Schmitt + EMA opt-in mode（默认关，daemon raw 路径下打开）：
+        #   use_schmitt_ema=True 时 brow_burst 走 EMA 平滑 + Schmitt 滞回判定，
+        #   而非 strict-deque all(b > thr) — 容忍 1 帧 dropout 的脉冲信号。
+        use_schmitt_ema: bool = False,
+        brow_ema_alpha: float = 0.40,
+        brow_thr_high: float | None = None,  # None → 回落 brow_threshold（向后兼容）
+        brow_thr_low: float | None = None,   # None → 回落 brow_threshold * 0.55
     ) -> None:
         self._brow_threshold = brow_threshold
         self._signal_path = signal_path if signal_path in ("raw", "calibrated") else "calibrated"
         self._brow_window_size = brow_window
         self._vlm_conf_threshold = vlm_conf_threshold
         self._brow_history: deque[float] = deque(maxlen=brow_window)
+        # TODO-1 (ADR-010) Schmitt + EMA 状态：
+        #   _brow_ema：EMA 平滑后的 brow 值（None=首帧前 / face 丢失后清空）
+        #   _brow_above_high：Schmitt 状态机（True=已在 thr_high 之上，等 thr_low 解禁）
+        #   _brow_samples_since_reset：face-lost 后样本计数，需 ≥ brow_window 才允许触发
+        self._use_schmitt_ema = bool(use_schmitt_ema)
+        # α 必须在 (0, 1]，越界回落 0.40
+        if isinstance(brow_ema_alpha, (int, float)) and 0.0 < float(brow_ema_alpha) <= 1.0:
+            self._brow_ema_alpha = float(brow_ema_alpha)
+        else:
+            self._brow_ema_alpha = 0.40
+        _hi = float(brow_thr_high) if isinstance(brow_thr_high, (int, float)) else float(brow_threshold)
+        _lo = float(brow_thr_low) if isinstance(brow_thr_low, (int, float)) else float(brow_threshold) * 0.55
+        # cc 自审 F6: 防 thr_high ≤ 0 让滞回退化为"永远 above"死锁——回落到 brow_threshold 或最小值
+        if _hi <= 0.0:
+            _hi = max(float(brow_threshold), 0.1)
+        # 保证 thr_low ≤ thr_high（防参数手滑）；同值退化为非滞回阈值器
+        if _lo > _hi:
+            _lo = _hi * 0.55
+        # 同步 thr_low ≥ 0（避免负值在 ema=0 时永不下降沿）
+        if _lo < 0.0:
+            _lo = 0.0
+        self._brow_thr_high = _hi
+        self._brow_thr_low = _lo
+        self._brow_ema: float | None = None
+        self._brow_above_high: bool = False
+        self._brow_samples_since_reset: int = 0
         # V0.3 pose_held 状态：分别滑窗存 pitch / yaw / roll
         # F2-04: enable_pose_held=False 时全程不维护 pose 滑窗（V0.2 真实禁用语义）
         self._enable_pose_held = enable_pose_held
@@ -240,6 +287,10 @@ class ProactiveQueryTrigger:
             # NF-01: rollback 必须清 evidence，否则 F3-06 "cooldown 内保留 evidence"
             # 会让旧 session 的高 brow 窗口在新 session 首帧立即触发
             self._brow_history.clear()
+            # TODO-1 (ADR-010): Schmitt+EMA 状态同步清空，避免跨 session evidence 残留
+            self._brow_ema = None
+            self._brow_above_high = False
+            self._brow_samples_since_reset = 0
             self._clear_pose_windows()
         self._last_seen_frame_id = frame_id
 
@@ -392,6 +443,10 @@ class ProactiveQueryTrigger:
 
         if not item.get("face_detected"):
             self._brow_history.clear()
+            # TODO-1 (ADR-010): face 丢失等同于 evidence 重置，Schmitt+EMA 状态同步清
+            self._brow_ema = None
+            self._brow_above_high = False
+            self._brow_samples_since_reset = 0
             self._clear_pose_windows()
             return None
 
@@ -406,14 +461,26 @@ class ProactiveQueryTrigger:
         else:
             brow = float(expression.get("brow_furrow", 0.0))
         self._brow_history.append(brow)
+        # TODO-1 (ADR-010) Schmitt+EMA：每帧更新 EMA + 样本计数（即使 use_schmitt_ema=False，
+        # 仍维护 EMA 用于 signal_snapshot 诊断，开销 1 次乘法可忽略）
+        if self._brow_ema is None:
+            self._brow_ema = float(brow)
+        else:
+            a = self._brow_ema_alpha
+            self._brow_ema = a * float(brow) + (1.0 - a) * self._brow_ema
+        self._brow_samples_since_reset += 1
+
         self._update_pose_window(item.get("head_pose"))
 
         # signal_snapshot 同时记 raw 与 calibrated 两路，便于 A/B 离线分析
+        # TODO-1: 新增 brow_ema / brow_above_high 字段，供 daemon log + 离线 replay 诊断
         signal_snapshot = {
             "brow_furrow": float(expression.get("brow_furrow", 0.0)),  # calibrated（兼容）
             "raw_au_AU04": float(raw_au.get("AU04", 0.0)),              # raw（新增）
             "brow_used_path": self._signal_path,                         # 用了哪条
             "brow_used_value": brow,                                     # 实际用于决策的值
+            "brow_ema": float(self._brow_ema),                          # TODO-1 EMA 平滑后值
+            "brow_above_high": bool(self._brow_above_high),             # TODO-1 Schmitt 当前状态
             "smile_intensity": float(expression.get("smile_intensity", 0.0)),
             "eye_closure": float(expression.get("eye_closure", 0.0)),
             "cheek_raise": float(expression.get("cheek_raise", 0.0)),
@@ -440,22 +507,66 @@ class ProactiveQueryTrigger:
                     )
 
         # 优先级 2: brow_burst
-        # F3-06 (codex 一审): cooldown 内**不清窗**，evidence 保留供 cooldown 解禁后立即触发
-        if (
-            len(self._brow_history) >= self._brow_window_size
-            and all(b > self._brow_threshold for b in self._brow_history)
-        ):
-            if not self._in_cooldown("brow_burst", frame_id):
-                self._brow_history.clear()  # 仅触发时清窗，防同段 evidence 反复触发
-                self._mark_trigger("brow_burst", frame_id)
-                return TriggerEvent(
-                    ts=ts,
-                    frame_id=frame_id,
-                    reason="brow_burst",
-                    signal_snapshot=signal_snapshot,
-                    vlm_label=dict(vlm_label) if isinstance(vlm_label, dict) else None,
-                )
-            # cooldown 内：保留 brow_history，待 cooldown 解禁后下一帧立即触发
+        # ──────────────────────────────────────────────────────────────────────
+        # TODO-1 (ADR-010) Schmitt + EMA 分支（opt-in）：
+        #   - 上升沿 ema ≥ thr_high 且 _brow_above_high=False → 触发候选
+        #   - 下降沿 ema ≤ thr_low → 退出 above 状态（重新允许下次触发）
+        #   - thr_low < thr_high 间为滞回带，不切状态（防边缘抖动）
+        #   - 仍需 _brow_samples_since_reset ≥ brow_window 保证"窗口稳定性"
+        #   - 触发后清 _brow_samples_since_reset，cooldown 内保留 above 状态防同段重触
+        # 否则走 legacy strict-deque 分支（V0.3 Phase B 原语义，向后兼容所有现有测试）。
+        # ──────────────────────────────────────────────────────────────────────
+        if self._use_schmitt_ema:
+            ema = self._brow_ema  # 入 observe 时已更新（face_detected=True 分支）
+            window_stable = self._brow_samples_since_reset >= self._brow_window_size
+
+            # Schmitt 下降沿：始终允许解除 above 状态（防"高位 dropout 进入低位"后死锁）
+            if self._brow_above_high and ema is not None and ema <= self._brow_thr_low:
+                self._brow_above_high = False
+
+            # Schmitt 上升沿：必须 window_stable 才允许 latch + 触发
+            # —— 否则首帧 ema=brow 初始化即 ≥ thr_high 会被立即 latch，后续 N-1 帧
+            # 已不再有 rising edge，会永久错过本段触发（违反"5 帧稳定再触发"语义）
+            if (
+                not self._brow_above_high
+                and ema is not None
+                and ema >= self._brow_thr_high
+                and window_stable
+            ):
+                # cc 自审 F2：cooldown 内不 latch above（避免 cooldown 解禁后 above 已 True
+                # 而需先大幅回落才能再触发的丢失触发问题）；只在真正 fire 时 latch。
+                if not self._in_cooldown("brow_burst", frame_id):
+                    self._brow_above_high = True
+                    # snapshot 反映本帧 latch 后的 above 状态（便于离线复盘）
+                    signal_snapshot["brow_above_high"] = True
+                    # 触发后重置样本计数器（防同一段平台期反复触发）；
+                    # above=True 由 thr_low 下降沿天然解除，配合 cooldown 防误触
+                    self._brow_samples_since_reset = 0
+                    self._mark_trigger("brow_burst", frame_id)
+                    return TriggerEvent(
+                        ts=ts,
+                        frame_id=frame_id,
+                        reason="brow_burst",
+                        signal_snapshot=signal_snapshot,
+                        vlm_label=dict(vlm_label) if isinstance(vlm_label, dict) else None,
+                    )
+        else:
+            # F3-06 (codex 一审): cooldown 内**不清窗**，evidence 保留供 cooldown 解禁后立即触发
+            if (
+                len(self._brow_history) >= self._brow_window_size
+                and all(b > self._brow_threshold for b in self._brow_history)
+            ):
+                if not self._in_cooldown("brow_burst", frame_id):
+                    self._brow_history.clear()  # 仅触发时清窗，防同段 evidence 反复触发
+                    self._mark_trigger("brow_burst", frame_id)
+                    return TriggerEvent(
+                        ts=ts,
+                        frame_id=frame_id,
+                        reason="brow_burst",
+                        signal_snapshot=signal_snapshot,
+                        vlm_label=dict(vlm_label) if isinstance(vlm_label, dict) else None,
+                    )
+                # cooldown 内：保留 brow_history，待 cooldown 解禁后下一帧立即触发
 
         # 优先级 3: pose_held（V0.3 Phase B 新增）
         # F2-04: enable_pose_held=False 时 _pose_held_max_stddev 永返 None（pitch deque 空）

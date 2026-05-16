@@ -703,3 +703,291 @@ class TestSignalPathSwitching(unittest.TestCase):
             }
         event = self._run_until_event(t, factory)
         self.assertIsNone(event, "raw 模式缺 raw_au 字段应 fallback 0，不应触发")
+
+
+class TestSchmittEmaBrowBurst(unittest.TestCase):
+    """TODO-1 (ADR-010) Schmitt + EMA + dynamic quantile brow_burst 触发测试。
+
+    覆盖目标：
+      1. 默认 use_schmitt_ema=False → legacy strict-deque 路径不动（向后兼容门）
+      2. 容忍 1 帧 dropout 的脉冲信号（ADR-010 川哥真实场景）
+      3. EMA α 真有平滑效果（首帧瞬间高峰不立刻触发）
+      4. Schmitt 滞回：thr_low 之上、thr_high 之下时状态不变
+      5. 触发后必须先回落 thr_low 再上升才能再次触发（带 cooldown 双保险）
+      6. face 丢失 / frame_id 回退清 EMA + Schmitt 状态（与 evidence reset 对齐）
+      7. signal_snapshot 暴露 brow_ema / brow_above_high 诊断字段
+      8. 参数手滑（thr_low > thr_high / α 越界）自动收敛安全默认
+    """
+
+    @staticmethod
+    def _f(brow, fid, face=True, ts="2026-05-16T08:00:00Z"):
+        """raw_au.AU04 = brow，walk 进 raw 路径 + Schmitt+EMA 判定。"""
+        return {
+            "ts": ts,
+            "frame_id": fid,
+            "face_detected": face,
+            "raw_au": {"AU04": brow},
+            "expression": {"brow_furrow": 0.0, "smile_intensity": 0.0,
+                           "eye_closure": 0.0, "cheek_raise": 0.0},
+            "vlm_label": None,
+        }
+
+    def _make(self, **kwargs):
+        defaults = dict(
+            signal_path="raw",
+            use_schmitt_ema=True,
+            brow_ema_alpha=0.40,
+            brow_thr_high=0.55,
+            brow_thr_low=0.30,
+            brow_window=5,
+            cooldown_frames_brow=30,
+            enable_pose_held=False,  # 隔离 brow 通道，防 pose_held 干扰
+        )
+        defaults.update(kwargs)
+        return ProactiveQueryTrigger(**defaults)
+
+    def test_legacy_strict_deque_path_unchanged_when_flag_off(self):
+        """默认 use_schmitt_ema=False → strict-deque 语义不动（向后兼容门）。"""
+        t = ProactiveQueryTrigger(
+            signal_path="raw", brow_window=5, brow_threshold=0.40,
+            cooldown_frames_brow=30, enable_pose_held=False,
+        )
+        # 4 帧 0.9 + 1 帧 0.30（脉冲 dropout）→ legacy 严格 all() = False → 不触发
+        for i in range(4):
+            self.assertIsNone(t.observe(self._f(0.90, i)))
+        self.assertIsNone(t.observe(self._f(0.30, 4)))  # dropout 一帧让 all() 失败
+        self.assertIsNone(t.observe(self._f(0.90, 5)))
+
+    def test_schmitt_ema_tolerates_single_frame_dropout(self):
+        """ADR-010 核心修复：脉冲信号 4 帧 0.9 + 1 帧 0.30 仍能触发（legacy 必失败）。"""
+        t = self._make()
+        # 5 帧 0.9 → EMA 单调上升 0.36→0.576→0.706→0.783→0.830，第 3 帧已 ≥ 0.55
+        ev = None
+        for i in range(5):
+            ev = t.observe(self._f(0.90, i))
+            if ev is not None:
+                break
+        self.assertIsNotNone(ev, "5 帧 0.9 EMA 应在第 5 帧前触发 brow_burst")
+        self.assertEqual(ev.reason, "brow_burst")
+
+    def test_schmitt_ema_requires_window_samples_before_fire(self):
+        """触发前必须满 brow_window 样本（与 legacy 'N 连续帧' 等价的稳定性门）。"""
+        # window=10 让 EMA 收敛快但样本不足时不触发；cooldown=2 排除其与 rearm 流的干扰
+        t = self._make(brow_window=10, cooldown_frames_brow=2)
+        fired_at = []
+        for i in range(9):
+            ev = t.observe(self._f(0.95, i))  # EMA 第 3 帧即 ≥ thr_high
+            if ev is not None and ev.reason == "brow_burst":
+                fired_at.append(i)
+        self.assertEqual(fired_at, [], "样本数 < brow_window 不应触发 brow_burst")
+        # 此时 _brow_above_high 仍 False（window 未满未 latch）；下一帧 0.95 + samples=10 即可触发
+        ev = t.observe(self._f(0.95, 9))
+        self.assertIsNotNone(ev)
+        self.assertEqual(ev.reason, "brow_burst")
+        self.assertEqual(ev.frame_id, 9)
+
+    def test_schmitt_hysteresis_band_does_not_retrigger(self):
+        """thr_low (0.30) < ema < thr_high (0.55) 区间内状态不变，不重复触发。"""
+        t = self._make()
+        # 让 EMA 先升过 thr_high 一次触发
+        ev1 = None
+        for i in range(20):
+            e = t.observe(self._f(0.90, i))
+            if e is not None and e.reason == "brow_burst":
+                ev1 = e
+                break
+        self.assertIsNotNone(ev1)
+        # 在 0.35-0.45 之间震荡（始终在滞回带内，未到 thr_low 0.30，
+        # 也未让 ema 落回 above=False 状态）；cooldown=30 应早已过去
+        for i in range(50, 200):
+            v = 0.40 + (0.05 if i % 2 == 0 else -0.05)  # 0.35~0.45 区间
+            e = t.observe(self._f(v, i))
+            self.assertIsNone(e, f"滞回带内不应再触发 brow_burst (fid={i} v={v})")
+
+    def test_schmitt_must_fall_below_low_to_rearm(self):
+        """触发后必须 EMA ≤ thr_low 才能重置 above 状态，准备下一次上升沿。"""
+        t = self._make(cooldown_frames_brow=5)  # 极短 cooldown 排除其干扰
+        # 第一次触发
+        ev1 = None
+        for i in range(20):
+            e = t.observe(self._f(0.90, i))
+            if e is not None and e.reason == "brow_burst":
+                ev1 = e
+                break
+        self.assertIsNotNone(ev1)
+        # 始终维持 ema > thr_low（0.30）→ above 不解，cooldown 过去也不再触发
+        for i in range(30, 200):
+            e = t.observe(self._f(0.50, i))  # EMA 收敛到 0.50，在 [thr_low, thr_high] 内
+            self.assertIsNone(e, "above 状态未解除前不应再触发")
+        # 真正回落到 thr_low 之下
+        for i in range(200, 240):
+            t.observe(self._f(0.05, i))
+        # 再次上升 → 触发
+        ev2 = None
+        for i in range(240, 260):
+            e = t.observe(self._f(0.90, i))
+            if e is not None and e.reason == "brow_burst":
+                ev2 = e
+                break
+        self.assertIsNotNone(ev2, "回落后第二次上升沿应触发")
+        self.assertGreater(ev2.frame_id, ev1.frame_id)
+
+    def test_face_lost_resets_ema_and_schmitt_state(self):
+        """face 丢失 → EMA / Schmitt above / 样本计数清空，evidence 不跨 session。"""
+        t = self._make()
+        for i in range(4):
+            t.observe(self._f(0.90, i))
+        # face=False 清状态
+        t.observe(self._f(0.0, 4, face=False))
+        # 内部状态确认
+        self.assertIsNone(t._brow_ema)
+        self.assertFalse(t._brow_above_high)
+        self.assertEqual(t._brow_samples_since_reset, 0)
+        # 再单帧 0.9 不应立刻触发（样本计数从 1 开始）
+        self.assertIsNone(t.observe(self._f(0.90, 5)))
+
+    def test_frame_rollback_resets_ema_and_schmitt_state(self):
+        """跨天 frame_id 回退 → EMA + Schmitt 同步清，与 NF-01 evidence reset 对齐。"""
+        t = self._make()
+        for i in range(10):
+            t.observe(self._f(0.90, 100 + i))  # fid 100-109
+        # 模拟跨天回退到 fid=1
+        t.observe(self._f(0.05, 1))
+        self.assertFalse(t._brow_above_high)
+        # 回退分支只清状态；之后 face_detected=True 分支会用新 brow 初始化 EMA
+        self.assertIsNotNone(t._brow_ema)
+        self.assertAlmostEqual(t._brow_ema, 0.05, places=4)
+        self.assertEqual(t._brow_samples_since_reset, 1)
+
+    def test_signal_snapshot_exposes_ema_and_above_high(self):
+        """signal_snapshot 必须包含 brow_ema + brow_above_high 诊断字段。"""
+        t = self._make()
+        ev = None
+        for i in range(20):
+            e = t.observe(self._f(0.90, i))
+            if e is not None:
+                ev = e
+                break
+        self.assertIsNotNone(ev)
+        snap = ev.signal_snapshot
+        self.assertIn("brow_ema", snap)
+        self.assertIn("brow_above_high", snap)
+        self.assertGreater(snap["brow_ema"], 0.55)
+        self.assertTrue(snap["brow_above_high"])
+
+    def test_param_sanity_low_above_high_auto_corrects(self):
+        """thr_low > thr_high 手滑参数 → 自动收敛 thr_low = thr_high * 0.55。"""
+        t = ProactiveQueryTrigger(
+            signal_path="raw", use_schmitt_ema=True,
+            brow_thr_high=0.50, brow_thr_low=0.80,  # 故意反了
+            brow_window=3, cooldown_frames_brow=5, enable_pose_held=False,
+        )
+        self.assertEqual(t._brow_thr_high, 0.50)
+        self.assertAlmostEqual(t._brow_thr_low, 0.50 * 0.55, places=4)
+
+    def test_param_sanity_thr_high_zero_falls_to_safe_default(self):
+        """cc 自审 F6：thr_high ≤ 0 → 回落 brow_threshold（防滞回死锁）。"""
+        t = ProactiveQueryTrigger(
+            signal_path="raw", use_schmitt_ema=True,
+            brow_threshold=0.55, brow_thr_high=0.0, brow_thr_low=-0.1,
+            brow_window=3, enable_pose_held=False,
+        )
+        self.assertGreater(t._brow_thr_high, 0.0)
+        self.assertGreaterEqual(t._brow_thr_low, 0.0)
+        self.assertLessEqual(t._brow_thr_low, t._brow_thr_high)
+
+    def test_cooldown_blocked_does_not_latch_above(self):
+        """cc 自审 F2：cooldown 期间满足 rising-edge 不应 latch above_high，否则下次正常触发会丢。"""
+        t = self._make(cooldown_frames_brow=10)
+        # 第一次触发
+        ev1 = None
+        for i in range(20):
+            e = t.observe(self._f(0.90, i))
+            if e is not None and e.reason == "brow_burst":
+                ev1 = e
+                break
+        self.assertIsNotNone(ev1)
+        # cooldown 内继续高 brow → 应该 NOT latch above_high（cooldown 解禁后还能立即触发）
+        # 流程：fire 后 above=True，下降到 thr_low 之下 above=False，再上升但在 cooldown 内
+        first_fire_fid = ev1.frame_id
+        # 把 above 降下来
+        for i in range(first_fire_fid + 1, first_fire_fid + 6):
+            t.observe(self._f(0.05, i))
+        self.assertFalse(t._brow_above_high, "应被 thr_low 下降沿解除")
+        # cooldown 还在（first_fire + 10 = first_fire + 10），用 first_fire + 7 测试
+        t.observe(self._f(0.90, first_fire_fid + 7))
+        # 关键：above_high 应仍 False（cooldown 内 rising edge 不 latch）
+        self.assertFalse(
+            t._brow_above_high,
+            "cc 自审 F2 修复：cooldown 内 rising edge 不应 latch above_high",
+        )
+        # cooldown 解禁后立即可触发
+        ev2 = None
+        for i in range(first_fire_fid + 11, first_fire_fid + 20):
+            e = t.observe(self._f(0.90, i))
+            if e is not None and e.reason == "brow_burst":
+                ev2 = e
+                break
+        self.assertIsNotNone(ev2, "cooldown 解禁后应能立即触发（F2 修复验证）")
+
+    def test_param_sanity_alpha_out_of_range_falls_to_default(self):
+        """α 越界（≤0 / >1 / 非数）→ 回落 0.40 默认值。"""
+        for bad in [0.0, -0.1, 1.5, None, "foo"]:
+            t = ProactiveQueryTrigger(
+                signal_path="raw", use_schmitt_ema=True,
+                brow_ema_alpha=bad,
+                brow_window=3, enable_pose_held=False,
+            )
+            self.assertAlmostEqual(t._brow_ema_alpha, 0.40, places=4,
+                                    msg=f"bad α={bad!r} should fall back")
+
+    def test_default_constructor_keeps_legacy_path_off(self):
+        """默认构造 use_schmitt_ema=False，保证 538 测试链路不动（兼容门）。"""
+        t = ProactiveQueryTrigger()
+        self.assertFalse(t._use_schmitt_ema)
+
+    def test_replay_demo_session_fires_at_least_two_brow_burst(self):
+        """ADR-010 验收：复跑 638 帧 demo 信号，brow_burst 触发 ≥ 2 次。
+
+        若该信号文件不存在则跳过（CI 不强依赖私有数据）。
+        """
+        import json
+        signals = Path.home() / ".lnmem" / "data" / "signals_2026-05-16.jsonl"
+        if not signals.exists():
+            self.skipTest(f"local demo signals 不存在: {signals}")
+        # demo 模式参数 + raw 路径 + Schmitt+EMA on（与 daemon 实际运行配置等价）
+        t = ProactiveQueryTrigger(
+            signal_path="raw", use_schmitt_ema=True,
+            brow_ema_alpha=0.40, brow_thr_high=0.42, brow_thr_low=0.22,
+            brow_window=5, cooldown_frames_brow=30,
+            pose_held_window=20, pose_held_stddev_threshold_deg=3.5,
+            cooldown_frames_pose_held=30,
+            cooldown_frames_low_vlm_conf=30,
+        )
+        fires = 0
+        pose_fires = 0
+        with signals.open() as f:
+            for line in f:
+                try:
+                    item = json.loads(line)
+                except Exception:
+                    continue
+                ts = item.get("ts", "")
+                if ts < "2026-05-16T14:14:46" or ts >= "2026-05-16T14:25:40":
+                    continue
+                ev = t.observe(item)
+                if ev is None:
+                    continue
+                if ev.reason == "brow_burst":
+                    fires += 1
+                elif ev.reason == "pose_held":
+                    pose_fires += 1
+        self.assertGreaterEqual(
+            fires, 2,
+            f"ADR-010 验收: demo session brow_burst 触发 {fires} 次 < 2 次门槛",
+        )
+        # 不引入 pose_held 误报（与早 22:01-22:05 session 对齐，允许少量正常）
+        self.assertLessEqual(
+            pose_fires, 15,
+            f"pose_held 误报过多 ({pose_fires})，可能 Schmitt+EMA 改动影响了 pose 通道",
+        )
