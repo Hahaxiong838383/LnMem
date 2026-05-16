@@ -28,6 +28,7 @@ class SignalPipelineWorker(threading.Thread):
         output_queue: "queue.Queue[dict[str, Any]]",
         stop_event: threading.Event,
         device_name: str,
+        lnn_inferencer: Any | None = None,  # M0 W3 Phase 4.2: optional realtime LNN forward
     ) -> None:
         super().__init__(name="lnmem-signal", daemon=True)
         self._config = config
@@ -40,6 +41,7 @@ class SignalPipelineWorker(threading.Thread):
         self._au_extractor: Any | None = None
         self._caliper: Any | None = None
         self._vlm_annotator: Any | None = None
+        self._lnn_inferencer = lnn_inferencer  # M0 W3 Phase 4.2
 
     def run(self) -> None:
         while not self._stop_event.is_set() or not self._input_queue.empty():
@@ -90,6 +92,25 @@ class SignalPipelineWorker(threading.Thread):
             vlm_label = self._annotate_vlm(item.frame)
             if vlm_label is not None:
                 result["vlm_label"] = vlm_label
+
+        # M0 W3 Phase 4.2: 实时 LNN forward（F-06 fail-soft，独立 try/except）
+        # 失败仅清空 lnn 字段，不影响基础信号出队（codex F-06 修复）
+        if self._lnn_inferencer is not None and result["face_detected"]:
+            try:
+                infer_result = self._lnn_inferencer.infer(result)
+                result["lnn"] = {
+                    "status": infer_result.lnn_status,
+                    "predicted_state": infer_result.predicted_state,
+                    "top_prob": infer_result.top_prob,
+                    "margin": infer_result.margin,
+                    "entropy": infer_result.entropy,
+                    "ckpt_sha8": infer_result.ckpt_sha8,
+                    "signal_path": infer_result.signal_path_used,
+                    "error": infer_result.error,
+                }
+            except Exception:
+                logging.exception("lnn_inferencer.infer failed (continuing without lnn)")
+                result["lnn"] = {"status": "error", "error": "exception_in_signal_pipeline"}
 
         return result
 

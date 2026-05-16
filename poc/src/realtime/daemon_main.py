@@ -69,12 +69,15 @@ class DaemonApp:
         self._pipeline_out: "queue.Queue[dict[str, Any]]" = queue.Queue(maxsize=64)
         self._storage = StorageManager(self._config.storage, self._stop_event)
         self._capture = CaptureWorker(self._config.capture, self._capture_out, self._stop_event, self._session_id)
+        # M0 W3 Phase 4.2 (2026-05-16 ADR-005/008): 实时 LNN inferencer（fail-soft）
+        self._lnn_inferencer = self._build_lnn_inferencer()
         self._pipeline = SignalPipelineWorker(
             self._config.pipeline,
             self._pipeline_in,
             self._pipeline_out,
             self._stop_event,
             self._config.capture.device_name,
+            lnn_inferencer=self._lnn_inferencer,
         )
         self._router_threads: list[threading.Thread] = []
         self._http_server: ThreadingHTTPServer | None = None
@@ -135,12 +138,20 @@ class DaemonApp:
         feedback = self.feedback_stats()
         feedback["trigger_types"] = get_trigger_types()
         feedback["user_triggered_metrics"] = get_user_triggered_metrics()
+        # M0 W3 Phase 4.2 + 4.6: LNN 推理状态暴露到 /health
+        lnn_health: dict[str, Any] = {"enabled": False}
+        if self._lnn_inferencer is not None:
+            try:
+                lnn_health = self._lnn_inferencer.health_dict()
+            except Exception:
+                lnn_health = {"enabled": False, "error": "health_dict_failed"}
         return {
             "status": "ok",
             "uptime_s": round(time.monotonic() - self._started_at, 3),
             "frames_processed": self._pipeline._frames_processed,
             "last_frame_ts": self._pipeline._last_frame_ts or self._capture.last_frame_ts,
             "feedback": feedback,
+            "lnn": lnn_health,
         }
 
     def recent_signals(self, seconds: int) -> list[dict[str, Any]]:
@@ -374,6 +385,44 @@ class DaemonApp:
             "pred_state": self.latest_pred_state(),
             "warning": warning,
         }
+
+    def _build_lnn_inferencer(self):
+        """M0 W3 Phase 4.2 (ADR-005/008): 实时 LNN inferencer 构造 + fail-soft
+
+        优先级（codex F-04 fix: 显式 path > max-glob）：
+        1. env LNMEM_LNN_CKPT 指定路径
+        2. 最新 m0w2_phase2/*.pt（fallback）
+        3. 失败 → 返 None（daemon 仍可启动）
+        """
+        from pathlib import Path
+        from poc.src.realtime.lnn_inferencer import RealtimeLNNInferencer
+        from poc.src.realtime.feedback import trigger as _trig_mod
+
+        ckpt_env = os.environ.get("LNMEM_LNN_CKPT")
+        ckpt_path: Path | None = None
+        if ckpt_env:
+            ckpt_path = Path(os.path.expanduser(ckpt_env))
+        else:
+            ckpt_dir = Path(__file__).resolve().parent.parent.parent.parent / "poc" / "data" / "checkpoints" / "m0w2_phase2"
+            try:
+                ckpts = sorted(ckpt_dir.glob("*.pt"), key=lambda p: p.stat().st_mtime, reverse=True)
+                if ckpts:
+                    ckpt_path = ckpts[0]
+            except Exception:
+                ckpt_path = None
+
+        if ckpt_path is None or not ckpt_path.exists():
+            logging.getLogger(__name__).warning(
+                "no LNN ckpt found (env LNMEM_LNN_CKPT=%s, fallback dir empty) → inferencer disabled",
+                ckpt_env or "<unset>",
+            )
+            return RealtimeLNNInferencer(ckpt_path=None)
+
+        return RealtimeLNNInferencer(
+            ckpt_path=ckpt_path,
+            persona_idx=int(os.environ.get("LNMEM_PERSONA_IDX", "30")),
+            signal_path=_trig_mod._SIGNAL_PATH,
+        )
 
     def _build_feedback_engine(self) -> ProactiveQueryEngine:
         from pathlib import Path
