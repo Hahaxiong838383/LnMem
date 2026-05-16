@@ -138,3 +138,53 @@ deque 里只要有 1 个低帧 → `all() = False` → 永远不触发。
 
 - 多用户 baseline 个性化阈值（gemini #4 警告"川哥个体过拟合"风险） → ADR-008 User-LoRA 实施时一并解决
 - VLM low_conf 通道是否也需类似平滑 → 待数据积累后评估
+
+---
+
+## V0.3.6 cc 一/二审 + codex 复审 补丁（2026-05-16 23:50-24:10）
+
+### cc 一审发现：cooldown × latch 死锁（已修 ✅）
+
+trace 工具 (`scripts/trace_schmitt_state.py`) 实测：cooldown 期间 ema 5 次过 thr_high，
+但因 latch 检查在 cooldown 内被吞掉，**cooldown 解禁后 above 状态丢失，永久错过本段**。
+
+**修复**：把 cooldown 检查从"latch 内部"提到"fire 内部"。Schmitt 状态机照常 update
+（latch above + 解锁 above），cooldown 内不 fire 但状态正确流转。
+
+### cc 二审发现：py-feat NaN 污染 EMA 永久卡死（已修 ✅）
+
+实测 14:30-14:59 demo session 1714 帧中 6 帧 raw_au.AU04 = NaN，触发 EMA → NaN
+（NaN op any = NaN），Schmitt 后续永远不再触发。
+
+**修复**：`_safe_float` 防御所有 brow 输入；NaN brow 不入 history/ema/samples（等下一帧）。
+snapshot 字段同步加 NaN 兜底。
+
+### Replay 验收对照（同份数据 35:00+ session）
+
+| 版本 | brow_burst | pose_held | 备注 |
+|---|---|---|---|
+| V0.3.5（cooldown 内不 latch） | 1 | 50 | 死锁 |
+| V0.3.6（cooldown 不阻 latch + NaN 防御） | **41** | 53 | **41x 提升** |
+
+638 帧旧 benchmark：V0.3.5=4 → V0.3.6=5（无回归 + 略增）。
+全套 pytest 552 全过（work 模式）。
+
+### codex 一审 5 findings（V0.3.6 已修 1，4 留 spawn_task）
+
+| # | 级别 | 内容 | V0.3.6 状态 |
+|---|------|------|-------------|
+| F1 | P0 | sweep 仿真器与真实 trigger 语义不一致 → 推荐阈值可能偏差 | ⏳ 留 spawn_task |
+| F2 | P1 | sweep 推荐基于单 session 过拟合 | ⏳ 留 spawn_task |
+| **F3** | **P1** | **NaN 输入静默毒化 EMA** | ✅ **V0.3.6 已修** |
+| F4 | P1 | 持续高压（ema 永不跌到 thr_low）不再触发盲区 | ⏳ 留 spawn_task（需产品定案） |
+| F5 | P1 | daemon 仍依赖 module-level 常量 → trigger_mode 漂移面 | ⏳ 留 spawn_task |
+
+### V0.3.6 时间线
+
+- 23:50: cc 一审发现 cooldown × latch 死锁（trace 工具实证）
+- 23:55: 修复（cooldown 不阻 latch + 移到 fire 内部）
+- 23:58: cc 二审发现 NaN 污染 EMA
+- 00:00: 修复（_safe_float 全路径防御）
+- 00:05: replay 验收 41x 提升 + 638 帧无回归
+- 00:08: codex 复审 5 finding（F3 已被 V0.3.6 修复）
+- 00:10: 本段落盘 + commit

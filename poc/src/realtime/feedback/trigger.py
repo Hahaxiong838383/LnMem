@@ -456,31 +456,39 @@ class ProactiveQueryTrigger:
         # F-08 fix: signal_path 是实例属性 self._signal_path（构造时传入），不读 module-level
         expression = item.get("expression") or {}
         raw_au = item.get("raw_au") or {}
-        if self._signal_path == "raw":
-            brow = float(raw_au.get("AU04", 0.0))
-        else:
-            brow = float(expression.get("brow_furrow", 0.0))
-        self._brow_history.append(brow)
-        # TODO-1 (ADR-010) Schmitt+EMA：每帧更新 EMA + 样本计数（即使 use_schmitt_ema=False，
-        # 仍维护 EMA 用于 signal_snapshot 诊断，开销 1 次乘法可忽略）
-        if self._brow_ema is None:
-            self._brow_ema = float(brow)
-        else:
-            a = self._brow_ema_alpha
-            self._brow_ema = a * float(brow) + (1.0 - a) * self._brow_ema
-        self._brow_samples_since_reset += 1
+        # V0.3.6 NaN 防御（ADR-010 cc 二审 2026-05-16 23:58）：
+        # py-feat 偶发返 NaN/Inf（实测 14:30-14:59 demo session 1714 帧中 6 个 NaN）。
+        # 之前 float(raw_au.AU04) 直通 → ema 一旦遇 NaN 永久卡 NaN（NaN op any = NaN），
+        # Schmitt 后续永远不再触发。NaN brow 视为"本帧无信号"：不入 history/ema/samples。
+        _raw_brow = raw_au.get("AU04", 0.0) if self._signal_path == "raw" else expression.get("brow_furrow", 0.0)
+        brow_safe = self._safe_float(_raw_brow)
+        brow = brow_safe if brow_safe is not None else 0.0  # 兜底（snapshot 显示用 0）
+        if brow_safe is not None:
+            self._brow_history.append(brow_safe)
+            # TODO-1 (ADR-010) Schmitt+EMA：每帧更新 EMA + 样本计数
+            if self._brow_ema is None:
+                self._brow_ema = brow_safe
+            else:
+                a = self._brow_ema_alpha
+                self._brow_ema = a * brow_safe + (1.0 - a) * self._brow_ema
+            self._brow_samples_since_reset += 1
+        # NaN brow 不入 history/ema/samples，等下一帧；above 状态保留
 
         self._update_pose_window(item.get("head_pose"))
 
         # signal_snapshot 同时记 raw 与 calibrated 两路，便于 A/B 离线分析
         # TODO-1: 新增 brow_ema / brow_above_high 字段，供 daemon log + 离线 replay 诊断
+        # V0.3.6 snapshot 字段 NaN 防御（同 brow 路径）
+        _brow_furrow_safe = self._safe_float(expression.get("brow_furrow", 0.0))
+        _raw_au04_safe = self._safe_float(raw_au.get("AU04", 0.0))
         signal_snapshot = {
-            "brow_furrow": float(expression.get("brow_furrow", 0.0)),  # calibrated（兼容）
-            "raw_au_AU04": float(raw_au.get("AU04", 0.0)),              # raw（新增）
-            "brow_used_path": self._signal_path,                         # 用了哪条
-            "brow_used_value": brow,                                     # 实际用于决策的值
-            "brow_ema": float(self._brow_ema),                          # TODO-1 EMA 平滑后值
-            "brow_above_high": bool(self._brow_above_high),             # TODO-1 Schmitt 当前状态
+            "brow_furrow": _brow_furrow_safe if _brow_furrow_safe is not None else 0.0,
+            "raw_au_AU04": _raw_au04_safe if _raw_au04_safe is not None else 0.0,
+            "brow_used_path": self._signal_path,
+            "brow_used_value": brow,
+            # _brow_ema 可能因首帧 NaN 仍是 None；snapshot 用 0.0 兜底（不影响决策）
+            "brow_ema": float(self._brow_ema) if self._brow_ema is not None else 0.0,
+            "brow_above_high": bool(self._brow_above_high),
             "smile_intensity": float(expression.get("smile_intensity", 0.0)),
             "eye_closure": float(expression.get("eye_closure", 0.0)),
             "cheek_raise": float(expression.get("cheek_raise", 0.0)),
@@ -524,32 +532,48 @@ class ProactiveQueryTrigger:
             if self._brow_above_high and ema is not None and ema <= self._brow_thr_low:
                 self._brow_above_high = False
 
-            # Schmitt 上升沿：必须 window_stable 才允许 latch + 触发
-            # —— 否则首帧 ema=brow 初始化即 ≥ thr_high 会被立即 latch，后续 N-1 帧
-            # 已不再有 rising edge，会永久错过本段触发（违反"5 帧稳定再触发"语义）
+            # Schmitt 上升沿：cooldown 不阻挡 latch，只阻挡 fire
+            # ──────────────────────────────────────────────────────────────────
+            # V0.3.6 bugfix（ADR-010 cc 一审 2026-05-16 23:55）：
+            # 之前 cooldown 检查嵌在 latch 内部 → cooldown 期间"上升沿"事件被全部
+            # 吞掉，above 一直停留在 False，cooldown 解禁后"上次有过高位"信息全丢，
+            # 即使整段 cooldown 内 ema 多次过 thr_high 也只 fire 一次（trace 实证：
+            # frame 524-535 ema 5 次过 0.42 但 above 不 latch，cooldown 解禁帧
+            # ema 已跌 < thr_high，永久错过）。
+            #
+            # 修：把 cooldown 检查从 "latch 内部" 提到 "fire 内部"。Schmitt 状态机
+            # 照常 update（latch above + reset samples），但 cooldown 内不 fire。
+            # 下次 ema 跌到 thr_low 重新解锁 + 再次 ≥ thr_high + cooldown 已解禁
+            # → 才 fire。物理语义：cooldown 只控制"两次 fire 间隔"，不应该让
+            # Schmitt 状态机失忆。
+            # ──────────────────────────────────────────────────────────────────
+            just_latched = False
             if (
                 not self._brow_above_high
                 and ema is not None
                 and ema >= self._brow_thr_high
                 and window_stable
             ):
-                # cc 自审 F2：cooldown 内不 latch above（避免 cooldown 解禁后 above 已 True
-                # 而需先大幅回落才能再触发的丢失触发问题）；只在真正 fire 时 latch。
-                if not self._in_cooldown("brow_burst", frame_id):
-                    self._brow_above_high = True
-                    # snapshot 反映本帧 latch 后的 above 状态（便于离线复盘）
-                    signal_snapshot["brow_above_high"] = True
-                    # 触发后重置样本计数器（防同一段平台期反复触发）；
-                    # above=True 由 thr_low 下降沿天然解除，配合 cooldown 防误触
-                    self._brow_samples_since_reset = 0
-                    self._mark_trigger("brow_burst", frame_id)
-                    return TriggerEvent(
-                        ts=ts,
-                        frame_id=frame_id,
-                        reason="brow_burst",
-                        signal_snapshot=signal_snapshot,
-                        vlm_label=dict(vlm_label) if isinstance(vlm_label, dict) else None,
-                    )
+                self._brow_above_high = True
+                just_latched = True
+
+            # Fire 条件：刚 latch 这一帧 + cooldown 已解禁
+            # （pending_fire 不需要单独跟踪：cooldown 内 latch 后 ema 必须先跌到
+            # thr_low 解除 above，再重新爬升才会再次 just_latched，期间已自然
+            # 等过 cooldown）
+            if just_latched and not self._in_cooldown("brow_burst", frame_id):
+                # snapshot 反映本帧 latch 后的 above 状态（便于离线复盘）
+                signal_snapshot["brow_above_high"] = True
+                # 触发后重置样本计数器（防同一段平台期反复触发）
+                self._brow_samples_since_reset = 0
+                self._mark_trigger("brow_burst", frame_id)
+                return TriggerEvent(
+                    ts=ts,
+                    frame_id=frame_id,
+                    reason="brow_burst",
+                    signal_snapshot=signal_snapshot,
+                    vlm_label=dict(vlm_label) if isinstance(vlm_label, dict) else None,
+                )
         else:
             # F3-06 (codex 一审): cooldown 内**不清窗**，evidence 保留供 cooldown 解禁后立即触发
             if (
