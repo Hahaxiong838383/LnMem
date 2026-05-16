@@ -145,5 +145,66 @@ class TestEngine(unittest.TestCase):
             self.assertEqual(eng.stats()["triggered"], 1)
 
 
+class TestFormatQuestionAdr005UI(unittest.TestCase):
+    """ADR-005 V0.3.3：弹窗 UI 皱眉显示 brow_used_value/_path（trigger 决策实际依据），
+    而不是被 calibration polarization 撒谎的 brow_furrow。
+
+    川哥 2026-05-16 22:10 实测发现：demo 模式 raw 路径下，弹窗显示"皱眉=1.00"，
+    但 trigger 决策依据的 raw_au_AU04 实际只有 0.40 左右——engine.py:44 漏改。
+    """
+
+    def _mk_event(self, snapshot):
+        from poc.src.realtime.feedback.trigger import TriggerEvent
+        return TriggerEvent(
+            ts="2026-05-16T14:03:36Z",
+            frame_id=99,
+            reason="brow_burst",
+            signal_snapshot=snapshot,
+            vlm_label=None,
+        )
+
+    def test_raw_path_shows_brow_used_with_cal_compare(self):
+        """raw 路径：显示 brow_used_value(raw) + [cal=X.XX] 对照"""
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({
+            "brow_furrow": 1.0,           # calibrated polarized 撒谎值
+            "raw_au_AU04": 0.41,
+            "brow_used_path": "raw",
+            "brow_used_value": 0.41,
+            "smile_intensity": 0.05,
+            "eye_closure": 0.0,
+        })
+        _, detail = _format_question(ev)
+        self.assertIn("皱眉=0.41(raw)", detail)
+        self.assertIn("[cal=1.00]", detail)  # 让用户看到 polarization
+        self.assertNotIn("皱眉=1.00", detail)  # 不再被 calibrated 撒谎值误导
+
+    def test_calibrated_path_shows_brow_used_no_compare(self):
+        """calibrated 路径：只显示 brow_used_value(calibrated)，无 [cal=] 对照"""
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({
+            "brow_furrow": 0.95,
+            "brow_used_path": "calibrated",
+            "brow_used_value": 0.95,
+            "smile_intensity": 0.1,
+            "eye_closure": 0.2,
+        })
+        _, detail = _format_question(ev)
+        self.assertIn("皱眉=0.95(calibrated)", detail)
+        self.assertNotIn("[cal=", detail)
+
+    def test_legacy_snapshot_falls_back_to_brow_furrow(self):
+        """老 snapshot（无 brow_used_value/_path）：回落到 brow_furrow + 标 calibrated"""
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({
+            "brow_furrow": 0.7,
+            "smile_intensity": 0.0,
+            "eye_closure": 0.0,
+        })
+        _, detail = _format_question(ev)
+        self.assertIn("皱眉=0.70(calibrated)", detail)
+        self.assertNotIn("[cal=", detail)
+
+
 if __name__ == "__main__":
     unittest.main()

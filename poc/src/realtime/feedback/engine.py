@@ -36,14 +36,30 @@ class EngineConfig:
 
 
 def _format_question(event: TriggerEvent) -> tuple[str, str]:
-    """生成通知短消息 + 弹窗详细消息。"""
+    """生成通知短消息 + 弹窗详细消息。
+
+    ADR-005 V0.3.3（2026-05-16）：弹窗皱眉显示用 trigger 决策实际依据的值
+    （signal_snapshot.brow_used_value/_path），而不是 calibrated polarized 的 brow_furrow。
+    raw 路径下附带 [cal=X.XX] 让用户直观看到 calibration polarization 现象。
+    snapshot 无新字段时回落到旧 brow_furrow（向后兼容）。
+    """
     sig = event.signal_snapshot
     short = f"看到你 {_short_reason(event.reason)}，能确认下吗？"
+    brow_cal = float(sig.get("brow_furrow", 0.0))
+    brow_used = sig.get("brow_used_value")
+    brow_path = sig.get("brow_used_path", "calibrated")
+    brow_display = float(brow_used) if brow_used is not None else brow_cal
+    brow_line = f"信号: 皱眉={brow_display:.2f}({brow_path})"
+    # raw 路径附带 calibrated 对照，让用户看到 polarization
+    if brow_path == "raw" and brow_used is not None:
+        brow_line += f" [cal={brow_cal:.2f}]"
+    brow_line += (
+        f"  微笑={sig.get('smile_intensity', 0):.2f}"
+        f"  闭眼={sig.get('eye_closure', 0):.2f}"
+    )
     detail_lines = [
         f"# {event.frame_id}  原因: {event.reason}",
-        f"信号: 皱眉={sig.get('brow_furrow', 0):.2f}  "
-        f"微笑={sig.get('smile_intensity', 0):.2f}  "
-        f"闭眼={sig.get('eye_closure', 0):.2f}",
+        brow_line,
     ]
     if event.vlm_label:
         au_desc = event.vlm_label.get("au_description", "")
