@@ -206,5 +206,140 @@ class TestFormatQuestionAdr005UI(unittest.TestCase):
         self.assertNotIn("[cal=", detail)
 
 
+class TestFormatQuestionV034Hardening(unittest.TestCase):
+    """ADR-005 V0.3.4 codex 一审 P0/P1 加固（4 大类边界）：
+
+    F1/F2 (P0): 脏数据/类型错不抛异常，统一回落
+    F3 (P1): brow_used_path 白名单收敛
+    F4 (P1): VLM/reason/字段文本清洗 + 长度限制
+    """
+
+    def _mk_event(self, snapshot, vlm=None, reason="brow_burst", frame_id=99):
+        from poc.src.realtime.feedback.trigger import TriggerEvent
+        return TriggerEvent(
+            ts="2026-05-16T14:25:00Z",
+            frame_id=frame_id,
+            reason=reason,
+            signal_snapshot=snapshot,
+            vlm_label=vlm,
+        )
+
+    # --- F1/F2: 数值脏数据 ---
+    def test_none_in_brow_used_value_falls_back(self):
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({"brow_furrow": 0.5, "brow_used_value": None, "brow_used_path": "raw"})
+        _, detail = _format_question(ev)
+        self.assertIn("皱眉=0.50(raw)", detail)
+        self.assertNotIn("[cal=", detail)  # has_brow_used=False，不附 cal 对照
+
+    def test_nan_in_brow_used_value_falls_back(self):
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({"brow_furrow": 0.6, "brow_used_value": float("nan"), "brow_used_path": "raw"})
+        _, detail = _format_question(ev)
+        self.assertIn("皱眉=0.60(raw)", detail)
+        self.assertNotIn("[cal=", detail)
+
+    def test_inf_in_brow_used_value_falls_back(self):
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({"brow_furrow": 0.3, "brow_used_value": float("inf"), "brow_used_path": "raw"})
+        _, detail = _format_question(ev)
+        self.assertIn("皱眉=0.30(raw)", detail)
+
+    def test_string_typed_brow_used_value_falls_back(self):
+        """F2: 字段存在但类型错（'oops'）不再崩，回落 brow_furrow"""
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({"brow_furrow": 0.42, "brow_used_value": "oops", "brow_used_path": "raw"})
+        _, detail = _format_question(ev)
+        self.assertIn("皱眉=0.42(raw)", detail)
+
+    def test_negative_brow_used_value_preserved(self):
+        """负数虽然语义异常，但有限值，保留显示让用户看到"""
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({"brow_furrow": 0.0, "brow_used_value": -0.5, "brow_used_path": "raw"})
+        _, detail = _format_question(ev)
+        self.assertIn("皱眉=-0.50(raw)", detail)
+        self.assertIn("[cal=0.00]", detail)
+
+    def test_dirty_smile_eye_closure_dont_crash(self):
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({
+            "brow_furrow": 0.5,
+            "smile_intensity": None,
+            "eye_closure": "xx",
+        })
+        _, detail = _format_question(ev)
+        self.assertIn("微笑=0.00", detail)
+        self.assertIn("闭眼=0.00", detail)
+
+    # --- F3: brow_used_path 白名单 ---
+    def test_brow_path_case_and_whitespace_normalized(self):
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({"brow_furrow": 1.0, "brow_used_value": 0.4, "brow_used_path": " RAW \t"})
+        _, detail = _format_question(ev)
+        self.assertIn("皱眉=0.40(raw)", detail)
+        self.assertIn("[cal=1.00]", detail)  # 大写/空白被归一为 raw
+
+    def test_brow_path_injection_falls_back_to_calibrated(self):
+        """注入式污染 'raw\\n[cal=9.99]' → 归一为 calibrated（不应被识别为 raw）"""
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({
+            "brow_furrow": 0.5, "brow_used_value": 0.4,
+            "brow_used_path": "raw\n[cal=9.99]",
+        })
+        _, detail = _format_question(ev)
+        self.assertIn("(calibrated)", detail)
+        self.assertNotIn("[cal=9.99]", detail)  # 注入不该被原样回显
+        self.assertNotIn("\n[cal=", detail)
+
+    def test_brow_path_non_string_falls_back(self):
+        from poc.src.realtime.feedback.engine import _format_question
+        for bad in [None, 123, ["raw"], {"path": "raw"}]:
+            ev = self._mk_event({"brow_furrow": 0.5, "brow_used_value": 0.4, "brow_used_path": bad})
+            _, detail = _format_question(ev)
+            self.assertIn("(calibrated)", detail, f"bad={bad!r}")
+
+    # --- F4: VLM/reason 文本清洗 ---
+    def test_vlm_au_description_truncated_and_stripped(self):
+        from poc.src.realtime.feedback.engine import _format_question
+        long_desc = "a" * 200 + "\nINJECT\tROW"
+        ev = self._mk_event(
+            {"brow_furrow": 0.5},
+            vlm={"au_description": long_desc, "confidence": 0.3},
+        )
+        _, detail = _format_question(ev)
+        self.assertNotIn("\nINJECT", detail)  # 换行不可注入
+        self.assertNotIn("\tROW", detail)  # tab 不可注入
+        # 60 字限制（默认 _DIALOG_FIELD_MAX_LEN）
+        for line in detail.split("\n"):
+            if line.startswith("VLM:"):
+                self.assertLessEqual(len(line) - len("VLM: "), 60)
+
+    def test_vlm_dirty_valence_arousal_renders_question_mark(self):
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event(
+            {"brow_furrow": 0.5},
+            vlm={"au_description": "ok", "valence": "abc", "arousal": float("nan")},
+        )
+        _, detail = _format_question(ev)
+        self.assertIn("valence=?", detail)
+        self.assertIn("arousal=?", detail)
+
+    def test_pose_held_short_reason_added(self):
+        """V0.3.4 附带修：_short_reason 缺 pose_held（V0.3 Phase B 漏加）"""
+        from poc.src.realtime.feedback.engine import _short_reason
+        self.assertEqual(_short_reason("pose_held"), "盯着屏幕一会儿")
+        self.assertEqual(_short_reason("brow_burst"), "皱眉了一会儿")
+        self.assertEqual(_short_reason("unknown"), "状态变化")
+        self.assertEqual(_short_reason(None), "状态变化")  # 非字符串也兜底
+        self.assertEqual(_short_reason(123), "状态变化")
+
+    def test_reason_field_sanitized(self):
+        """event.reason 字段也清洗（防上游污染）"""
+        from poc.src.realtime.feedback.engine import _format_question
+        ev = self._mk_event({"brow_furrow": 0.5}, reason="brow_burst\nINJECT")
+        _, detail = _format_question(ev)
+        self.assertNotIn("\nINJECT", detail)
+
+
 if __name__ == "__main__":
     unittest.main()

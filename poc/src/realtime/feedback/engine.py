@@ -10,6 +10,8 @@
 from __future__ import annotations
 
 import logging
+import math
+import re
 import threading
 import time
 import uuid
@@ -35,50 +37,120 @@ class EngineConfig:
     enable_prompt: bool = True  # False = 仅记录 trigger，不真弹窗（测试/dry-run）
 
 
+_BROW_PATH_WHITELIST = frozenset({"raw", "calibrated"})
+_DIALOG_FIELD_MAX_LEN = 60
+# 控制字符（含换行/制表/回车/垂直/换页/NUL 等）—— 弹窗 UI 单行展示，必须剥
+_CONTROL_CHAR_RE = re.compile(r"[\x00-\x1f\x7f]+")
+
+
+def _safe_finite_float(x: Any, default: float = 0.0) -> float:
+    """F1/F2 fix（codex V0.3.3 一审 P0）：脏数据防御 — 不可解析/非有限值回落 default。
+
+    覆盖：None / NaN / Inf / bool（int 子类需显式拒）/ "abc" / dict / list / "nan" 字面量。
+    与 trigger._safe_float 风格一致；本函数永远不抛，承担 UI 格式化前的最后一道防线。
+    """
+    if isinstance(x, bool):
+        return default
+    if isinstance(x, (int, float)):
+        return float(x) if math.isfinite(x) else default
+    if isinstance(x, str):
+        try:
+            v = float(x)
+        except (ValueError, TypeError):
+            return default
+        return v if math.isfinite(v) else default
+    return default
+
+
+def _normalize_brow_path(p: Any) -> str:
+    """F3 fix（codex V0.3.3 一审 P1）：brow_used_path 白名单收敛。
+
+    - 接受 {'raw', 'calibrated'}（大小写/前后空白容错：" RAW " → "raw"）
+    - 其他（含 None / 数字 / 注入字符串 / 多行污染）→ "calibrated"（最保守，向后兼容默认）
+    """
+    if not isinstance(p, str):
+        return "calibrated"
+    canon = p.strip().lower()
+    return canon if canon in _BROW_PATH_WHITELIST else "calibrated"
+
+
+def _sanitize_dialog_text(s: Any, max_len: int = _DIALOG_FIELD_MAX_LEN) -> str:
+    """F4 fix（codex V0.3.3 一审 P1）：UI 文本最小清洗 — 去控制字符 + 限长 + 防 None。
+
+    用于 VLM au_description 等"自然语言来源"字段，防换行/制表破坏弹窗布局。
+    """
+    if s is None:
+        return ""
+    text = str(s)
+    text = _CONTROL_CHAR_RE.sub(" ", text)
+    if len(text) > max_len:
+        text = text[: max_len - 1] + "…"
+    return text
+
+
 def _format_question(event: TriggerEvent) -> tuple[str, str]:
     """生成通知短消息 + 弹窗详细消息。
 
     ADR-005 V0.3.3（2026-05-16）：弹窗皱眉显示用 trigger 决策实际依据的值
     （signal_snapshot.brow_used_value/_path），而不是 calibrated polarized 的 brow_furrow。
     raw 路径下附带 [cal=X.XX] 让用户直观看到 calibration polarization 现象。
-    snapshot 无新字段时回落到旧 brow_furrow（向后兼容）。
+
+    V0.3.4（2026-05-16 codex 对抗审查后）：所有 sig 字段经 _safe_finite_float 归一化，
+    brow_path 经 _normalize_brow_path 白名单收敛，VLM 文本经 _sanitize_dialog_text 清洗。
+    "向后兼容" 升级语义：字段缺失 OR 类型错 OR 非有限值 → 统一回落到 brow_furrow + calibrated。
     """
-    sig = event.signal_snapshot
+    sig = event.signal_snapshot if isinstance(event.signal_snapshot, dict) else {}
     short = f"看到你 {_short_reason(event.reason)}，能确认下吗？"
-    brow_cal = float(sig.get("brow_furrow", 0.0))
-    brow_used = sig.get("brow_used_value")
-    brow_path = sig.get("brow_used_path", "calibrated")
-    brow_display = float(brow_used) if brow_used is not None else brow_cal
+
+    brow_cal = _safe_finite_float(sig.get("brow_furrow"), default=0.0)
+    # F2 fix：用"可解析且有限"判定回落，不再只看 is None
+    brow_used_raw = sig.get("brow_used_value")
+    brow_used_safe = _safe_finite_float(brow_used_raw, default=math.nan)
+    has_brow_used = math.isfinite(brow_used_safe)
+    # F3 fix：路径白名单
+    brow_path = _normalize_brow_path(sig.get("brow_used_path"))
+    brow_display = brow_used_safe if has_brow_used else brow_cal
+
     brow_line = f"信号: 皱眉={brow_display:.2f}({brow_path})"
-    # raw 路径附带 calibrated 对照，让用户看到 polarization
-    if brow_path == "raw" and brow_used is not None:
+    # raw 路径且 brow_used_value 真实可用 → 附带 calibrated 对照
+    if brow_path == "raw" and has_brow_used:
         brow_line += f" [cal={brow_cal:.2f}]"
     brow_line += (
-        f"  微笑={sig.get('smile_intensity', 0):.2f}"
-        f"  闭眼={sig.get('eye_closure', 0):.2f}"
+        f"  微笑={_safe_finite_float(sig.get('smile_intensity')):.2f}"
+        f"  闭眼={_safe_finite_float(sig.get('eye_closure')):.2f}"
     )
+
+    # F4 fix：reason 字段经白名单 + 兜底（防上游污染 event.reason）
+    reason_str = _sanitize_dialog_text(event.reason, max_len=20) or "unknown"
     detail_lines = [
-        f"# {event.frame_id}  原因: {event.reason}",
+        f"# {int(event.frame_id) if isinstance(event.frame_id, (int, float)) and math.isfinite(float(event.frame_id)) else 0}  原因: {reason_str}",
         brow_line,
     ]
-    if event.vlm_label:
-        au_desc = event.vlm_label.get("au_description", "")
-        valence = event.vlm_label.get("valence")
+    vlm = event.vlm_label if isinstance(event.vlm_label, dict) else None
+    if vlm:
+        au_desc = _sanitize_dialog_text(vlm.get("au_description"))
         if au_desc:
-            detail_lines.append(f"VLM: {au_desc[:60]}")
+            detail_lines.append(f"VLM: {au_desc}")
+        valence = vlm.get("valence")
         if valence is not None:
-            detail_lines.append(
-                f"VLM valence={valence}  arousal={event.vlm_label.get('arousal')}"
-            )
+            v_safe = _safe_finite_float(valence, default=math.nan)
+            a_safe = _safe_finite_float(vlm.get("arousal"), default=math.nan)
+            v_str = f"{v_safe:.2f}" if math.isfinite(v_safe) else "?"
+            a_str = f"{a_safe:.2f}" if math.isfinite(a_safe) else "?"
+            detail_lines.append(f"VLM valence={v_str}  arousal={a_str}")
     detail_lines.append("")
     detail_lines.append("这个描述准确吗？")
     return short, "\n".join(detail_lines)
 
 
-def _short_reason(reason: str) -> str:
+def _short_reason(reason: Any) -> str:
+    # F4 fix：reason 上游可能脏数据；只接已知字符串
+    if not isinstance(reason, str):
+        return "状态变化"
     return {
         "brow_burst": "皱眉了一会儿",
         "low_vlm_conf": "表情有点模糊",
+        "pose_held": "盯着屏幕一会儿",  # V0.3 Phase B 新增通道，原默认显示 "状态变化"
     }.get(reason, "状态变化")
 
 
