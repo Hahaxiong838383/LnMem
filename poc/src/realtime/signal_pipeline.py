@@ -7,6 +7,7 @@ AUExtractor.extract() 同时返回 AU / 情绪 / 头部姿态（img2pose），
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 import logging
 import queue
@@ -75,7 +76,9 @@ class SignalPipelineWorker(threading.Thread):
 
         if self._config.enable_pyfeat:
             raw_au, _emo, pose = self._extract_pyfeat(item.frame)
-            if raw_au:
+            # ADR-011 V0.3.8: py-feat img2pose 失败时 raw_au 非空但全 NaN，
+            # head_pose 返上次缓存值。早期判定为"无脸"，防 LNN 训练数据 + queries 污染。
+            if raw_au and _has_finite_value(raw_au):
                 result["face_detected"] = True
                 result["raw_au"] = _round_map(raw_au)
                 result["head_pose"] = {k: round(v, 3) for k, v in pose.items()}
@@ -152,6 +155,30 @@ class SignalPipelineWorker(threading.Thread):
 
 def _round_map(values: Mapping[str, float]) -> dict[str, float]:
     return {key: round(float(value), 4) for key, value in values.items()}
+
+
+def _has_finite_value(values: Mapping[str, Any]) -> bool:
+    """ADR-011 V0.3.8: True 若 mapping 至少含一个有限数（防 py-feat 假阳性脸全 NaN）。
+
+    codex 一审 P0-1：用 numbers.Real + float() 转换，统一覆盖 Python/numpy/Decimal
+    数值类型（裸 isinstance(v,(int,float)) 对 numpy.float32 返 False → 误杀真脸）。
+    保守判定：缺/空 dict 由上层 `if raw_au` 处理，本函数只在非空时被调用。
+
+    注：本函数与 trigger.py:_is_finite_number 是相同语义的双层兜底（pipeline 治本 +
+    trigger 兜底）。未来可抽到 poc.src.common.numeric_utils 共享（ADR-011 P2 提及）。
+    """
+    from numbers import Real
+    for v in values.values():
+        if isinstance(v, bool):
+            continue
+        if not isinstance(v, Real):
+            continue
+        try:
+            if math.isfinite(float(v)):
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False
 
 
 def _offer(target: "queue.Queue[dict[str, Any]]", item: dict[str, Any]) -> None:

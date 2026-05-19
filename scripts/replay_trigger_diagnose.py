@@ -23,15 +23,7 @@ from pathlib import Path
 
 from poc.src.realtime.feedback.trigger import (
     ProactiveQueryTrigger,
-    _BROW_BURST_THRESHOLD_RAW,
-    _BROW_BURST_WINDOW,
-    _POSE_HELD_WINDOW,
-    _POSE_HELD_STDDEV_THRESHOLD_DEG,
-    _COOLDOWN_FRAMES_BROW,
-    _COOLDOWN_FRAMES_POSE_HELD,
-    _COOLDOWN_FRAMES_LOW_VLM_CONF,
-    _TRIGGER_MODE,
-    _SIGNAL_PATH,
+    resolve_runtime_config,
 )
 
 
@@ -44,7 +36,8 @@ def main() -> None:
                    help="强制 demo 配置（即使当前 trigger_mode=work 也跑 demo 阈值）")
     p.add_argument("--schmitt-ema", action="store_true",
                    help="TODO-1 (ADR-010): 启用 Schmitt+EMA 触发模式（α=0.40 + thr_high/low 数据驱动）")
-    p.add_argument("--ema-alpha", type=float, default=0.40)
+    p.add_argument("--ema-alpha", type=float, default=None,
+                   help="EMA α，默认走当前 mode profile（demo=0.40 / work=0.40）")
     p.add_argument("--thr-high", type=float, default=None,
                    help="Schmitt 进入阈，默认 demo=0.42 / work=0.55")
     p.add_argument("--thr-low", type=float, default=None,
@@ -52,38 +45,59 @@ def main() -> None:
     p.add_argument("--top", type=int, default=20)
     args = p.parse_args()
 
-    print(f"# replay_trigger_diagnose — current module: trigger_mode={_TRIGGER_MODE} signal_path={_SIGNAL_PATH}")
+    # G5 (P2) ADR-010 V0.3.9 codex 二审：改用 resolve_runtime_config() 取实时配置，
+    # 不再读 module-level import-time 快照常量。这样脚本运行时与 daemon 看到的
+    # mode/signal_path 永远一致，排障时不会因"脚本读 work、daemon 跑 demo"造成误判。
+    runtime_cfg = resolve_runtime_config()
+    print(
+        f"# replay_trigger_diagnose — runtime config (resolve_runtime_config): "
+        f"mode={runtime_cfg['mode']} signal_path={runtime_cfg['signal_path']}"
+    )
+
     if args.demo:
-        # 强制 demo 配置：brow=0.40 / window=5 / pose_window=20 / cooldown=30
-        brow_thr = 0.40
-        brow_window = 5
-        pose_window = 20
-        pose_std = 3.5
-        cd_brow = 30
-        cd_pose = 30
-        cd_vlm = 30
-        print(f"# FORCED DEMO config: brow_thr={brow_thr} window={brow_window} pose_window={pose_window} cooldown_brow={cd_brow}")
+        # 强制 demo 配置：直接取 demo profile（而非硬编码值，单一事实来源）
+        from poc.src.realtime.feedback.trigger import _MODE_PROFILES
+        demo_cfg = _MODE_PROFILES["demo"]
+        brow_thr = demo_cfg["brow_burst_threshold_raw"]
+        brow_window = demo_cfg["brow_burst_window"]
+        pose_window = demo_cfg["pose_held_window"]
+        pose_std = demo_cfg["pose_held_stddev_threshold_deg"]
+        cd_brow = demo_cfg["cooldown_frames_brow"]
+        cd_pose = demo_cfg["cooldown_frames_pose_held"]
+        cd_vlm = demo_cfg["cooldown_frames_low_vlm_conf"]
+        default_ema_alpha = demo_cfg["brow_ema_alpha_raw"]
+        default_thr_hi = demo_cfg["brow_thr_high_raw"]
+        default_thr_lo = demo_cfg["brow_thr_low_raw"]
+        print(
+            f"# FORCED DEMO config: brow_thr={brow_thr} window={brow_window} "
+            f"pose_window={pose_window} cooldown_brow={cd_brow}"
+        )
     else:
-        brow_thr = _BROW_BURST_THRESHOLD_RAW
-        brow_window = _BROW_BURST_WINDOW
-        pose_window = _POSE_HELD_WINDOW
-        pose_std = _POSE_HELD_STDDEV_THRESHOLD_DEG
-        cd_brow = _COOLDOWN_FRAMES_BROW
-        cd_pose = _COOLDOWN_FRAMES_POSE_HELD
-        cd_vlm = _COOLDOWN_FRAMES_LOW_VLM_CONF
+        # 跟随 runtime_cfg（resolve_runtime_config 已按当前 mode 选好 profile）
+        brow_thr = runtime_cfg["brow_burst_threshold_raw"]
+        brow_window = runtime_cfg["brow_burst_window"]
+        pose_window = runtime_cfg["pose_held_window"]
+        pose_std = runtime_cfg["pose_held_stddev_threshold_deg"]
+        cd_brow = runtime_cfg["cooldown_frames_brow"]
+        cd_pose = runtime_cfg["cooldown_frames_pose_held"]
+        cd_vlm = runtime_cfg["cooldown_frames_low_vlm_conf"]
+        default_ema_alpha = runtime_cfg["brow_ema_alpha_raw"]
+        default_thr_hi = runtime_cfg["brow_thr_high_raw"]
+        default_thr_lo = runtime_cfg["brow_thr_low_raw"]
 
     # TODO-1 (ADR-010): 可选 Schmitt+EMA 模式
     schmitt_kwargs: dict = {}
     if args.schmitt_ema:
-        thr_hi = args.thr_high if args.thr_high is not None else (0.42 if args.demo else 0.55)
-        thr_lo = args.thr_low if args.thr_low is not None else (0.22 if args.demo else 0.30)
+        thr_hi = args.thr_high if args.thr_high is not None else default_thr_hi
+        thr_lo = args.thr_low if args.thr_low is not None else default_thr_lo
+        ema_alpha = args.ema_alpha if args.ema_alpha is not None else default_ema_alpha
         schmitt_kwargs = dict(
             use_schmitt_ema=True,
-            brow_ema_alpha=args.ema_alpha,
+            brow_ema_alpha=ema_alpha,
             brow_thr_high=thr_hi,
             brow_thr_low=thr_lo,
         )
-        print(f"# Schmitt+EMA ON: α={args.ema_alpha} thr_high={thr_hi} thr_low={thr_lo}")
+        print(f"# Schmitt+EMA ON: α={ema_alpha} thr_high={thr_hi} thr_low={thr_lo}")
 
     trig = ProactiveQueryTrigger(
         brow_threshold=brow_thr,

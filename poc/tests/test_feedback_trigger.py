@@ -1121,6 +1121,81 @@ class TestSweepConsistency(unittest.TestCase):
         self.assertEqual(sweep, truth, f"random walk sweep={sweep} ≠ trigger={truth}")
 
 
+class TestSweepCrossSessionStats(unittest.TestCase):
+    """F2 (P1) ADR-010 codex review: sweep 跨 session 稳健性指标 + leave-one-out。
+
+    旧 sweep 推荐基于单 demo session（638 帧）过拟合 → 升级为按 file=session 切分，
+    报告每个候选 (α, q, gap) 的跨 session 触发分布 mean/std/cv + LOSO 验证。
+
+    本类验证两个新增 helper：per_session_fires_stats / leave_one_session_out_quantiles。
+    """
+
+    def test_per_session_fires_stats_returns_distribution(self):
+        from scripts.sweep_brow_threshold_quantile import per_session_fires_stats
+
+        # 3 sessions: session_A 高位 → 1 fire; session_B 低位 → 0 fires; session_C 高位 → 1 fire
+        sessions = {
+            "A": [0.9] * 30,
+            "B": [0.1] * 30,
+            "C": [0.9] * 30,
+        }
+        stats = per_session_fires_stats(
+            sessions, alpha=0.40, thr_high=0.55, thr_low=0.30,
+            brow_window=5, cooldown_frames=30,
+        )
+        self.assertEqual(stats["n_sessions"], 3)
+        counts = [n for _, n in stats["per_session"]]
+        self.assertEqual(sorted(counts), [0, 1, 1])
+        self.assertAlmostEqual(stats["mean"], 2 / 3, places=3)
+        self.assertEqual(stats["sessions_touched"], 2)
+        self.assertEqual(stats["min"], 0)
+        self.assertEqual(stats["max"], 1)
+
+    def test_per_session_empty_returns_zero(self):
+        from scripts.sweep_brow_threshold_quantile import per_session_fires_stats
+        stats = per_session_fires_stats(
+            {}, alpha=0.40, thr_high=0.55, thr_low=0.30,
+            brow_window=5, cooldown_frames=30,
+        )
+        self.assertEqual(stats["n_sessions"], 0)
+        self.assertEqual(stats["mean"], 0.0)
+
+    def test_cv_infinite_when_mean_zero(self):
+        """所有 session 都 0 fire 时 cv=+inf（用于推荐过滤）。"""
+        from scripts.sweep_brow_threshold_quantile import per_session_fires_stats
+        sessions = {"A": [0.0] * 100, "B": [0.05] * 100}
+        stats = per_session_fires_stats(
+            sessions, alpha=0.40, thr_high=0.55, thr_low=0.30,
+            brow_window=5, cooldown_frames=30,
+        )
+        self.assertEqual(stats["mean"], 0.0)
+        import math as _m
+        self.assertTrue(_m.isinf(stats["cv"]))
+
+    def test_leave_one_session_out_excludes_held_session(self):
+        from scripts.sweep_brow_threshold_quantile import leave_one_session_out_quantiles
+
+        # 让 session A 全是高值，B/C 全是低值
+        sessions = {
+            "A": [0.9] * 100,
+            "B": [0.05] * 100,
+            "C": [0.05] * 100,
+        }
+        out = leave_one_session_out_quantiles(sessions, alpha=0.40, quantile_list=[0.90])
+        # 留出 A → train=B+C 全低值 → thr_hi 很低
+        # 留出 B → train=A+C 含高值 → thr_hi 高
+        # 留出 C → train=A+B 含高值 → thr_hi 高
+        self.assertLess(out["A"][0.90], out["B"][0.90])
+        self.assertLess(out["A"][0.90], out["C"][0.90])
+
+    def test_leave_one_out_single_session_fallback(self):
+        """只 1 session 时留出后 train 为空 → quantile 应为 0（不崩）。"""
+        from scripts.sweep_brow_threshold_quantile import leave_one_session_out_quantiles
+        sessions = {"only": [0.5] * 50}
+        out = leave_one_session_out_quantiles(sessions, alpha=0.40, quantile_list=[0.90])
+        self.assertEqual(out["only"][0.90], 0.0)
+
+
 class TestRuntimeConfigResolve(unittest.TestCase):
     """F5 (P1) ADR-010 codex review: resolve_runtime_config() 必须每次重读 env/file。
 
@@ -1204,3 +1279,238 @@ class TestRuntimeConfigResolve(unittest.TestCase):
         b = resolve_runtime_config()
         a["mode"] = "polluted"
         self.assertNotEqual(b["mode"], "polluted")
+
+
+class TestSustainedHighOneShotSemantics(unittest.TestCase):
+    """F4 (P1) ADR-010 codex review: 持续高压触发语义 lock-in（方案 A 决策待定）。
+
+    F4 findings：持续高压（皱眉不放）→ ema 永不跌到 thr_low → 只触发一次，
+    与 legacy strict-deque "cooldown 后可再次响应同段持续高压" 行为不一致。
+
+    产品语义二选一：
+      A) 保持当前 = 必须低位回落才可再触发（严格 Schmitt 教科书语义）
+      B) 加 max_hold_frames/cooldown_expired_rearm = cooldown 解禁强制 re-arm
+
+    cc 默认推荐 A（脉冲事件 Schmitt 本意就是边沿触发；持续高压另由 pose_held
+    通道覆盖）。本测试 lock-in A 语义；若川哥决策切 B，重写本测试 + 加 max_hold
+    参数。
+    """
+
+    @staticmethod
+    def _frame(brow: float, fid: int):
+        return {
+            "ts": "",
+            "frame_id": fid,
+            "face_detected": True,
+            "raw_au": {"AU04": float(brow)},
+            "expression": {},
+            "vlm_label": None,
+        }
+
+    def test_sustained_high_fires_exactly_once_until_low_recovery(self):
+        """持续高压 0.9 不放，跑满 3 倍 cooldown：仍只 fire 1 次（语义 A lock-in）。"""
+        trig = ProactiveQueryTrigger(
+            brow_window=5,
+            signal_path="raw",
+            use_schmitt_ema=True,
+            brow_ema_alpha=0.40,
+            brow_thr_high=0.55,
+            brow_thr_low=0.30,
+            cooldown_frames_brow=30,
+            enable_pose_held=False,
+        )
+        fires = 0
+        for i in range(100):  # cooldown=30 → 100 帧覆盖 3 倍周期
+            ev = trig.observe(self._frame(0.9, i))
+            if ev is not None and ev.reason == "brow_burst":
+                fires += 1
+        self.assertEqual(
+            fires, 1,
+            "语义 A: 持续高压无 thr_low 回落 → 永远只 fire 1 次（即使 cooldown 已过）",
+        )
+
+    def test_sustained_high_then_recovery_re_fires(self):
+        """持续高压 → 回落到 thr_low 解 above → 重升 → 必须能再 fire。"""
+        trig = ProactiveQueryTrigger(
+            brow_window=5,
+            signal_path="raw",
+            use_schmitt_ema=True,
+            brow_ema_alpha=0.40,
+            brow_thr_high=0.55,
+            brow_thr_low=0.30,
+            cooldown_frames_brow=30,
+            enable_pose_held=False,
+        )
+        fires_seq = []
+        # 段1：高位 50 帧 → fire #1（above=True）
+        for i in range(50):
+            ev = trig.observe(self._frame(0.9, i))
+            if ev is not None and ev.reason == "brow_burst":
+                fires_seq.append(("hi1", i))
+        # 段2：低位 50 帧 → ema 跌到 thr_low 下，解 above + 过 cooldown
+        for i in range(50, 100):
+            ev = trig.observe(self._frame(0.0, i))
+            if ev is not None and ev.reason == "brow_burst":
+                fires_seq.append(("lo", i))
+        # 段3：高位 20 帧 → 重升 → fire #2
+        for i in range(100, 120):
+            ev = trig.observe(self._frame(0.9, i))
+            if ev is not None and ev.reason == "brow_burst":
+                fires_seq.append(("hi2", i))
+        self.assertEqual(len(fires_seq), 2, f"重升应 fire 2 次，实际 {fires_seq}")
+        self.assertEqual(fires_seq[0][0], "hi1")
+        self.assertEqual(fires_seq[1][0], "hi2")
+
+    def test_high_then_nan_false_positive_then_high_refires(self):
+        """G4 (P1) ADR-010 V0.3.8 codex 二审：F4 × ADR-011 交互产品语义 lock-in。
+
+        ADR-011 假阳性脸（face_detected=True + raw_au 全 NaN）在 trigger.py:520-527
+        被视为 no-face 早退，清 _brow_ema / _brow_above_high / _brow_samples_since_reset。
+
+        生产语义决策：NaN 假阳性 = session 重启 = 允许 re-fire（防错过真实皱眉）。
+        此测试 lock-in 该行为，杜绝后续改动引入"NaN 段被吞 + 持续高压不再触发"回归。
+        """
+        import math as _m
+        trig = ProactiveQueryTrigger(
+            brow_window=5, signal_path="raw", use_schmitt_ema=True,
+            brow_ema_alpha=0.40, brow_thr_high=0.55, brow_thr_low=0.30,
+            cooldown_frames_brow=30, enable_pose_held=False,
+        )
+
+        def nan_frame(fid):
+            return {
+                "ts": "", "frame_id": fid, "face_detected": True,
+                "raw_au": {"AU04": _m.nan},
+                "expression": {}, "vlm_label": None,
+            }
+
+        fires: list[tuple[str, int]] = []
+        # 段1: 高压 30 帧 → fire #1 + above=True
+        for i in range(30):
+            ev = trig.observe(self._frame(0.9, i))
+            if ev is not None and ev.reason == "brow_burst":
+                fires.append(("hi1", i))
+        self.assertEqual(len(fires), 1, "段1 应 fire 1 次")
+        self.assertTrue(trig._brow_above_high)
+        # 段2: 5 帧 NaN 假阳性脸 → ADR-011 早退 + 清 Schmitt 状态
+        for i in range(30, 35):
+            ev = trig.observe(nan_frame(i))
+            self.assertIsNone(ev, "NaN 假阳性脸不应触发 brow_burst")
+        self.assertFalse(trig._brow_above_high, "ADR-011 应已清 above")
+        self.assertIsNone(trig._brow_ema, "ADR-011 应已清 ema")
+        # 段3: 高压 30 帧 + 跨 cooldown 边界（frame_id 拉到 100+ 让 cooldown 解禁）
+        for i in range(100, 130):
+            ev = trig.observe(self._frame(0.9, i))
+            if ev is not None and ev.reason == "brow_burst":
+                fires.append(("hi2", i))
+        self.assertEqual(
+            len(fires), 2,
+            f"NaN 切断后应允许 re-fire，实际 fires={fires}（产品语义 lock-in）",
+        )
+        self.assertEqual(fires[1][0], "hi2")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ADR-011 V0.3.8 — false-positive face guard (py-feat NaN raw_au + frozen pose)
+# ─────────────────────────────────────────────────────────────────────────────
+# 实测 2026-05-16 16:00-16:30 川哥不在电脑前期间，daemon 触发 75 次 pose_held，
+# 全部是噪声：face_detected=100% True，raw_au.AU04 全是 NaN，head_pose pitch
+# 在 1800 帧内 std=0°（py-feat img2pose 失败时 AU 返 NaN + pose 返上次缓存）。
+# Schmitt+EMA NaN 防御（V0.3.6 ADR-010）已让 brow_burst 不触发，但 pose_held
+# 仍然每 30s 触发 → queries.jsonl 落 75 条 pose_held=skip 噪声 + macOS 弹窗 timeout。
+#
+# 修复：trigger 入口加 "假阳性脸" 检测——face_detected=True 但 raw_au 非空
+# 且所有 AU 值都不是有限数 → 视为 face_undetected（清窗 + return None）。
+def _frame_nan_au(fid=1, ts="2026-05-16T16:00:00", pitch=3.075, yaw=0.0, roll=0.0):
+    """构造 py-feat 假阳性脸帧：face_detected=True 但 raw_au 全 NaN，pose 冻结。"""
+    return {
+        "ts": ts,
+        "frame_id": fid,
+        "face_detected": True,
+        "expression": {"brow_furrow": 0.0, "smile_intensity": 0.0, "eye_closure": 0.0, "cheek_raise": 0.0},
+        # raw_au 非空但所有 AU 都是 NaN（py-feat img2pose 失败模式）
+        "raw_au": {"AU01": float("nan"), "AU04": float("nan"), "AU06": float("nan")},
+        # head_pose 是 py-feat 上次缓存的冻结值
+        "head_pose": {"pitch_deg": pitch, "yaw_deg": yaw, "roll_deg": roll},
+        "vlm_label": None,
+    }
+
+
+class TestPyfeatFalsePositiveGuard(unittest.TestCase):
+    """ADR-011: py-feat 假阳性脸 guard（连续 N 帧 NaN AU / 冻结 pose）。"""
+
+    def test_a_nan_au_5_frames_blocks_all_channels(self):
+        """a) 连续 5 帧 raw_au 全 NaN 后应视为无脸，不触发任何通道。"""
+        t = ProactiveQueryTrigger(pose_held_window=5, pose_held_stddev_threshold_deg=2.5)
+        triggers = []
+        for i in range(20):
+            ev = t.observe(_frame_nan_au(fid=i))
+            if ev is not None:
+                triggers.append((i, ev.reason))
+        self.assertEqual(triggers, [], f"连续 NaN AU 应拦截所有通道，实际 {triggers}")
+
+    def test_b_frozen_pose_10_frames_blocks_pose_held(self):
+        """b) 连续 10 帧 pose 完全一致时，guard 必须先于 pose_held 生效。"""
+        t = ProactiveQueryTrigger(
+            pose_held_window=10,
+            pose_held_stddev_threshold_deg=2.5,
+            max_frozen_pose_threshold=10,
+        )
+        for i in range(10):
+            frame = _frame_pose(fid=i, pitch=3.075, yaw=0.0, roll=0.0)
+            frame["raw_au"] = {"AU04": 0.3}
+            self.assertIsNone(t.observe(frame))
+        self.assertEqual(t._consecutive_frozen_pose_count, 0)
+
+    def test_c_nan_au_counter_resets_on_normal_frame(self):
+        """c) 4 帧 NaN + 1 帧正常 AU 必须重置计数，不命中 guard。"""
+        t = ProactiveQueryTrigger(pose_held_window=20, pose_held_stddev_threshold_deg=2.5)
+        for i in range(4):
+            self.assertIsNone(t.observe(_frame_nan_au(fid=i)))
+        normal = _frame_pose(fid=4, pitch=4.0, yaw=1.0, roll=0.5)
+        normal["raw_au"] = {"AU04": 0.31}
+        self.assertIsNone(t.observe(normal))
+        self.assertEqual(t._consecutive_nan_au_count, 0)
+
+    def test_d_face_undetected_does_not_activate_guard(self):
+        """d) face_detected=False 时 guard 不触发，并清空计数。"""
+        t = ProactiveQueryTrigger(pose_held_window=20, pose_held_stddev_threshold_deg=2.5)
+        for i in range(4):
+            t.observe(_frame_nan_au(fid=i))
+        self.assertEqual(t._consecutive_nan_au_count, 4)
+        frame_no_face = _frame_nan_au(fid=4)
+        frame_no_face["face_detected"] = False
+        self.assertIsNone(t.observe(frame_no_face))
+        self.assertEqual(t._consecutive_nan_au_count, 0)
+        self.assertEqual(t._consecutive_frozen_pose_count, 0)
+
+    def test_e_alternating_nan_and_normal_keeps_real_path_intact(self):
+        """e) NaN/正常交替时不应误命中 guard，真实 low_vlm_conf 仍可触发。"""
+        t = ProactiveQueryTrigger(
+            pose_held_window=20,
+            pose_held_stddev_threshold_deg=2.5,
+            enable_pose_held=False,
+        )
+        for i in range(8):
+            if i % 2 == 0:
+                frame = _frame_nan_au(fid=i, pitch=3.075, yaw=0.0, roll=0.0)
+            else:
+                frame = _frame_pose(fid=i, pitch=10.0 + i, yaw=5.0, roll=2.0)
+                frame["raw_au"] = {"AU04": 0.25}
+            self.assertIsNone(t.observe(frame))
+
+        ev = t.observe(
+            _frame_pose(
+                fid=100,
+                pitch=15.0,
+                yaw=8.0,
+                roll=1.0,
+                vlm={"confidence": 0.3, "au_description": "ambiguous"},
+            )
+        )
+        self.assertIsNotNone(ev)
+        self.assertEqual(ev.reason, "low_vlm_conf")
+        self.assertIn("consecutive_nan_au", ev.signal_snapshot)
+        self.assertIn("consecutive_frozen_pose", ev.signal_snapshot)
+        self.assertIn("guard_triggered", ev.signal_snapshot)
+        self.assertIsNone(ev.signal_snapshot["guard_triggered"])

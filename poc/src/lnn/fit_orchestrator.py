@@ -304,9 +304,11 @@ def try_fit_step(
 
         # F3-01 (codex 一审): metadata 补齐完整 OnlineAdapterConfig 快照 + 数据过滤统计
         # F-09 fix (codex v0.3 二审 2026-05-16): 加 signal_path 元数据，便于 A/B 归因
+        # F5 (P1) ADR-010 codex review (2026-05-17): 改用 resolve_runtime_config()
+        # 替代 module-level _SIGNAL_PATH（import-time 快照），与 daemon 同步根治漂移。
         try:
-            from poc.src.realtime.feedback import trigger as _trig_mod
-            _signal_path = _trig_mod._SIGNAL_PATH
+            from poc.src.realtime.feedback.trigger import resolve_runtime_config
+            _signal_path = resolve_runtime_config()["signal_path"]
         except Exception:
             _signal_path = "unknown"
         ckpt_out["phase2_metadata"] = {

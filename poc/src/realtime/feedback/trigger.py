@@ -153,6 +153,8 @@ _COOLDOWN_FRAMES_LOW_VLM_CONF = _init_profile["cooldown_frames_low_vlm_conf"]
 _BROW_EMA_ALPHA_RAW = _init_profile["brow_ema_alpha_raw"]
 _BROW_THR_HIGH_RAW = _init_profile["brow_thr_high_raw"]
 _BROW_THR_LOW_RAW = _init_profile["brow_thr_low_raw"]
+MAX_NAN_THRESHOLD = 5
+MAX_FROZEN_POSE_THRESHOLD = 10
 
 # F-08 fix (codex v0.3 二审 2026-05-16)：
 # _BROW_BURST_THRESHOLD 永远 = _BROW_BURST_THRESHOLD_CAL（calibrated 默认 0.95）
@@ -212,13 +214,34 @@ VLM_NO_FACE_CONF_THRESHOLD = 0.1
 _log = logging.getLogger(__name__)
 
 
+def _is_finite_number(v: Any) -> bool:
+    """ADR-011 V0.3.8 (codex 一审 P0-1)：跨 Python/numpy 数值类型的有限性判定。
+
+    `isinstance(v, (int, float))` 对 numpy.float32/int64 返 False（因为 numpy
+    标量不继承 Python int/float），曾被 codex 实测出 `_has_finite_value(np.float32)
+    = False` → 误判真脸为假阳性。改用 numbers.Real（支持 numpy）+ float() 转换
+    + math.isfinite，统一覆盖 Python/numpy/Decimal 等数值类型。
+
+    显式排除 bool（True 会被当 1.0），保留 V0.3.6 `_safe_float` 的语义。
+    """
+    if isinstance(v, bool):
+        return False
+    try:
+        from numbers import Real
+        if not isinstance(v, Real):
+            return False
+        return math.isfinite(float(v))
+    except (TypeError, ValueError):
+        return False
+
+
 @dataclass(frozen=True)
 class TriggerEvent:
     """触发询问事件（不可变）。"""
     ts: str
     frame_id: int
     reason: str  # "brow_burst" | "low_vlm_conf" | "pose_held"
-    signal_snapshot: dict[str, float]
+    signal_snapshot: dict[str, Any]
     vlm_label: dict[str, Any] | None
 
 
@@ -249,6 +272,8 @@ class ProactiveQueryTrigger:
         brow_ema_alpha: float = 0.40,
         brow_thr_high: float | None = None,  # None → 回落 brow_threshold（向后兼容）
         brow_thr_low: float | None = None,   # None → 回落 brow_threshold * 0.55
+        max_nan_threshold: int = MAX_NAN_THRESHOLD,
+        max_frozen_pose_threshold: int = MAX_FROZEN_POSE_THRESHOLD,
     ) -> None:
         self._brow_threshold = brow_threshold
         self._signal_path = signal_path if signal_path in ("raw", "calibrated") else "calibrated"
@@ -290,6 +315,11 @@ class ProactiveQueryTrigger:
         self._pose_pitch: deque[float] = deque(maxlen=pose_held_window)
         self._pose_yaw: deque[float] = deque(maxlen=pose_held_window)
         self._pose_roll: deque[float] = deque(maxlen=pose_held_window)
+        self._max_nan_threshold = max(1, int(max_nan_threshold))
+        self._max_frozen_pose_threshold = max(1, int(max_frozen_pose_threshold))
+        self._consecutive_nan_au_count = 0
+        self._consecutive_frozen_pose_count = 0
+        self._last_pose_triplet: tuple[float, float, float] | None = None
         # V0.3 per-channel cooldown：last_trigger_frame_id（None=从未触发）
         self._cooldown_frames = {
             "brow_burst": cooldown_frames_brow,
@@ -342,6 +372,7 @@ class ProactiveQueryTrigger:
             self._brow_above_high = False
             self._brow_samples_since_reset = 0
             self._clear_pose_windows()
+            self._reset_false_positive_guard_state()
         self._last_seen_frame_id = frame_id
 
     def _is_vlm_self_report_no_face(self, vlm_label: dict[str, Any] | None) -> bool:
@@ -411,6 +442,71 @@ class ProactiveQueryTrigger:
             return None
         if isinstance(x, (int, float)) and math.isfinite(x):
             return float(x)
+        return None
+
+    @staticmethod
+    def _is_all_nan_au(raw_au: Any) -> bool:
+        """ADR-011: raw_au 非空且所有值都为 NaN 才算 NaN-AU 帧。"""
+        if not isinstance(raw_au, dict) or not raw_au:
+            return False
+        for v in raw_au.values():
+            if isinstance(v, bool):
+                return False
+            try:
+                fv = float(v)
+            except (TypeError, ValueError):
+                return False
+            if not math.isnan(fv):
+                return False
+        return True
+
+    def _reset_false_positive_guard_state(self) -> None:
+        self._consecutive_nan_au_count = 0
+        self._consecutive_frozen_pose_count = 0
+        self._last_pose_triplet = None
+
+    def _clear_state_on_face_lost(self) -> None:
+        self._brow_history.clear()
+        self._brow_ema = None
+        self._brow_above_high = False
+        self._brow_samples_since_reset = 0
+        self._clear_pose_windows()
+        self._reset_false_positive_guard_state()
+
+    def _update_false_positive_guard(self, item: dict[str, Any], face_detected: bool) -> str | None:
+        """更新 ADR-011 guard 计数并返回命中原因。"""
+        if not face_detected:
+            self._reset_false_positive_guard_state()
+            return None
+
+        raw_au = item.get("raw_au")
+        if self._is_all_nan_au(raw_au):
+            self._consecutive_nan_au_count += 1
+        else:
+            self._consecutive_nan_au_count = 0
+
+        head_pose = item.get("head_pose")
+        pose_triplet: tuple[float, float, float] | None = None
+        if isinstance(head_pose, dict):
+            pitch = self._safe_float(head_pose.get("pitch_deg"))
+            yaw = self._safe_float(head_pose.get("yaw_deg"))
+            roll = self._safe_float(head_pose.get("roll_deg"))
+            if pitch is not None and yaw is not None and roll is not None:
+                pose_triplet = (pitch, yaw, roll)
+
+        if pose_triplet is None:
+            self._consecutive_frozen_pose_count = 0
+            self._last_pose_triplet = None
+        elif pose_triplet == self._last_pose_triplet:
+            self._consecutive_frozen_pose_count += 1
+        else:
+            self._consecutive_frozen_pose_count = 1
+            self._last_pose_triplet = pose_triplet
+
+        if self._consecutive_nan_au_count >= self._max_nan_threshold:
+            return "nan_au"
+        if self._consecutive_frozen_pose_count >= self._max_frozen_pose_threshold:
+            return "frozen_pose"
         return None
 
     def _clear_pose_windows(self) -> None:
@@ -491,21 +587,21 @@ class ProactiveQueryTrigger:
         # F1-01: 跨天/daemon 重启会让 frame_id 回退；检测到回退则 reset cooldown
         self._detect_and_handle_frame_rollback(frame_id)
 
-        if not item.get("face_detected"):
-            self._brow_history.clear()
-            # TODO-1 (ADR-010): face 丢失等同于 evidence 重置，Schmitt+EMA 状态同步清
-            self._brow_ema = None
-            self._brow_above_high = False
-            self._brow_samples_since_reset = 0
-            self._clear_pose_windows()
+        face_detected = bool(item.get("face_detected"))
+        guard_triggered = self._update_false_positive_guard(item, face_detected)
+        if not face_detected or guard_triggered is not None:
+            self._clear_state_on_face_lost()
             return None
 
         # ADR-005 dual signal_path（2026-05-16）：
         #   - raw 模式：brow = raw_au.AU04（py-feat 原始皱眉强度，避免 calibration polarization）
         #   - calibrated 模式（默认，向后兼容）：brow = expression.brow_furrow
         # F-08 fix: signal_path 是实例属性 self._signal_path（构造时传入），不读 module-level
-        expression = item.get("expression") or {}
-        raw_au = item.get("raw_au") or {}
+        expression = item.get("expression") if isinstance(item.get("expression"), dict) else {}
+        # ADR-011 V0.3.8 (codex 一审 P0-2)：脏数据（list/str/None）一律归零成 {}，
+        # 防下游 `raw_au.get("AU04", 0.0)` 在 list 上崩。假阳性 guard 已在 observe()
+        # 入口拦截了"非 dict 且非 None"路径，到这里其实只会是 dict / None，但仍兜底。
+        raw_au = item.get("raw_au") if isinstance(item.get("raw_au"), dict) else {}
         # V0.3.6 NaN 防御（ADR-010 cc 二审 2026-05-16 23:58）：
         # py-feat 偶发返 NaN/Inf（实测 14:30-14:59 demo session 1714 帧中 6 个 NaN）。
         # 之前 float(raw_au.AU04) 直通 → ema 一旦遇 NaN 永久卡 NaN（NaN op any = NaN），
@@ -542,6 +638,9 @@ class ProactiveQueryTrigger:
             "smile_intensity": float(expression.get("smile_intensity", 0.0)),
             "eye_closure": float(expression.get("eye_closure", 0.0)),
             "cheek_raise": float(expression.get("cheek_raise", 0.0)),
+            "consecutive_nan_au": int(self._consecutive_nan_au_count),
+            "consecutive_frozen_pose": int(self._consecutive_frozen_pose_count),
+            "guard_triggered": guard_triggered,
         }
         vlm_label = item.get("vlm_label")
 

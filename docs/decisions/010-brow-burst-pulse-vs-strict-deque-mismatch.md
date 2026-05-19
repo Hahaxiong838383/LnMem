@@ -250,3 +250,103 @@ trigger 都重读 env / ~/.lnmem/{trigger_mode,signal_path}，从根上消除 co
 - 00:25: codex F5 实施（_MODE_PROFILES + resolve_runtime_config）
 - 00:32: pytest 557 全过验证 F5 修复无回归
 - 00:35: 本段落盘 + commit + push
+
+---
+
+## V0.3.8 codex F1/F2/F4 闭环 + 二审 G1-G4 修复（2026-05-17 凌晨）
+
+### 本轮工作目标
+
+V0.3.7 后剩 F1（P0）+ F2（P1）+ F4（P1）三个 finding 未闭环（F3 V0.3.6 修，F5 V0.3.7 修）。
+cc 本轮闭环 + codex 二审找到 4 个新风险 G1-G4 一并修。
+
+### 一审 F1/F2/F4 修复
+
+| Finding | 修复路径 | 测试 |
+|---------|---------|------|
+| F1 (P0) sweep 仿真不等价 | 删 `simulate_schmitt`，加 `count_brow_burst_fires` 调真 `ProactiveQueryTrigger.observe()` | `TestSweepConsistency` ×5 |
+| F2 (P1) sweep 过拟合 | 加 `per_session_fires_stats` + `leave_one_session_out_quantiles` + 新推荐准则 mean/cv/touched | `TestSweepCrossSessionStats` ×5 |
+| F4 (P1) 持续高压盲区 | 产品定案 = **方案 A**（严格 Schmitt，必须低位回落才再触发；持续高压另由 pose_held 通道覆盖）。**未改实现**，加 lock-in 测试 | `TestSustainedHighOneShotSemantics` ×2 |
+| F5 漏网点 | `fit_orchestrator.py:309` ckpt 元数据 signal_path 改用 `resolve_runtime_config()` | （V0.3.7 测试已覆盖 resolve 函数）|
+
+V0.3.8 一审后 pytest = 574 全过。
+
+### codex 二审 4 P0/P1 G-finding + 1 P2
+
+| # | 级别 | 证据 | 修复 |
+|---|------|------|------|
+| **G1** | **P0** | sweep `count_brow_burst_fires(values)` 把 no-face/NaN 帧过滤后再喂 trigger → 抹掉了生产链路的 `_brow_ema/above/samples` 状态重置 & frame_id 真实跨度。codex 最小复现：`truth=0 sweep=1` | 加 `count_brow_burst_fires_from_items` + `materialize_items_for_sweep`，main 改喂完整 items |
+| **G2** | **P1** | LOSO `train_vals.extend(...)` + 一次 `ema_series()` 无 session 边界 reset；`names=list(session_values.keys())` 顺序敏感 | LOSO 内部改 **per-session ema_series** + `names=sorted(...)` |
+| **G3** | **P1** | `touched_ratio` 分母只用 `valid_files`（vals 非空），静默剔除空 session 抬高覆盖率 | 报告 **valid/total 双口径**，推荐准则用 `touched_ratio_total` |
+| **G4** | **P1** | F4 lock-in 测试只覆盖纯净序列，未覆盖 high → NaN 假阳性 → high 交互（ADR-011 清状态后是否 re-fire？） | 产品定案 = **NaN 假阳性 = session 重启 = 允许 re-fire**，加 `test_high_then_nan_false_positive_then_high_refires` lock-in |
+| G5 | P2 | `scripts/replay_trigger_diagnose.py` 仍 import module-level 常量 | 跳过（codex 同意非运行时漂移面），留作下轮一致性收口 |
+
+### 测试覆盖
+
+| 测试类 | # | 覆盖 |
+|--------|---|------|
+| `TestSweepConsistency` | 5 | F1：sweep 与 trigger.observe 1:1 同构 |
+| `TestSweepCrossSessionStats` | 5 | F2：per_session_fires_stats / LOSO 函数行为 |
+| `TestRuntimeConfigResolve` | 3 | F5：env 反映 / fallback / dict 独立 |
+| `TestSustainedHighOneShotSemantics` | 3 | F4+G4：one-shot / 回落 re-fire / NaN 切断 re-fire |
+
+V0.3.8 二审后 pytest = **578 全过**，0 回归。
+
+### codex 5 findings + 二审 G-findings 闭环最新进展
+
+| # | 级别 | V0.3.6 | V0.3.7 | V0.3.8 | V0.3.9 |
+|---|------|--------|--------|--------|--------|
+| F1 | P0 | ⏳ | ⏳ | ✅ + G1 (P0) 二审修 | ✅ |
+| F2 | P1 | ⏳ | ⏳ | ✅ + G2/G3 (P1) 二审修 | ✅ |
+| F3 | P1 | ✅ | ✅ | ✅ | ✅ |
+| F4 | P1 | ⏳ | ⏳ | ✅ + G4 (P1) 二审修 | ✅ |
+| F5 | P1 | ⏳ | ✅ | ✅ + fit_orch 漏网点 | ✅ |
+| G5 | P2 | — | — | ⏳ 下轮 | ✅ V0.3.9 修 |
+
+### 产品语义定案（含 F4 + G4）
+
+- **F4 A 语义** lock-in：持续高压 ema 不跌至 thr_low 时只 fire 1 次（严格 Schmitt 教科书；
+  持续高压另走 pose_held 通道而非 brow_burst 重复触发）。
+- **G4 NaN 假阳性 = session 重启** lock-in：ADR-011 清状态后允许 re-fire（防错过真实皱眉）。
+  这是 F4 A 语义在"假阳性切断"场景下的明确例外，不矛盾。
+
+---
+
+## V0.3.9 G5 replay 脚本一致性收口（2026-05-17 凌晨）
+
+### 修复
+
+`scripts/replay_trigger_diagnose.py` 改用 `resolve_runtime_config()` + `_MODE_PROFILES`，
+移除对 module-level 常量 `_TRIGGER_MODE / _SIGNAL_PATH / _BROW_BURST_THRESHOLD_RAW /
+_BROW_BURST_WINDOW / _POSE_HELD_WINDOW / _POSE_HELD_STDDEV_THRESHOLD_DEG /
+_COOLDOWN_FRAMES_BROW / _COOLDOWN_FRAMES_POSE_HELD / _COOLDOWN_FRAMES_LOW_VLM_CONF`
+的直接 import。
+
+### 影响
+
+- 排障场景下"脚本看到的 mode/signal_path"与"daemon 运行时的 mode/signal_path"必然一致
+  （之前脚本读 import-time 快照，可能落后于 daemon 实际运行的配置）。
+- `--demo` 强制路径改用 `_MODE_PROFILES["demo"]` 字典直读（而非硬编码 0.40/5/20/3.5/30），
+  单一事实来源 = 与 trigger.py mode 切换逻辑同源。
+- `--ema-alpha / --thr-high / --thr-low` 缺省值改成 None → 自动取当前 profile 对应值
+  （之前硬编码 0.40 / 0.42-0.55 / 0.22-0.30）。
+
+### 端到端验证
+
+```
+PYTHONPATH=. ./.venv-poc-fresh/bin/python scripts/replay_trigger_diagnose.py \
+  --signals ~/.lnmem/data/signals_2026-05-16.jsonl \
+  --from-ts 2026-05-16T14:14:46 --demo --schmitt-ema
+# → fire 序列正常输出：brow_burst 84 + pose_held 85（与 V0.3.7 川哥实测同量级）
+```
+
+pytest 仍 **578 全过**（resolve_runtime_config 测试已锁住 G5 修复的"运行时一致性"）。
+
+### V0.3.9 时间线
+
+- 02:00: 川哥转 G5 任务给 cc 直接闭环（spawn_task 升级为本轮）
+- 02:05: replay 脚本 refactor，imports 改用 resolve_runtime_config + _MODE_PROFILES
+- 02:08: 手动验证 replay 跑通（demo + schmitt + 实际 jsonl）
+- 02:10: pytest 578 全过验证无回归
+- 02:15: codex 对抗审查（gpt-5.3-codex + medium）
+- 02:20: 本段落盘 + commit
