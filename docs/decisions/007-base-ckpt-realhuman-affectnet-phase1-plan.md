@@ -111,13 +111,28 @@ related: ADR-007（主 ADR）/ ADR-005（dual signal_path）/ ADR-008（multi-us
 - 00:55: 川哥提交 EMOTIC Google Form 申请（forms.gle/JxcNkFHfvVyGYjjc9）→ 等邮件审核
 - **双轨齐备**：A 轨 fallback 数据 ready，B 轨等 EMOTIC 通过决定走真 V-A 版
 
-## 双轨执行矩阵（明日 Phase 1.2 启动条件）
+## 四轨执行矩阵（M0 W3-W4 Phase 1.2-1.5 启动条件）
 
-| 场景 | A 轨数据 (mst affectnet) | B 轨 EMOTIC 通过 | Phase 1.4 训练 loss |
-|---|---|---|---|
-| EMOTIC 未通过 / 慢 | ✅ 立即可用 30K 图 | ❌ | 退化版：单 CE emotion 分类 |
-| EMOTIC 通过 | 备份 | ✅ 3.2GB 24K 图 + V-A-D 三维 | 完整版：CCC V-A 回归 + CE state 联合 |
+| 轨 | 数据集 | 状态 | 体量 | V-A 标注 | 适用 Phase 1.4 |
+|---|---|---|---|---|---|
+| **A** fallback | mst affectnet (Kaggle) | ✅ ready | 387MB / 30K 图 | ❌ 仅 emotion class | 退化版单 CE 分类 + 冻结 tau |
+| **B** EMOTIC | Google Form 已交 | ⏳ 等审核 | 3.2GB / 24.6K 图 | ✅ V-A-D 三维 | 完整版 CCC + CE 联合 + 冻结 tau |
+| **C** VEATIC | ✅ **ready**（gdown 直链）| 3.22GB / 124 mp4 + 248 csv | ✅ **逐帧 V-A real-time** | **完整版 + 不冻 tau**（真序列契合 LTC 动力学）|
+| **D** AFEW-VA | 🔴 ibug 服务器 500 | 待明早 retry / 邮件备选 | ~600 视频 / 逐帧 V-A + 68 landmarks | 同 C，Phase 2 备选 |
 
-Phase 1.2 (codex AU 提取) 不依赖 EMOTIC，可立即用 A 轨数据启动。
-Phase 1.3 (V-A→state sweep) 仅在 EMOTIC 到位时启动。
-Phase 1.4 训练时按上表分叉。
+### 优先级（按 §10.1 技术 2 多时间尺度 LNN 契合度）
+
+1. **C VEATIC（首选）**：视频 + 逐帧 V-A = 真序列动力学训练信号
+   - 解决 gemini critical 风险 #1（静态图破坏 tau）的根本方案
+   - **不必冻结 tau**，可端到端训 LNN 动力学 + 空间编码器
+   - ADR-007 修订 1 "冻结 tau" 退化为"可选"（仅 EMOTIC/mst 静态图场景需要）
+2. **B EMOTIC（如通过）**：V-A-D 三维静态图，预训练空间编码器
+3. **A mst fallback**：退化兜底
+4. **D AFEW-VA**：M0 W4+ 二次补强（同 C 类视频 + V-A，可联合训练降低单数据集过拟合）
+
+### Phase 1.2-1.5 分叉决策（明日早上跑前）
+
+- C VEATIC ready → 走 **VEATIC 主线**：Phase 1.2 改为 mp4 → frame 抽取 + py-feat AU + V-A CSV 关联，Phase 1.4 端到端真序列训练
+- EMOTIC 通过 → 加 EMOTIC 副线作 V-A-D 增强 + 静态图 pretrain
+- 若 C+B 都到位 → 联合训练（VEATIC 动力学 + EMOTIC 多样性）
+- 若 C 解压有问题 → 走 B 或 A
