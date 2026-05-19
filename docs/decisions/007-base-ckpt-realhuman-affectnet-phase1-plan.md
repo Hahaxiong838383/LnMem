@@ -39,14 +39,20 @@ related: ADR-007（主 ADR）/ ADR-005（dual signal_path）/ ADR-008（multi-us
 ### cc 主线 3 处修订
 
 **修订 1（强化）**：gemini 风险 #1 "静态图破坏 LNN 动力学" 升级为**预训练阶段强制要求**：
-- Phase 1 预训练**只更新空间编码器 + V-A/state 输出头**
+- Phase 1 预训练**只更新空间编码器 + emotion/state 输出头**
 - LTC 动力学参数（tau / leakage / 时间常数）保持初始值，**不参与 gradient**
 - Phase 2 由现有 `fit_orchestrator.try_fit_step` 用川哥真实时序信号微调 tau
 
-**修订 2（数据集）**：Kaggle 精简版作为 M0 W3 主路径，但同时启动 Aff-Wild2 申请：
-- Aff-Wild2 是**真实自然场景视频**带逐帧 V-A 标注，远比 AffectNet 静态图契合 LNN 演化需求
-- M0 W3 用 Kaggle 精简版跑通 pipeline + 验证 V-A → state 映射合理性
-- M0 W4-M1 切换到 Aff-Wild2 做 Phase 1.5 重训（用真序列替静态图替）
+**修订 2（数据集）⚠️ V-A 丢失 finding（2026-05-20 00:15 实测）**：
+- **原计划**：Kaggle 精简版做 V-A 连续回归 → 8 state 映射
+- **实测发现**：Kaggle 16 个 affectnet + HuggingFace 12 个 community 数据集**全部只保留 emotion class，丢弃 V-A 连续标注**（实证：sarabhian/affectnet-helper schema `class_label/array/img_path`；Piro17/affectnethq HF schema `image, label`）
+- **退化版采纳（川哥钦定）**：
+  - 用 emotion class（8 类）替 V-A 连续，loss 从 CCC + CE 联合 → 单 CE
+  - 修订 1 "冻结 tau" 仍是核心保护，LNN 动力学不被静态图破坏
+  - V-A 动态特性损失由 Phase 2 fit_orchestrator 川哥真时序信号补回
+- **后续 Aff-Wild2 切换**（M0 W4+）：争取官方申请，恢复 V-A 回归 + 真序列动力学训练
+
+**修订 3（验收门）**：从 gemini 提议的"< 10% brow_burst mismatch"调整为：
 
 **修订 3（验收门）**：从 gemini 提议的"< 10% brow_burst mismatch"调整为：
 - **Verify**：川哥 402 次真实反馈 replay，base v2 vs base v1 混淆矩阵对比，brow_burst mismatch 从 30.7% → **< 15%**
