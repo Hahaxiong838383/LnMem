@@ -116,7 +116,7 @@ related: ADR-007（主 ADR）/ ADR-005（dual signal_path）/ ADR-008（multi-us
 | 轨 | 数据集 | 状态 | 体量 | V-A 标注 | 适用 Phase 1.4 |
 |---|---|---|---|---|---|
 | **A** fallback | mst affectnet (Kaggle) | ✅ ready | 387MB / 30K 图 | ❌ 仅 emotion class | 退化版单 CE 分类 + 冻结 tau |
-| **B** EMOTIC | Google Form 已交 | ⏳ 等审核 | 3.2GB / 24.6K 图 | ✅ V-A-D 三维 | 完整版 CCC + CE 联合 + 冻结 tau |
+| **B** EMOTIC PAMI | ✅ **ready**（5/20 01:50 申请通过 + Dataset 23198 files + Annotations.mat 全到位）| 3.60GB Dataset + 6.4MB Annotations | ✅ V-A-D 三维（MATLAB .mat 格式标注）| 完整版 CCC + CE 联合 + 冻结 tau |
 | **C** VEATIC | ✅ **ready**（gdown 直链）| 3.22GB / 124 mp4 + 248 csv | ✅ **逐帧 V-A real-time** | **完整版 + 不冻 tau**（真序列契合 LTC 动力学）|
 | **D** AFEW-VA | 🔴 ibug 服务器 500 | 待明早 retry / 邮件备选 | ~600 视频 / 逐帧 V-A + 68 landmarks | 同 C，Phase 2 备选 |
 
