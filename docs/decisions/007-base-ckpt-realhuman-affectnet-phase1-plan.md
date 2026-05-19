@@ -104,3 +104,20 @@ related: ADR-007（主 ADR）/ ADR-005（dual signal_path）/ ADR-008（multi-us
 - 23:10: gemini ADR-007 Phase 1 调研 prompt 发出
 - 23:22: gemini 调研完成 5 章节 + 推荐路径
 - 23:40: cc 主线采纳 + 3 处修订 + 本 Phase 1 plan 落盘
+- 2026-05-20 00:10: Kaggle 凭据装好 + 启动 vfomenko 5.4GB 下载（30min 后发现 stuck）
+- 00:15: 实测发现 Kaggle/HF 全社区版无 V-A → 退化版决策（修订 2）
+- 00:35: A 轨切换 mstjebashazida/affectnet 340MB → 30K 图 + 8 emotion class，387MB unpacked
+- 00:45: cc 调研 V-A 数据集全景 → 发现 EMOTIC 是即时可申请的 V-A-D 候选
+- 00:55: 川哥提交 EMOTIC Google Form 申请（forms.gle/JxcNkFHfvVyGYjjc9）→ 等邮件审核
+- **双轨齐备**：A 轨 fallback 数据 ready，B 轨等 EMOTIC 通过决定走真 V-A 版
+
+## 双轨执行矩阵（明日 Phase 1.2 启动条件）
+
+| 场景 | A 轨数据 (mst affectnet) | B 轨 EMOTIC 通过 | Phase 1.4 训练 loss |
+|---|---|---|---|
+| EMOTIC 未通过 / 慢 | ✅ 立即可用 30K 图 | ❌ | 退化版：单 CE emotion 分类 |
+| EMOTIC 通过 | 备份 | ✅ 3.2GB 24K 图 + V-A-D 三维 | 完整版：CCC V-A 回归 + CE state 联合 |
+
+Phase 1.2 (codex AU 提取) 不依赖 EMOTIC，可立即用 A 轨数据启动。
+Phase 1.3 (V-A→state sweep) 仅在 EMOTIC 到位时启动。
+Phase 1.4 训练时按上表分叉。
