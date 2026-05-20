@@ -1,12 +1,14 @@
-"""Bi-temporal operators for contracts/protocols.py::GraphitiZhAdapter.
+"""Bi-temporal operators for the Graphiti adapter.
 
-Provides valid-at query surfaces and invalidation records for Chinese KG memory.
+Provides closed-open valid-time checks for KG records.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timezone
+from typing import List, Optional
+
+from .mapper import KGNode
 
 
 @dataclass(frozen=True)
@@ -28,18 +30,40 @@ class BiTemporalRecord:
 
 @dataclass
 class BiTemporalOperator:
-    """Bi-temporal helper surface; 时间归一化和时区校验留到 M0 W2."""
+    """Bi-temporal helper surface for Phase A valid-time filtering."""
 
     require_timezone: bool = True
 
     def normalize_valid_time(self, value: datetime) -> datetime:
-        """Normalize valid time to canonical timezone; M0 W2 填 UTC 策略."""
-        raise NotImplementedError("M0 W2 todo: normalize timezone-aware datetime")
+        """Normalize a datetime into UTC and enforce timezone awareness."""
+        if self.require_timezone and value.tzinfo is None:
+            raise ValueError("valid time must be timezone-aware")
+        return value.astimezone(timezone.utc)
 
     def is_valid_at(self, window: TemporalWindow, valid_at: datetime) -> bool:
-        """Check if a record is valid at a point; M0 W2 填闭开区间判断."""
-        raise NotImplementedError("M0 W2 todo: evaluate valid_at against temporal window")
+        """Check the closed-open interval t_valid <= at < t_invalid."""
+        normalized_at = self.normalize_valid_time(valid_at)
+        start = self.normalize_valid_time(window.t_valid)
+        if normalized_at < start:
+            return False
+        if window.t_invalid is None:
+            return True
+        return normalized_at < self.normalize_valid_time(window.t_invalid)
 
     def invalidate_window(self, window: TemporalWindow, t_invalid: datetime) -> TemporalWindow:
-        """Return invalidated window; M0 W2 填单调时间保护."""
-        raise NotImplementedError("M0 W2 todo: apply bi-temporal invalidation")
+        """Return one invalidated window and guard monotonicity."""
+        normalized_invalid = self.normalize_valid_time(t_invalid)
+        if normalized_invalid < self.normalize_valid_time(window.t_valid):
+            raise ValueError("t_invalid must be greater than or equal to t_valid")
+        return TemporalWindow(t_valid=window.t_valid, t_invalid=normalized_invalid)
+
+    def filter_active(self, nodes: List[KGNode], at_time: datetime) -> List[KGNode]:
+        """Filter nodes that are active at one valid-time instant."""
+        return [
+            node
+            for node in nodes
+            if self.is_valid_at(
+                TemporalWindow(t_valid=node.t_valid, t_invalid=node.t_invalid),
+                at_time,
+            )
+        ]

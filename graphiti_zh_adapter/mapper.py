@@ -1,14 +1,14 @@
-"""EventTensor mapper for contracts/protocols.py::GraphitiZhAdapter.
+"""EventTensor mapper for the Graphiti adapter.
 
-Maps 20-slot EventTensor payloads to KG node and bi-temporal edge shapes.
+Maps EventTensor payloads to in-memory KG node and edge records.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
-from contracts.event_tensor import EventTensor
+from contracts.event_tensor import EventTensor, SlotValue
 from contracts.schema_v1 import SlotID
 
 
@@ -40,18 +40,86 @@ class KGEdge:
 
 @dataclass
 class EventTensorMapper:
-    """Mapper between EventTensor and KG records; 真实实体归一化留到 M0 W2."""
+    """Mapper between EventTensor and KG records; 关系归一化留到 Phase B."""
 
-    node_prefix: str = "event"
+    node_prefix: str = "node"
+
+    def to_kg_node(self, event: EventTensor) -> KGNode:
+        """Convert one EventTensor into a KGNode; 当前只存 value 层。"""
+        return KGNode(
+            node_id=f"{self.node_prefix}_{event.event_id}",
+            event_id=event.event_id,
+            user_id=event.user_id,
+            t_valid=event.timestamp,
+            t_invalid=event.valid_until,
+            slots={slot_id: slot_value.value for slot_id, slot_value in event.slots.items()},
+            schema_version=event.schema_version,
+        )
 
     def event_to_node(self, event: EventTensor) -> KGNode:
-        """Convert EventTensor to KGNode; M0 W2 填 20 槽属性投影."""
-        raise NotImplementedError("M0 W2 todo: project EventTensor slots into KGNode")
+        """Backward-compatible alias for the Protocol skeleton docs."""
+        return self.to_kg_node(event)
 
     def node_to_event(self, node: KGNode) -> EventTensor:
-        """Convert KGNode back to EventTensor; M0 W2 填 slot value 还原."""
-        raise NotImplementedError("M0 W2 todo: rebuild EventTensor from KGNode")
+        """Convert one KGNode back into an EventTensor."""
+        slots = {slot_id: SlotValue(value=value) for slot_id, value in node.slots.items()}
+        return EventTensor(
+            user_id=node.user_id,
+            timestamp=node.t_valid,
+            slots=slots,
+            event_id=node.event_id,
+            valid_until=node.t_invalid,
+            schema_version=node.schema_version,
+        )
+
+    def to_kg_edges(self, event: EventTensor) -> List[KGEdge]:
+        """Extract simple relation edges from one EventTensor."""
+        node_id = f"{self.node_prefix}_{event.event_id}"
+        edges: List[KGEdge] = []
+        related = event.get(SlotID.RELATED_ENTITIES)
+        if related is not None:
+            edges.extend(self._build_mentions_edges(node_id, event, related.value))
+        causal = event.get(SlotID.CAUSAL_LINK)
+        if causal is not None and causal.value:
+            target_id = f"{self.node_prefix}_{causal.value}"
+            edges.append(
+                KGEdge(
+                    edge_id=f"edge_{event.event_id}_causal_{causal.value}",
+                    source_id=node_id,
+                    target_id=target_id,
+                    relation="causal_link",
+                    t_valid=event.timestamp,
+                    t_invalid=event.valid_until,
+                    evidence_event_id=event.event_id,
+                )
+            )
+        return edges
 
     def event_to_edges(self, event: EventTensor, node: KGNode) -> List[KGEdge]:
-        """Extract KG edges from EventTensor links; M0 W2 填 temporal/causal/social 边."""
-        raise NotImplementedError("M0 W2 todo: map link slots to bi-temporal KG edges")
+        """Backward-compatible alias for the Protocol skeleton docs."""
+        del node
+        return self.to_kg_edges(event)
+
+    def _build_mentions_edges(
+        self,
+        node_id: str,
+        event: EventTensor,
+        raw_entities: Any,
+    ) -> List[KGEdge]:
+        entities = raw_entities if isinstance(raw_entities, Iterable) and not isinstance(raw_entities, (str, bytes, dict)) else [raw_entities]
+        edges: List[KGEdge] = []
+        for index, entity in enumerate(entities):
+            if entity in (None, ""):
+                continue
+            edges.append(
+                KGEdge(
+                    edge_id=f"edge_{event.event_id}_mentions_{index}",
+                    source_id=node_id,
+                    target_id=f"entity_{entity}",
+                    relation="mentions",
+                    t_valid=event.timestamp,
+                    t_invalid=event.valid_until,
+                    evidence_event_id=event.event_id,
+                )
+            )
+        return edges
