@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
 import re
 import sys
 import tempfile
@@ -88,6 +89,21 @@ def _read_processed(path: Path) -> set[tuple[str, int]]:
     return set(zip(table.column("filename").to_pylist(), table.column("frame_idx").to_pylist()))
 
 
+def _read_video_nan_streaks(path: Path) -> dict[str, int]:
+    if not path.exists():
+        return {}
+    table = pq.read_table(path, columns=["filename", "frame_idx", "consecutive_nan_au"])
+    filenames = table.column("filename").to_pylist()
+    frame_indices = table.column("frame_idx").to_pylist()
+    streaks = table.column("consecutive_nan_au").to_pylist()
+    latest: dict[str, tuple[int, int]] = {}
+    for filename, frame_idx, streak in zip(filenames, frame_indices, streaks):
+        current = latest.get(filename)
+        if current is None or int(frame_idx) > current[0]:
+            latest[filename] = (int(frame_idx), int(streak))
+    return {filename: state[1] for filename, state in latest.items()}
+
+
 def _to_record(filename: str, frame_idx: int, source_dataset: str, au_values: dict[str, float], nan_count: int) -> dict[str, Any]:
     return {
         "filename": filename,
@@ -157,6 +173,11 @@ def _merge_parts(output: Path, part_dir: Path, keep_existing: bool) -> None:
     for p in part_files:
         p.unlink(missing_ok=True)
     part_dir.rmdir()
+    parent = part_dir.parent
+    try:
+        next(parent.iterdir())
+    except StopIteration:
+        parent.rmdir()
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -182,8 +203,20 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     processed = _read_processed(args.output_parquet) if args.resume else set()
+    resume_nan_streaks = (
+        _read_video_nan_streaks(args.output_parquet) if args.resume and args.input_type == "video_frames" else {}
+    )
     detector = create_detector(args.device, "xgb")
-    part_dir = args.output_parquet.with_suffix(args.output_parquet.suffix + ".parts")
+    parts_root = args.output_parquet.with_suffix(args.output_parquet.suffix + ".parts")
+    run_id = f"{int(time.time())}-{os.getpid()}"
+    part_dir = parts_root / run_id
+    if parts_root.exists():
+        stale_entries = [p for p in parts_root.iterdir() if p.name != run_id]
+        if stale_entries:
+            print(
+                f"[warn] stale parts found under {parts_root}; ignored {len(stale_entries)} entries from previous runs",
+                file=sys.stderr,
+            )
     part_dir.mkdir(parents=True, exist_ok=True)
 
     records: list[dict[str, Any]] = []
@@ -221,7 +254,7 @@ def main(argv: list[str] | None = None) -> int:
             n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             indices = _sample_indices(n, args.sample_frames_per_video)
             rel = str(video.relative_to(args.input_dir))
-            nan_streak = 0
+            nan_streak = int(resume_nan_streaks.get(rel, 0))
             with tempfile.TemporaryDirectory(prefix="lnmem_au_") as tdir:
                 tmp = Path(tdir)
                 for i in range(0, len(indices), args.batch_size):

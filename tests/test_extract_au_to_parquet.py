@@ -7,6 +7,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 import importlib.util
@@ -160,3 +161,80 @@ def test_video_frames_consecutive_nan_au_accumulates(tmp_path: Path, monkeypatch
     row6 = df[df["frame_idx"] == 6].iloc[0]
     assert int(row5["consecutive_nan_au"]) == 3
     assert int(row6["consecutive_nan_au"]) == 0
+
+
+def test_resume_preserves_consecutive_nan_au(tmp_path: Path, monkeypatch) -> None:
+    """video_frames resume 后 NaN 连续计数应延续，而不是从 0/1 重新开始。"""
+    video_dir = tmp_path / "videos"
+    video_dir.mkdir()
+    video_path = video_dir / "0.mp4"
+    writer = cv2.VideoWriter(str(video_path), cv2.VideoWriter_fourcc(*"mp4v"), 25.0, (32, 32))
+    for i in range(8):
+        frame = np.full((32, 32, 3), i * 8, dtype=np.uint8)
+        writer.write(frame)
+    writer.release()
+
+    monkeypatch.setattr(mod, "create_detector", lambda device, au_model: FakeDetector(nan_frames={1, 2, 3, 4}))
+    monkeypatch.setattr(mod, "_sample_indices", lambda total, target: [0, 1, 2, 3])
+
+    out = tmp_path / "resume-video.parquet"
+    rc1 = mod.main([
+        "--input-dir", str(video_dir),
+        "--input-type", "video_frames",
+        "--output-parquet", str(out),
+        "--source-dataset", "veatic",
+        "--batch-size", "4",
+    ])
+    assert rc1 == 0
+
+    monkeypatch.setattr(mod, "_sample_indices", lambda total, target: list(range(total)))
+    rc2 = mod.main([
+        "--input-dir", str(video_dir),
+        "--input-type", "video_frames",
+        "--output-parquet", str(out),
+        "--source-dataset", "veatic",
+        "--batch-size", "4",
+        "--resume",
+    ])
+    assert rc2 == 0
+    df = _read_df(out).sort_values("frame_idx")
+    row4 = df[df["frame_idx"] == 4].iloc[0]
+    assert int(row4["consecutive_nan_au"]) == 4
+
+
+def test_resume_ignores_stale_parts(tmp_path: Path, monkeypatch) -> None:
+    """resume 时应忽略历史残留 parts，避免 stale 分片被重复 merge。"""
+    data_dir = tmp_path / "images"
+    data_dir.mkdir()
+    for i in range(3):
+        _make_image(data_dir / f"img_{i}.jpg")
+    monkeypatch.setattr(mod, "create_detector", lambda device, au_model: FakeDetector())
+
+    out = tmp_path / "stale.parquet"
+    rc1 = mod.main([
+        "--input-dir", str(data_dir),
+        "--input-type", "image_dir",
+        "--output-parquet", str(out),
+        "--source-dataset", "mst_affectnet",
+    ])
+    assert rc1 == 0
+    first = _read_df(out)
+    assert len(first) == 3
+
+    stale_root = out.with_suffix(out.suffix + ".parts")
+    stale_dir = stale_root / "stale-run"
+    stale_dir.mkdir(parents=True, exist_ok=True)
+    stale_row = pa.Table.from_pylist([first.iloc[0].to_dict()], schema=mod.SCHEMA)
+    pq.write_table(stale_row, stale_dir / "part-000000.parquet")
+
+    rc2 = mod.main([
+        "--input-dir", str(data_dir),
+        "--input-type", "image_dir",
+        "--output-parquet", str(out),
+        "--source-dataset", "mst_affectnet",
+        "--resume",
+    ])
+    assert rc2 == 0
+    df = _read_df(out)
+    assert len(df) == 3
+    assert df[["filename", "frame_idx"]].drop_duplicates().shape[0] == 3
