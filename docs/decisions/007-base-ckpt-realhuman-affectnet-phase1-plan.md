@@ -130,9 +130,51 @@ related: ADR-007（主 ADR）/ ADR-005（dual signal_path）/ ADR-008（multi-us
 3. **A mst fallback**：退化兜底
 4. **D AFEW-VA**：M0 W4+ 二次补强（同 C 类视频 + V-A，可联合训练降低单数据集过拟合）
 
-### Phase 1.2-1.5 分叉决策（明日早上跑前）
+### Phase 1.2-1.5 分叉决策（2026-05-20 spike-then-implement 后已分叉）
 
-- C VEATIC ready → 走 **VEATIC 主线**：Phase 1.2 改为 mp4 → frame 抽取 + py-feat AU + V-A CSV 关联，Phase 1.4 端到端真序列训练
-- EMOTIC 通过 → 加 EMOTIC 副线作 V-A-D 增强 + 静态图 pretrain
-- 若 C+B 都到位 → 联合训练（VEATIC 动力学 + EMOTIC 多样性）
-- 若 C 解压有问题 → 走 B 或 A
+> **决策范式纠错**：昨夜末尾「明早分叉决策」是伪决策（依据未建立）。今天先 spike + 公共底座再分叉。
+
+#### 分叉证据：VEATIC 标注质量 spike（docs/spikes/2026-05-20-veatic-quality-spike.md）
+
+5 视频 × 10 帧抽样三项检验全过：
+
+| 检验 | 结果 |
+|------|------|
+| mp4 帧数 vs csv 行数对齐 | ✅ 5/5 严格 1:1，全 25 fps |
+| V-A 真值 NaN 比例 | ✅ 0%（V/A 全有限） |
+| V-A 演化幅度 | ✅ V 范围 [-0.92, 0.65]、A 范围 [-0.37, 0.87]，单视频 V 演化幅度可达 0.85 |
+| py-feat AU 检脸率 | ⚠️ 40/50 = 80%（vid 90 前段 50%，其余 80-100%） |
+| py-feat AU 稳定性 | ✅ 均值 0.36 / std 0.27，落在正常人脸 AU 区间，非假阳性 |
+| py-feat 单帧耗时（CPU） | ⚠️ 1.3-1.8s/帧，需 batch + 多核优化 |
+
+#### 已分叉决策：✅ C 主线 — VEATIC 端到端真序列训 LTC，不冻 tau
+
+| 主线/备选 | 触发条件 | 工艺要点 |
+|-----------|----------|----------|
+| **C 主线（已选）** | spike 三关全过 | mp4 → frame stride 抽样 + py-feat AU + 配对 V-A csv 逐帧标注 → LTC dx/dt 自然驱动 tau 学习 |
+| B EMOTIC 降级 | C 全量提取 > 24h 跑不通 / 训练损失不收敛 | V-A-D 静态图 + 强制冻 tau（修订 1）|
+| A mst 兜底 | B+C 都翻车 | emotion CE 单 loss + 冻 tau |
+
+#### 公共底座（codex Step 1，与本 spike 并行）
+
+`scripts/extract_au_to_parquet.py` 是 A/B/C 三轨共用入口：
+- `--input-type {image_dir, video_frames, emotic_with_bbox}`
+- Parquet schema 统一：`filename / frame_idx / source_dataset / AU01-AU45 / face_detected / consecutive_nan_au`（ADR-011 复用）
+- 不分叉到三个脚本，避免维护分裂
+
+#### Phase 1.3-1.5 工艺更新
+
+1. **Phase 1.3 V-A → state 映射 sweep**：保留（C 主线需要把 V-A 离散到 8 state 做 CE 联合 loss），sweep 阈值从 9 组扩到含 VEATIC 真序列分布的 12 组
+2. **Phase 1.4 预训练 base v2**：
+   - 主 loss：CCC 回归（V/A 两维）+ CE 分类（8 state）联合
+   - **tau 不冻**：LTC dx/dt 用 VEATIC 25fps 真序列驱动，端到端
+   - 验证：训完 dump tau 分布，确保未塌缩到初始值（说明动力学真学到了）
+3. **Phase 1.5 A/B 验收**：与原计划一致（402 次反馈 replay + held-out 测试集）
+
+#### 风险与缓解（spike 后更新）
+
+| # | 风险 | 缓解 |
+|---|---|---|
+| 8 | py-feat 单帧 1.3s × 124 视频 × ~2000 帧 ≈ 90h（CPU 单核） | codex Step 1 公共脚本 batch + multi-process；可选均匀抽 200 帧/视频降到 9h 单核 |
+| 9 | 部分视频前段无脸（如 vid 90 前 4 帧） | ADR-011 guard 过滤；每视频 face_detected 率 < 50% 整段剔除 |
+| 10 | VEATIC 124 视频剔除后样本数可能 < 80 | Phase 1.4 训练前扫全 124 视频检脸率分布定阈值；不足时切回 B 降级 |
