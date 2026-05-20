@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import os
 import re
 import sys
 import tempfile
 import time
+from datetime import datetime, timezone
+from importlib import metadata
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import cv2
 import pyarrow as pa
@@ -133,15 +136,79 @@ def _map_predictions(paths: list[str], fex: Any) -> dict[str, dict[str, float]]:
     return rows
 
 
-def _detect_batch(detector: Any, paths: list[str], batch_size: int) -> dict[str, dict[str, float]]:
+def _audit_au_schema(fex_columns: Iterable[str], expected: Iterable[str] = AU_NAMES) -> dict[str, list[str]]:
+    expected_list = list(expected)
+    detected = [str(col) for col in fex_columns if re.fullmatch(r"AU\d+", str(col))]
+    missing = [au for au in expected_list if au not in detected]
+    extra = [au for au in detected if au not in expected_list]
+    return {
+        "au_names_expected": expected_list,
+        "au_columns_detected": detected,
+        "missing": missing,
+        "extra": extra,
+    }
+
+
+def _get_pyfeat_version() -> str:
+    try:
+        return metadata.version("py-feat")
+    except metadata.PackageNotFoundError:
+        try:
+            import feat  # type: ignore
+
+            return str(getattr(feat, "__version__", "unknown"))
+        except Exception:
+            return "unknown"
+
+
+def _audit_path(output_parquet: Path) -> Path:
+    return output_parquet.parent / f"{output_parquet.name}.au_schema_audit.json"
+
+
+def _write_au_schema_audit(output_parquet: Path, audit: dict[str, Any]) -> None:
+    try:
+        _audit_path(output_parquet).write_text(
+            json.dumps(audit, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except Exception as exc:
+        print(f"[warn] failed to write AU schema audit json: {exc}", file=sys.stderr)
+
+
+def _discard_parts(part_dir: Path) -> None:
+    if not part_dir.exists():
+        return
+    for path in sorted(part_dir.glob("**/*"), reverse=True):
+        if path.is_file():
+            path.unlink(missing_ok=True)
+        elif path.is_dir():
+            path.rmdir()
+    part_dir.rmdir()
+    parent = part_dir.parent
+    try:
+        next(parent.iterdir())
+    except (StopIteration, FileNotFoundError):
+        parent.rmdir()
+
+
+def _detect_batch(
+    detector: Any,
+    paths: list[str],
+    batch_size: int,
+    audit_callback: Callable[[Iterable[str]], None] | None = None,
+) -> dict[str, dict[str, float]]:
     try:
         fex = detector.detect_image(paths, output_size=512, batch_size=batch_size)
+        if audit_callback and fex is not None and len(fex) > 0:
+            audit_callback(fex.columns)
         return _map_predictions(paths, fex)
     except Exception:
         out: dict[str, dict[str, float]] = {}
         for p in paths:
             try:
                 fex = detector.detect_image([p], output_size=512, batch_size=1)
+                if audit_callback and fex is not None and len(fex) > 0:
+                    audit_callback(fex.columns)
                 out[p] = _map_predictions([p], fex).get(p, {au: math.nan for au in AU_NAMES})
             except Exception:
                 out[p] = {au: math.nan for au in AU_NAMES}
@@ -189,6 +256,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--device", choices=["cpu", "mps"], default="cpu")
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--allow-au-drift", action="store_true")
     p.add_argument("--sample-frames-per-video", type=int, default=0)
     p.add_argument("--max-files", type=int, default=0)
     return p.parse_args(argv)
@@ -223,6 +291,42 @@ def main(argv: list[str] | None = None) -> int:
     part_idx = 0
     total = 0
     nan_rows = 0
+    au_schema_audited = False
+
+    def audit_au_schema_once(fex_columns: Iterable[str]) -> None:
+        nonlocal au_schema_audited
+        if au_schema_audited:
+            return
+        diff = _audit_au_schema(fex_columns)
+        missing = diff["missing"]
+        extra = diff["extra"]
+        verdict = "aligned"
+        if missing:
+            verdict = "missing_fail_fast_skipped_by_flag" if args.allow_au_drift else "missing_fail_fast"
+        elif extra:
+            verdict = "extra_only_warning"
+        audit = {
+            "audited_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+            "pyfeat_version": _get_pyfeat_version(),
+            **diff,
+            "drift_allowed": bool(args.allow_au_drift),
+            "verdict": verdict,
+        }
+        _write_au_schema_audit(args.output_parquet, audit)
+        au_schema_audited = True
+        if missing:
+            msg = f"[warn] AU schema drift missing columns: {', '.join(missing)}"
+            if args.allow_au_drift:
+                print(f"{msg} (allowed by --allow-au-drift)", file=sys.stderr)
+                if extra:
+                    print(f"[warn] AU schema drift extra columns ignored: {', '.join(extra)}", file=sys.stderr)
+                return
+            print(msg, file=sys.stderr)
+            if extra:
+                print(f"[warn] AU schema drift extra columns ignored: {', '.join(extra)}", file=sys.stderr)
+            raise SystemExit(2)
+        if extra:
+            print(f"[warn] AU schema drift extra columns ignored: {', '.join(extra)}", file=sys.stderr)
 
     def emit(record: dict[str, Any]) -> None:
         nonlocal part_idx, total, nan_rows
@@ -234,51 +338,69 @@ def main(argv: list[str] | None = None) -> int:
             part_idx = _flush_parts(part_dir, records, part_idx)
             print(f"[progress] rows={total} nan_rate={nan_rows/max(total,1):.3%}", file=sys.stderr)
 
-    if args.input_type == "image_dir":
-        images = _list_images(args.input_dir)
-        if args.max_files > 0:
-            images = images[: args.max_files]
-        for i in tqdm(range(0, len(images), args.batch_size), desc="image batches"):
-            batch = images[i : i + args.batch_size]
-            todo = [p for p in batch if (str(p.relative_to(args.input_dir)), 0) not in processed]
-            preds = _detect_batch(detector, [str(p) for p in todo], args.batch_size)
-            for p in todo:
-                rel = str(p.relative_to(args.input_dir))
-                emit(_to_record(rel, 0, args.source_dataset, preds.get(str(p), {au: math.nan for au in AU_NAMES}), 0))
-    else:
-        videos = _list_videos(args.input_dir)
-        if args.max_files > 0:
-            videos = videos[: args.max_files]
-        for video in tqdm(videos, desc="videos"):
-            cap = cv2.VideoCapture(str(video))
-            n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            indices = _sample_indices(n, args.sample_frames_per_video)
-            rel = str(video.relative_to(args.input_dir))
-            nan_streak = int(resume_nan_streaks.get(rel, 0))
-            with tempfile.TemporaryDirectory(prefix="lnmem_au_") as tdir:
-                tmp = Path(tdir)
-                for i in range(0, len(indices), args.batch_size):
-                    batch_idx = indices[i : i + args.batch_size]
-                    paths: list[str] = []
-                    keys: list[tuple[int, str]] = []
-                    for frame_idx in batch_idx:
-                        key = (rel, frame_idx)
-                        if key in processed:
-                            continue
-                        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-                        ok, frame = cap.read()
-                        if not ok or frame is None:
-                            continue
-                        jpg = tmp / f"{video.stem}_frame_{frame_idx}.jpg"
-                        cv2.imwrite(str(jpg), frame)
-                        paths.append(str(jpg))
-                        keys.append((frame_idx, str(jpg)))
-                    preds = _detect_batch(detector, paths, args.batch_size)
-                    for frame_idx, jpg in keys:
-                        au = preds.get(jpg, {au: math.nan for au in AU_NAMES})
-                        nan_streak = nan_streak + 1 if not _has_finite_value(au) else 0
-                        emit(_to_record(rel, frame_idx, args.source_dataset, au, nan_streak))
-            cap.release()
+    try:
+        if args.input_type == "image_dir":
+            images = _list_images(args.input_dir)
+            if args.max_files > 0:
+                images = images[: args.max_files]
+            for i in tqdm(range(0, len(images), args.batch_size), desc="image batches"):
+                batch = images[i : i + args.batch_size]
+                todo = [p for p in batch if (str(p.relative_to(args.input_dir)), 0) not in processed]
+                preds = _detect_batch(
+                    detector,
+                    [str(p) for p in todo],
+                    args.batch_size,
+                    audit_callback=audit_au_schema_once,
+                )
+                for p in todo:
+                    rel = str(p.relative_to(args.input_dir))
+                    emit(_to_record(rel, 0, args.source_dataset, preds.get(str(p), {au: math.nan for au in AU_NAMES}), 0))
+        elif args.input_type == "video_frames":
+            videos = _list_videos(args.input_dir)
+            if args.max_files > 0:
+                videos = videos[: args.max_files]
+            for video in tqdm(videos, desc="videos"):
+                cap = cv2.VideoCapture(str(video))
+                try:
+                    n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                    indices = _sample_indices(n, args.sample_frames_per_video)
+                    rel = str(video.relative_to(args.input_dir))
+                    nan_streak = int(resume_nan_streaks.get(rel, 0))
+                    with tempfile.TemporaryDirectory(prefix="lnmem_au_") as tdir:
+                        tmp = Path(tdir)
+                        for i in range(0, len(indices), args.batch_size):
+                            batch_idx = indices[i : i + args.batch_size]
+                            paths: list[str] = []
+                            keys: list[tuple[int, str]] = []
+                            for frame_idx in batch_idx:
+                                key = (rel, frame_idx)
+                                if key in processed:
+                                    continue
+                                cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+                                ok, frame = cap.read()
+                                if not ok or frame is None:
+                                    continue
+                                jpg = tmp / f"{video.stem}_frame_{frame_idx}.jpg"
+                                cv2.imwrite(str(jpg), frame)
+                                paths.append(str(jpg))
+                                keys.append((frame_idx, str(jpg)))
+                            preds = _detect_batch(
+                                detector,
+                                paths,
+                                args.batch_size,
+                                audit_callback=audit_au_schema_once,
+                            )
+                            for frame_idx, jpg in keys:
+                                au = preds.get(jpg, {au: math.nan for au in AU_NAMES})
+                                nan_streak = nan_streak + 1 if not _has_finite_value(au) else 0
+                                emit(_to_record(rel, frame_idx, args.source_dataset, au, nan_streak))
+                finally:
+                    cap.release()
+        else:
+            raise AssertionError(f"unsupported input_type: {args.input_type}")
+    except SystemExit:
+        _discard_parts(part_dir)
+        raise
 
     part_idx = _flush_parts(part_dir, records, part_idx)
     _merge_parts(args.output_parquet, part_dir, keep_existing=args.resume)
