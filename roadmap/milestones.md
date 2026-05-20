@@ -7,6 +7,73 @@
 
 ---
 
+## 0.0bis M0 W3 Day1 — Team 模式三向并行 + B+A 多机协作上线（2026-05-20）
+
+**单日 8 commits / 2710 行 / 11h 主战**。详细复盘：[`docs/retrospectives/2026-05-20-day1-team-mode-retro.md`](../docs/retrospectives/2026-05-20-day1-team-mode-retro.md)
+
+### 当日 commits（origin/poc/lnn-validation）
+```
+b756945 docs(adr-007): Phase 1.2 spike VEATIC 标注质量三关全过
+59bad3d feat(adr-007): Phase 1.2 公共脚本 extract_au_to_parquet.py
+483aee2 fix(adr-007): Phase 1.2 修 2 P0（resume + parts）
+9b18a18 feat(adr-007): Phase 1.2 修 P1-2 schema audit fail-fast
+2b91c0b feat(adr-007): Phase 1.2 修 P1 视频解码兜底
+c4b5f80 feat(adr-012): Phase 1.3 V-A→state 9 state Russell circumplex
+a4d8b3a feat(adr-007): Phase 1.4 train_base_v2.py（613 行 σ 可学）
+e36e82c feat(graphiti): Phase A InMemory backend 真实化（508 行）
+```
+
+### Team 模式分工实证（明天起常态化）
+
+| 引擎 | 角色 | 何时调用 |
+|------|------|---------|
+| **cc 主线** | spec / 决策 / 终验 / commit / 战略复盘 | 主战全程 |
+| **codex 5.4 high** | 架构性实施（> 500 行 / 跨多文件 / 高 stake）| train_base_v2 / graphiti Phase A / schema audit |
+| **codex 5.3 medium** | 小修 / 重构 / 增量升级（< 200 行）| P0/P1 修 + spec v2 升级 |
+| **gemini 3-pro** | 学术评审（跨界知识 / 文献 / SOTA 方案）| Russell circumplex / 中文 entity F1 |
+
+### B+A 并行多机协作（新启用）
+
+```
+Air（家 / 主线）→ FRP 公网 → Mini（编排中枢）→ 雷电 → Studio（M2 Max 算力节点）
+```
+
+- **Air**：cc spec / 决策 / commit / push
+- **Studio**：跑 VEATIC 全量提取 + base v2 训练（夜间 5-8h）
+- **Mini**：SSH ProxyJump 中转 + rsync 中继
+
+### 当日核心战略洞察（写入 ADR / SOP）
+
+1. **视觉精度不阻塞 M0-M2 主线**：L4 自传记忆靠 ASR+parser+KG，base v2 训练是 PoC 后置分支
+2. **LNN-FIRST 一性原理推广到 loss 超参**：σ 端到端可学（川哥钦定）
+3. **选项 1+ 思维**：理解用户真实意图（"快速看到效果"），不机械执行字面要求
+4. **spike-then-implement 范式纠错**：先 spike 建依据，再实施 + 分叉
+
+### 完成模块清单
+
+| 模块 | 状态 | 行数 |
+|------|------|------|
+| `scripts/extract_au_to_parquet.py` | ✅ 11 测试 + 4 commits（P0+P1+P1.5） | 622 |
+| `scripts/sweep_va_to_state.py` | ✅ 4 测试 + ADR-012 决策落定 | 225 |
+| `scripts/train_base_v2.py` | ✅ 3 测试 + σ 可学 + base v1 partial load | 613 |
+| `graphiti_zh_adapter/*` | ✅ 8 测试（4 SKIPPED 转 PASS + 4 新）| 508 |
+| `docs/decisions/012-va-to-state-mapping-phase13.md` | ✅ Russell 9-state r=0.35 选定 | — |
+| `docs/spikes/2026-05-20-veatic-quality-spike.md` | ✅ 三关全过证据 | — |
+
+### 未完成 → 明日继续
+
+| 任务 | ETA |
+|------|-----|
+| Studio VEATIC 全量提取 | 今夜 完成 |
+| Studio base v2 训练（夜间）| 明早 查 ckpt |
+| codex 实施 universal_grammar_parser 真 LLM 接通 | 明早 2h |
+| codex 实施 Streamlit demo UI | 明上午 1.5h |
+| cc 端到端整合 + 验收 → 浏览器可见 demo | 明下午 2h |
+
+**M0 验收最快路径**：明晚川哥能在浏览器看到「中文输入 → 20 槽拆解 → KG 写入 → 30min 后查询命中」的端到端 demo。
+
+---
+
 ## 0.0 PoC 进展速览（`poc/lnn-validation` 分支，2026-05-08）
 
 > M0 主线启动**前置 PoC**：12-14 天证明"LNN 真的能在多模态时序数据上学到主人特征"。
