@@ -292,6 +292,8 @@ def main(argv: list[str] | None = None) -> int:
     total = 0
     nan_rows = 0
     au_schema_audited = False
+    decode_failed_frames = 0
+    decode_attempted_frames = 0
 
     def audit_au_schema_once(fex_columns: Iterable[str]) -> None:
         nonlocal au_schema_audited
@@ -376,9 +378,21 @@ def main(argv: list[str] | None = None) -> int:
                                 key = (rel, frame_idx)
                                 if key in processed:
                                     continue
+                                decode_attempted_frames += 1
                                 cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
                                 ok, frame = cap.read()
                                 if not ok or frame is None:
+                                    decode_failed_frames += 1
+                                    nan_streak += 1
+                                    emit(
+                                        _to_record(
+                                            rel,
+                                            frame_idx,
+                                            args.source_dataset,
+                                            {au: math.nan for au in AU_NAMES},
+                                            nan_streak,
+                                        )
+                                    )
                                     continue
                                 jpg = tmp / f"{video.stem}_frame_{frame_idx}.jpg"
                                 cv2.imwrite(str(jpg), frame)
@@ -404,6 +418,11 @@ def main(argv: list[str] | None = None) -> int:
 
     part_idx = _flush_parts(part_dir, records, part_idx)
     _merge_parts(args.output_parquet, part_dir, keep_existing=args.resume)
+    if args.input_type == "video_frames":
+        print(
+            f"[summary] decode_failed_frames={decode_failed_frames} over {decode_attempted_frames} attempted",
+            file=sys.stderr,
+        )
     print(f"[done] rows={total} nan_rate={nan_rows/max(total,1):.3%}", file=sys.stderr)
     return 0
 

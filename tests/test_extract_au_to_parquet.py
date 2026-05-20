@@ -213,6 +213,60 @@ def test_resume_preserves_consecutive_nan_au(tmp_path: Path, monkeypatch) -> Non
     assert int(row4["consecutive_nan_au"]) == 4
 
 
+def test_video_decode_failure_emits_nan_row(tmp_path: Path, monkeypatch, capsys) -> None:
+    """当 VideoCapture.read 失败时应保留该帧：AU 全 NaN、face_detected=False 且计入连续 NaN。"""
+    video_dir = tmp_path / "videos"
+    video_dir.mkdir()
+    video_path = video_dir / "0.mp4"
+    video_path.write_bytes(b"placeholder")
+
+    class FakeCapture:
+        def __init__(self, path: str) -> None:
+            del path
+            self.pos = 0
+            self.total = 5
+
+        def get(self, prop: int) -> float:
+            if prop == cv2.CAP_PROP_FRAME_COUNT:
+                return float(self.total)
+            return 0.0
+
+        def set(self, prop: int, value: float) -> bool:
+            if prop == cv2.CAP_PROP_POS_FRAMES:
+                self.pos = int(value)
+            return True
+
+        def read(self) -> tuple[bool, np.ndarray | None]:
+            if self.pos == 2:
+                return False, None
+            frame = np.full((32, 32, 3), self.pos * 20, dtype=np.uint8)
+            return True, frame
+
+        def release(self) -> None:
+            return None
+
+    monkeypatch.setattr(mod.cv2, "VideoCapture", FakeCapture)
+    monkeypatch.setattr(mod, "create_detector", lambda device, au_model: FakeDetector())
+
+    out = tmp_path / "decode-fail.parquet"
+    rc = mod.main([
+        "--input-dir", str(video_dir),
+        "--input-type", "video_frames",
+        "--output-parquet", str(out),
+        "--source-dataset", "veatic",
+        "--batch-size", "4",
+    ])
+    assert rc == 0
+    df = _read_df(out).sort_values("frame_idx")
+    row2 = df[df["frame_idx"] == 2].iloc[0]
+    row3 = df[df["frame_idx"] == 3].iloc[0]
+    assert all(pd.isna(row2[au]) for au in mod.AU_NAMES)
+    assert not bool(row2["face_detected"])
+    assert int(row2["consecutive_nan_au"]) == 1
+    assert int(row3["consecutive_nan_au"]) == 0
+    assert "decode_failed_frames=1" in capsys.readouterr().err
+
+
 def test_resume_ignores_stale_parts(tmp_path: Path, monkeypatch) -> None:
     """resume 时应忽略历史残留 parts，避免 stale 分片被重复 merge。"""
     data_dir = tmp_path / "images"
