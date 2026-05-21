@@ -164,7 +164,7 @@ sim = cosine similarity
 **失败模式**：
 - Mode collapse：所有 hidden 都收敛到同一点 → 升级为**四联监控**（v0.2，见 §6.3）：std + 协方差秩 + per-dim variance + 输出能量
 - 学到 ID 而非语义：t-SNE 按视频 ID 分簇而非按语义分簇 → 加 batch-level video shuffle + 混合多视频 batch
-- **视频 ID Shortcut Learning（v0.2 加，Geirhos 2020 Nature MI 警告）**：模型可能匹配背景/光影/相机噪声而非用户连续表征 → 加**视频 ID 反测**（§6.1 M4）：把 video_id 当 label 跑 linear probe，acc > 50% → 学到 ID 不是表征 → 加强 augmentation 或换 SSL 目标
+- **视频 ID Shortcut Learning（v0.2 加，Geirhos 2020 Nature MI 警告）**：模型可能匹配背景/光影/相机噪声而非用户连续表征 → 加**视频 ID 反测**（§6.1 **M5**）：把 video_id 当 label 跑 linear probe，acc > 50% → 学到 ID 不是表征 → 加强 augmentation 或换 SSL 目标
 
 ### 3.1.bis VICReg 备选路径（v0.2 加，gemini + codex 双评审建议）
 
@@ -298,7 +298,7 @@ total_loss = (
 
 | 数据 | 大小 | Studio 路径 | 当前预处理状态 | Phase γ 用途 |
 |------|------|------------|--------------|-------------|
-| VEATIC | 6 GB | `/Users/fu-121/lnmem-data/veatic/` | 部分帧已抽 AU parquet（ADR-007 Phase 1.2），剩余约 30% 未抽 | Step 1 主：自监督预训练（Loss 1 + Loss 3） |
+| VEATIC | 6 GB | `/Users/fu-121/lnmem-data/veatic/` | 部分帧已抽 AU parquet（ADR-007 Phase 1.2），剩余约 30% 未抽 | Step 1 主：自监督预训练（**v0.2.1 仅 Loss 1 Temporal Contrast**，Loss 3 默认关）|
 | EMOTIC | 3.4 GB | `/Users/fu-121/lnmem-data/emotic/` | 图未抽 AU；标注是 V-A-D + bbox + 情境 | Step 2 辅：readout Head 2 (V-A) 弱监督 |
 | AffectNet-mst | 387 MB | `/Users/fu-121/lnmem-data/affectnet-mst/` | 已抽 AU（base v1 复用过）| Step 3 兜底：readout Head 1 (8-state) 弱监督 |
 
@@ -317,11 +317,12 @@ total_loss = (
 
 ### 4.3 Batch Sampler 设计
 
-**Step 1（Loss 1 + Loss 3 联合）必须保证**：
+**Step 1（v0.2.1 仅 Loss 1 Temporal Contrast，Loss 3 默认关）必须保证**：
 
-1. 每个 batch 内 **≥ 8 个不同 persona_idx**（Loss 3 多样性）
+1. ~~每个 batch 内 ≥ 8 个不同 persona_idx（Loss 3 多样性）~~ — **v0.2.1 Loss 3 关闭，本约束删除**
 2. 每个 batch 内 **≥ 16 个不同 video_id**（Loss 1 跨视频 negative）
 3. 同 video 内连续 60 帧序列做 anchor + positive window（Loss 1 时序）
+4. **v0.2.1 加**：train/val 按 `video_id` 严格隔离（preflight §11.1 第 9 项防数据泄漏要求）
 
 实施：自定义 `VeaticSeqSampler`，batch_size=64 时切成 16 video × 4 frames × 1 persona_group。
 
@@ -462,7 +463,7 @@ nohup python scripts/train_base_v3_step1.py \
 - EMOTIC V-A CCC: V ≥ 0.30 / A ≥ 0.20
 - mst 8-state Linear Probe acc ≥ 40%
 
-**Why 这个比 silhouette 靠谱**（codex 评审）：Linear probe 是 SSL 表征评估的金标准（He et al. MAE CVPR 2022 用的就是这个）。Silhouette 在连续 LNN 上反向激励 collapse；Linear probe 直接验证「表征是否对下游任务可分」。
+**Why 这个比 silhouette 靠谱**（codex 评审）：Linear probe 是 SSL 表征评估的金标准（He et al. MAE CVPR 2022 用的就是这个）。Silhouette 在连续 LNN 上反向激励 collapse；Linear probe 直接验证「表征是否对下游任务可分」。M4 是表征可分性主指标，**视频 ID Shortcut 反测见 M5**（下方）。
 
 #### M5: 视频 ID Shortcut 反测（v0.2 加，gemini D2 警告）
 
@@ -569,7 +570,7 @@ nohup python scripts/train_base_v3_step1.py \
 | 2（继承）| 多模态融合数据不足 | 高 | Phase γ Loss 2 weight=0，留 M1+ 加 |
 | 3（继承）| VEATIC 跨域到川哥真人 | 中 | Phase δ 微调 + AUCaliper |
 | 4（继承）| 多 head readout 不稳定 | 中 | 每 head 独立 lr + 严格 frozen backbone 哨兵 |
-| 5（继承）| cc/codex 又用 LLM 思路评 v3 | 高 | 评估脚本默认输出 M1/M2/M3，accuracy 仅放附属表 |
+| 5（继承）| cc/codex 又用 LLM 思路评 v3 | 高 | 评估脚本默认输出 **M1/M3/M4/M5 主指标三联**（v0.2.1 同步），accuracy 仅放附属表 |
 | 6（新增）| Loss 1 mode collapse（hidden 全收敛到一点）| 中 | 监控 `std(h) < 0.05` 自动停训 + 加 BarlowTwins 风格的去相关正则项备用 |
 | 7（新增）| Persona Loss 3 学到 ID 而非 persona drift | 中 | Batch sampler 跨视频 + 同 batch 不同 persona × 不同时间 |
 | 8（新增）| `requires_grad=False` 漏挂 backbone 被意外更新 | 中 | 训练循环开头/结尾各跑一次 `assert_backbone_frozen()` 哨兵 |
