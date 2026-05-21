@@ -31,7 +31,11 @@ from .dataset import VEATICDataset, split_to_windows
 
 @dataclasses.dataclass(frozen=True)
 class TrainConfig:
-    """spec §5 训练超参 + gemini F-4.1 缓解策略."""
+    """spec §5 训练超参 + ADR-022 梯度黑洞修复.
+
+    实测发现（5/22 04:00 γ-3 spike4）：bias_grad/f_net_grad = 6.4e8 反向异常
+    →τ-bias 路径 O(1) 短路吞噬 f_net 长链梯度（gemini ADR-022 钦定）。
+    """
     seq_len: int = 30
     batch_size: int = 16
     num_negs: int = 16
@@ -40,7 +44,11 @@ class TrainConfig:
     num_personas: int = 4
     epochs: int = 1
     lr: float = 1e-3
-    persona_lr_scale: float = 5.0       # gemini F-4.1
+    # ADR-022: 双率优化器 + DGB
+    tau_lr: float = 1e-6                # τ-bias 极低 LR（vs 主 lr 1e-3 差 1000x）
+    dgb_target_ratio: float = 10.0      # DGB 强制 bias_grad/f_net_grad ≤ 1/10
+    dgb_enabled: bool = True
+    persona_lr_scale: float = 1.0       # DEPRECATED by ADR-022 双率优化器
     f_net_weight_decay: float = 1e-3    # gemini F-4.1
     freeze_f_net_steps: int = 200       # spike 简化（spec 1k step）
     use_vicreg: bool = False            # False = InfoNCE 主路径
@@ -91,10 +99,13 @@ class TinyTrainer:
         for p in self.fusion.parameters():
             other_params.append(p)
 
+        # ADR-022: 双率优化器（τ-bias 用极低 LR 1e-6，主干 1e-3）
+        self.persona_bias_params = persona_bias_params
+        self.f_net_params = f_net_params
         self.optimizer = AdamW([
             {"params": other_params, "lr": cfg.lr, "weight_decay": 0.0},
             {"params": f_net_params, "lr": cfg.lr, "weight_decay": cfg.f_net_weight_decay},
-            {"params": persona_bias_params, "lr": cfg.lr * cfg.persona_lr_scale, "weight_decay": 0.0},
+            {"params": persona_bias_params, "lr": cfg.tau_lr, "weight_decay": 0.0},
         ])
 
         self.step = 0
@@ -213,8 +224,16 @@ class TinyTrainer:
             self.optimizer.zero_grad()
             loss.backward()
 
-            # 监控 bias_grad / f_net_grad 比例（gemini F-4.1）
+            # 监控 bias_grad / f_net_grad 比例（gemini F-4.1 + ADR-022）
             ratio = self._compute_grad_ratio()
+
+            # ADR-022 DGB: 强制压制 τ-bias 梯度比例
+            if self.cfg.dgb_enabled:
+                self._apply_dgb()
+                # 重新算 ratio 看 DGB 效果
+                ratio_after_dgb = self._compute_grad_ratio()
+            else:
+                ratio_after_dgb = ratio
 
             self.optimizer.step()
 
@@ -263,6 +282,30 @@ class TinyTrainer:
                 elif "f_net" in n:
                     f_net_norm += p.grad.abs().sum().item()
         return bias_norm / max(f_net_norm, 1e-9)
+
+    def _apply_dgb(self) -> None:
+        """ADR-022 §2.2: Dynamic Gradient Balancing
+        强制 bias_grad/f_net_grad ≤ 1/target_ratio（默认 1/10）
+        只缩小 τ-bias 梯度，不放大（避免反向梯度爆炸）
+        """
+        bias_norm = 0.0
+        f_net_norm = 0.0
+        for p in self.persona_bias_params:
+            if p.grad is not None:
+                bias_norm += p.grad.norm().item() ** 2
+        for p in self.f_net_params:
+            if p.grad is not None:
+                f_net_norm += p.grad.norm().item() ** 2
+        bias_norm = max(bias_norm ** 0.5, 1e-9)
+        f_net_norm = max(f_net_norm ** 0.5, 1e-9)
+
+        # 目标：bias_norm ≤ f_net_norm / target_ratio
+        max_allowed = f_net_norm / self.cfg.dgb_target_ratio
+        if bias_norm > max_allowed:
+            scale = max_allowed / bias_norm
+            for p in self.persona_bias_params:
+                if p.grad is not None:
+                    p.grad.data *= scale
 
     def save_checkpoint(self, path: str | Path):
         """save fusion + backbone state（≤ 20MB spec §1.2）"""

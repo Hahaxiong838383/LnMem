@@ -1,0 +1,28 @@
+{
+  "config": {},
+  "logs": [
+    {
+      "step": 0,
+      "loss": 48.67425537109375,
+      "bias_grad_ratio": 200418353.0807495,
+      "collapse_severity": "CRITICAL",
+      "hidden_var": 0.0007996405474841595,
+      "pairwise_dist": 0.3625384569168091,
+      "elapsed_s": 0.03477311134338379
+    },
+    {
+      "step": 5,
+      "loss": 48.178104400634766,
+      "bias_grad_ratio": 241628058.25471875,
+      "collapse_severity": "CRITICAL",
+      "hidden_var": 0.0011444889241829515,
+      "pairwise_dist": 0.4131370484828949,
+      "elapsed_s": 0.10321593284606934
+    }
+  ],
+  "final_loss": 48.178104400634766,
+  "total_steps": 10,
+  "elapsed_s": 0.18206381797790527,
+  "loss_type": "vicreg",
+  "seed": 7
+}

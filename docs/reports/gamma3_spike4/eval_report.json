@@ -1,0 +1,30 @@
+{
+  "n_samples": 29,
+  "M5_video_id_shortcut": {
+    "train_acc": 1.0,
+    "test_acc": 0.0,
+    "n_videos": 10,
+    "n_train_samples": 23,
+    "n_test_samples": 6,
+    "verdict": "green"
+  },
+  "M1_full_retrieval": {
+    "top1_acc": 0.0,
+    "top5_acc": 0.034482758620689655,
+    "n_queries": 29,
+    "method": "full_input"
+  },
+  "M1V_visual_only_retrieval": {
+    "top1_acc": 0.0,
+    "top5_acc": 0.034482758620689655,
+    "n_queries": 29,
+    "method": "visual_only"
+  },
+  "M1V_pass": false,
+  "collapse_var": 0.009262206964194775,
+  "collapse_pairwise_dist": 0.45470917224884033,
+  "collapse_var_pass": false,
+  "eval_elapsed_s": 0.11245989799499512,
+  "loss_type": "vicreg",
+  "seed": 7
+}
