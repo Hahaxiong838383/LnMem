@@ -1,7 +1,12 @@
 ---
 title: "LnMem 项目状态总览（活文档）"
-last-updated: 2026-05-21 16:30
+last-updated: 2026-05-21 21:30（Day 2 末 · Phase β 完工 + γ-spec v0.2.3 codex 4 轮 APPROVE）
 audience: [AI 同事 cc/codex/gemini, 工程师, 投资人]
+快速入口:
+  - 新 AI 同事 → onboarding-ai.md（30 秒上手）
+  - 技术全景 → architecture-overview.md（5 分钟懂全栈）
+  - 项目目标原则 → product-definition.md（投资人友好）
+  - 路线图 → ../roadmap/milestones.md
 ---
 
 > **3 分钟读完掌握 LnMem 全局状态**。每次重大进展（commit / ADR / milestone）后必更。
@@ -70,17 +75,64 @@ cc/codex/gemini 意见冲突 → 默认采纳对抗意见 / 不同意必须明�
 
 ## 4. 当前阶段
 
-**阶段**：M0 W3 Day 2 末（2026-05-21）
+**阶段**：M0 W3 Day 2 末（2026-05-21 21:30）—— **Phase β 完工 + γ-spec v0.2.3 codex 4 轮 APPROVE**
 **主分支**：`poc/lnn-validation`（独立仓 [Hahaxiong838383/LnMem](https://github.com/Hahaxiong838383/LnMem)）
-**最新 commit**：`27b9361` fix(demo): 修 3 个割裂感 bug + UI 全面友好化
+**最新 commit**：`265c8f4` (γ-spec v0.2.3 final · codex 4 轮 APPROVE)
 
-### W+ 三砖完工状态
+### Day 2 完工清单（5/21 单日 15 commits / 4 ADR / ~5000 行）
 
+#### L4 W+ 三砖（上午）
 | 砖 | 内容 | 状态 |
 |---|------|------|
 | **砖 1** | M0 端到端 demo（parser→KG→query）| ✅ `scripts/e2e_demo.py` + `docs/reports/2026-05-21-e2e-demo.md` |
 | **砖 2** | CLS v0 夜间整合 | ✅ `scripts/cls_consolidate.py` + `docs/reports/cls_2026-05-21.md` |
 | **砖 3** | 记忆 UI v0.1 + Phase α webcam | ✅ `apps/demo_e2e/main.py` + `multimodal.py` + ADR-017 |
+
+#### Phase α 多模态升级 + 3 bug 修复（下午）
+| 项 | 内容 | 状态 |
+|----|------|------|
+| ADR-016 范式转换 | 撤回 ADR-015 视觉冻结，立 base v3 multimodal self-supervised LNN | ✅ |
+| py-feat 3 bug 修复 | detect_image API / 列名 / 范围 [0,1] | ✅ commit fc69ccb |
+| UI 全面友好化 | HELP 字典 11 术语 + 4 步引导 + tooltip + 友好错误 | ✅ |
+| Demo 状态 | http://localhost:8501 川哥可真实体验 | ✅ |
+
+#### Phase β 5 砖（晚上 + 修订）
+| 砖 | 内容 | 状态 |
+|----|------|------|
+| **β-1** | EventTensor schema v1→v1.1（intent_type + multimodal_context）+ ADR-018 | ✅ cc 主线 |
+| **β-2** | parser intent_type 5 类抽取（陈述/疑问/反问/感叹/请求）| ✅ codex 5.3 high |
+| **β-3** | demo 输出完整状态描述 JSON（川哥钦定 6 维全景）| ✅ cc 主线 |
+| **β-4** | graphiti SQLite 持久化（bi-temporal 保留）| ✅ codex 5.3 high |
+| **β-5** | multimodal_context 持久化（不再 session_state 旁挂）| ✅ cc 主线 |
+| **真 LLM 验证** | 5/5 = 100% intent_type 准确率（含反问/疑问边界）| ✅ |
+
+#### γ-spec base v3 实施 spec（深夜，4 轮 codex 严审）
+| 阶段 | 内容 | 状态 |
+|------|------|------|
+| **v0.1 初稿** | Agent 后台写 534 行 10 段齐备 | ✅ |
+| **双评审** | codex 5.4 + gemini 3.5 high 学术 + 工程对抗审 | ✅ |
+| **v0.2 修订** | 吸收双评审 5 核心建议 + ADR-019 决策记录 | ✅ |
+| **codex 4 轮严审** | v0.2 / v0.2.1 / v0.2.2 / v0.2.3 共抓 14 处 gap 全修 | ✅ |
+| **最终 APPROVE** | codex 第四轮 ✅ APPROVE，残留 0 阻塞 gap | ✅ commit 265c8f4 |
+
+### Phase α 演示当前状态（可立刻跑）
+
+```bash
+cd /Users/rayman.chen/mycc/2-Projects/LnMem-poc
+GEMINI_PROXY_TOKEN=<token> PYTHONPATH=. \
+  .venv-poc-fresh/bin/streamlit run apps/demo_e2e/main.py
+# → http://localhost:8501
+```
+
+**实测指标**（5/21 21:00 验证）：
+- LLM parse: 4.91s/句（vs 修复前 45s 超时 → 9x ⚡）
+- P0 槽位填充: 4/4（100%）
+- 总槽位填充: 16/20
+- intent_type 抽取: 5/5 = 100% 准确率（陈述/疑问/反问/感叹/请求）
+- py-feat 真识别: source=`pyfeat+heuristic_v2` 工作（笑脸 V=+0.68 / 紧张脸 V=-0.35）
+- 完整状态描述 JSON: 6 维全展开（含 multimodal_context + lnn_hidden_state placeholder）
+- CLS 精华: 显示昨日 5 events → 3 highlights
+- 全量测试: **56 passed / 1 skipped** ✅
 
 ### Phase α 演示当前状态（可立刻跑）
 
@@ -109,14 +161,36 @@ GEMINI_PROXY_TOKEN=<token> PYTHONPATH=. \
 
 ## 6. TODO（按优先级）
 
-### Phase β（5/22-5/24，3 天）
+### ✅ Phase β（5/22-5/24 原计划，5/21 提前完工）
 
-- [ ] **P0** ADR-018 EventTensor schema 升级加 `multimodal_context` JSON 字段
-- [ ] **P0** LLM parser 加 `intent_type` 抽取（5 类：陈述/疑问/反问/感叹/请求）
-- [ ] **P0** demo 输出完整状态描述 JSON（含 text + 20 槽 + intent + emotional_state + lnn_hidden_state placeholder + follow_up_suggestions）
-- [ ] **P1** graphiti KG 写入持久化（接 SQLite / sqlmodel）
-- [ ] **P1** L4-bonus UX Cmd+Shift+F 主动状态锚点
-- [ ] **P2** base v3 实施 spec 草稿（M1 启动 Step 1 前置）
+- [x] ✅ ADR-018 EventTensor schema v1→v1.1
+- [x] ✅ LLM parser 加 intent_type 5 类抽取
+- [x] ✅ demo 输出完整状态描述 JSON（6 维）
+- [x] ✅ graphiti KG SQLite 持久化（β-4）
+- [x] ✅ multimodal_context 持久化到 EventTensor（β-5）
+- [ ] **P1** L4-bonus UX Cmd+Shift+F 主动状态锚点（留 5/26 修订周）
+
+### 🚀 修订周（5/22-5/26，5 天 · 明日启动）
+
+- [ ] **γ-1** (5/22) 数据 pipeline + ncps spike：Studio ssh + ncps CfC API + tiny VEATIC AU 抽取 + Sampler ±60/>30s + VEATIC viewer_id 去重数
+- [ ] **γ-2** (5/23-5/24) 模型架构 2 层 CfC 实测：参数量 + FiLM/τ-bias + 5 head readout + collapse 四联监控
+- [ ] **γ-3** (5/25) InfoNCE vs VICReg 双路 spike：tiny 1 epoch + Linear Probe acc + 视频 ID Shortcut 反测 + V-A 标注口径 Bland-Altman
+- [ ] **γ-preflight** (5/26) 10-video 11 项 checklist 川哥钦定 → 5/27 启动 Phase γ Step 1
+
+### ⏳ Phase γ（5/27-6/10，14 天）
+
+- [ ] Step 1 VEATIC 全量 self-supervised 预训练（4 天，Studio）
+- [ ] Step 2 EMOTIC readout V-A 弱监督（3 天）
+- [ ] Step 3 mst readout 8-state + intent_type（4 天）
+- [ ] Step 4 评估 + 调参 + 导出 base_v3.pt（4 天）
+- [ ] 评估指标三联：M1 KG 召回 Top-5 ≥40% / M3 时序 ratio ≥1.5 / M4 Linear Probe / M5 视频 ID 反测 <30%
+
+### ⏳ Phase δ（6/11+，M1 起）
+
+- [ ] 川哥真人 daemon ≥60w 帧累积
+- [ ] base v3 backbone fine-tune
+- [ ] per-user τ-bias + FiLM + 槽偏好向量启动（不可妥协 §10.1 #4 落地）
+- [ ] TTA Tent 跨域 fail-safe（ADR-021 待立）
 
 ### Phase γ（5/27-6/10，2 周）
 

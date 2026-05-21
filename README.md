@@ -1,31 +1,42 @@
 # LnMem · 以 LNN 为心脏的记忆系统
 
-> **🤖 AI 同事 / 工程师快速上手**：先看 [**📊 docs/project-status.md**](docs/project-status.md)（3 分钟掌握全局：原则 + 概念 + 进展 + TODO + 协作纪律）
+> **🤖 AI 同事 30 秒上手**：[**`docs/onboarding-ai.md`**](docs/onboarding-ai.md) ← 第一次进 repo 必读
+> **📊 项目状态 + TODO**：[**`docs/project-status.md`**](docs/project-status.md)（3 分钟全局）
+> **🏗 技术全景**：[**`docs/architecture-overview.md`**](docs/architecture-overview.md)（5 分钟懂全栈）
 > **🗺 详细路线**：[**ROADMAP.md**](ROADMAP.md)（含每日进展时间线）
 > **🚀 投资人 / 老板**：读 [`docs/product-definition.md`](docs/product-definition.md) §0 §1
-> **📋 决策记录**：[`docs/decisions/`](docs/decisions/) 17 个 ADR
+> **📋 决策记录**：[`docs/decisions/`](docs/decisions/) 19 个 ADR
 
-## ⚡ 最新进展（2026-05-21 Day 2 末）
+## ⚡ 最新进展（2026-05-21 Day 2 末 · 21:30）
 
-**L4 W+ 三砖完工 + Phase α 多模态升级 + 范式转换**
+**单日 15 commits / 4 ADR / Phase β 全完 + γ-spec codex 4 轮 APPROVE + Phase γ ready**
 
 | 里程碑 | 状态 |
 |---|---|
-| M0 端到端 demo（parser→KG→query）跑通 | ✅ [`scripts/e2e_demo.py`](scripts/e2e_demo.py) + 5/5 通过 |
-| CLS v0 夜间整合最小可行（事实/情绪/未完成）| ✅ [`scripts/cls_consolidate.py`](scripts/cls_consolidate.py) |
-| 记忆 UI v0.1 删除按钮（产品 §10.1 #6）| ✅ [`apps/demo_e2e/main.py`](apps/demo_e2e/main.py) |
-| Phase α webcam snapshot 多模态预览 | ✅ [`apps/demo_e2e/multimodal.py`](apps/demo_e2e/multimodal.py) |
-| **ADR-016 范式转换**：撤回视觉冻结，立 base v3 multimodal self-supervised LNN | ✅ [ADR-016](docs/decisions/016-base-v3-multimodal-self-supervised-lnn.md) |
-| Demo UI 全面友好化（HELP 字典 11 术语 + 4 步引导 + tooltip）| ✅ commit `27b9361` |
+| L4 W+ 三砖（M0 e2e demo + CLS v0 + 记忆 UI v0.1）| ✅ |
+| Phase α webcam + UI 友好化 + py-feat 3 bug 修复 | ✅ commit `fc69ccb` |
+| **ADR-016 范式转换**：base v3 multimodal self-supervised LNN | ✅ |
+| **Phase β 5 砖（EventTensor v1.1 + intent_type + 完整状态描述 + KG SQLite + multimodal 持久化）**| ✅ commit `04f7aae` |
+| **ADR-018 + ADR-019 决策记录**（schema v1.1 + spec 修订）| ✅ |
+| **γ-spec base v3 实施 spec v0.2.3** codex 4 轮严审 APPROVE | ✅ commit `265c8f4` |
+| Demo 川哥可真实体验（http://localhost:8501）| ✅ |
 
-**实测指标（Phase α demo）**：
-- LLM parse: **4.91s/句**（修复前 45s 超时，9x 改进）· P0 槽位填充: 4/4
-- 全量测试: **30 passed / 1 skipped** ✅
-- CLS 精华显示: 昨日 5 events → 3 highlights ✅
+**实测指标（Phase α + β demo）**：
+- LLM parse: **4.91s/句** · P0 槽位填充: 4/4
+- intent_type 抽取: **5/5 = 100%** 准确率（含反问/疑问边界）
+- py-feat 真识别: 笑脸 V=+0.68 / 紧张脸 V=-0.35 ✓
+- 完整状态描述 JSON: **6 维全展开** (text/20 槽/intent/emotional/hidden/follow-up)
+- 全量测试: **56 passed / 1 skipped** ✅
+- γ-spec codex 严审: **4 轮共抓 14 处 gap 全修 + 最终 APPROVE**
 
-**Day 2 复盘**：[`docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md`](docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md)
+**Day 2 完整复盘**：[`docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md`](docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md)
 
-详细路线见 [**ROADMAP.md**](ROADMAP.md) · 全局状态总览见 [**docs/project-status.md**](docs/project-status.md)。
+**下一步**（5/22-6/10 路线）：
+- 5/22-5/26 修订周（γ-1 数据 pipeline → γ-2 模型架构 → γ-3 InfoNCE vs VICReg 双路 → 10-video preflight 11 项）
+- 5/27-6/10 Phase γ base v3 训练（Studio M2 Max self-supervised + readout）
+- 6/11+ Phase δ 川哥真人 daemon 微调 + per-user 三件套启动
+
+详细：[**ROADMAP.md**](ROADMAP.md) · [**docs/project-status.md**](docs/project-status.md) · [**docs/architecture-overview.md**](docs/architecture-overview.md)
 
 ---
 

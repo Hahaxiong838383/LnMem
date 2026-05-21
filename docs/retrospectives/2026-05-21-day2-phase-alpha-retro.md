@@ -124,6 +124,51 @@ df5002e docs(adr-015): 视觉感知路径阶段性冻结 + 战略转向 L4 自�
 | LLM 调用延迟 | — | 4.91s（修复后） | 45s→4.91s（9x）|
 | 川哥关键纠偏 | 1 次（B+A 并行） | 2 次（视觉范式 + UI 友好化）| +1 |
 
+## 晚上扩展（17:00-21:30）：Phase β 5 砖 + γ-spec codex 4 轮严审
+
+### 决策 4：Phase β 5 砖一气呵成（17:00-19:00）
+
+cc 主线 + codex 5.3-codex high × 2 后台并行 3 路：
+- A 路 cc 主线：β-1 EventTensor v1.1（ADR-018）
+- B 路 codex A：β-2 parser intent_type 抽取
+- C 路 codex B：β-4 graphiti SQLite 持久化
+
+25 分钟完成原计划 2.5h。
+真 LLM 端到端验证 5/5 = 100% intent_type 准确率（含反问/疑问边界）。
+随后 cc 主线串行做 β-3 完整状态描述 JSON + β-5 multimodal 持久化（30min）。
+
+### 决策 5：γ-spec base v3 实施 spec 双评审（19:00-19:30）
+
+Agent 后台写 v0.1 初稿（534 行 / 7000 中文字 / 10 段齐备）。
+派双评审：
+- gemini 3.5 high 学术深审 → B 级 CONDITIONAL GO + 4 学术建议（VICReg / PHATE / Hierarchical CfC / TTA Tent）
+- codex 5.4 high 工程对抗审 → 学术 6.5/10 + 工程 4.5/10 + 5 工程前置条件
+
+川哥钦定原话：「能符合这个项目最初设定的目标，达到我的基于 LNN 的多模态识别与预测，就可以 go」。
+
+cc 主线宏观裁决 GO 方案 A+（项目 4 维目标对账零妥协 + 修订项是目标护卫者）。
+
+### 决策 6：codex 4 轮严审锁定 γ-spec v0.2.3（19:30-21:00）
+
+| 轮 | spec | cc 自评 | codex 判定 | 抓 gap |
+|----|------|---------|-----------|--------|
+| 1 | v0.1 | — | CONDITIONAL GO | 5 学术 + 工程建议 |
+| 2 | v0.2 | 5/5 全 A APPROVE | **⚠️ REVISE** | **6 条一致性矛盾** |
+| 3 | v0.2.1 | 9/9 全修 APPROVE | **⚠️ REVISE** | **3 条新残留** |
+| 4 | v0.2.2 | 残留 0 APPROVE | ✅ APPROVE | 0 阻塞 / 1 非阻塞 |
+
+**4 轮共抓 14 处 gap，全部解决**。
+
+cc 主线 reflection：CLAUDE.md §3.1「真正风险是 cc/老板懒得读对抗意见」实证 —— cc 三轮自评都过度乐观，幸亏 codex 多轮严审抓住。
+
+### 教训 6：codex 多轮严审是真有效（mycc 新沉淀 5 feedback）
+
+- `feedback_codex_multi_round_audit_value.md` — 4 轮 14 gap 实证
+- `feedback_doc_consistency_gap_pattern.md` — 主体改了引用没改的盲区
+- `feedback_pyfeat_062_api_pitfalls.md` — py-feat 3 bug 完整修
+- `feedback_gemini_proxy_payload_size_limit.md` — gemini payload 过大失败
+- `feedback_macro_goal_judgment_method.md` — 川哥宏观裁决法 SOP
+
 ## Day 3（5/22）启动条件
 
 - [x] Phase α demo 跑通可用，川哥真人可体验
@@ -143,12 +188,13 @@ df5002e docs(adr-015): 视觉感知路径阶段性冻结 + 战略转向 L4 自�
 | **P1** | L4-bonus Cmd+Shift+F 锚点 | 0.5 day |
 | **P2** | base v3 实施 spec 草稿（M1 启动 Step 1 前置）| 1 day |
 
-## Day 2 团队致谢
+## Day 2 团队致谢（全日 09:00-21:30 · 12h）
 
-- **川哥**：2 次关键纠偏（视觉范式 + UI 友好化），守门 LNN-FIRST P-1
-- **cc 主线**：60min Streamlit 4-in-1 升级 + 60min 修复 + UI 重写
-- **gemini-3.5-flash**：5 维度评审（high reasoning, 18.7KB 输出）3 处分歧记 ADR
-- **codex 5.3**：14:00 限额到 14:18，未参与本日主线
+- **川哥**：4 次关键决策（视觉范式纠偏 + 方案 A+ 钦定 + 方案 X codex 多轮 + 项目目标宏观裁决法）
+- **cc 主线**（Sonnet 4.6）：15 commits / 全部代码 + ADR + spec + retro / 5 轮自评认错复盘 / LNN-FIRST 守门员
+- **codex 5.4 + 5.3-codex high**：γ-spec 4 轮严审 + Phase β β-2 / β-4 实施 + 抓 14 处 gap
+- **gemini 3.5-flash high**：spec v0.1 学术深审 B 级 + 4 学术建议（含具体论文引用）
+- **Agent 后台**：spec v0.1 初稿 534 行 / γ-spec 起草
 
 ---
 

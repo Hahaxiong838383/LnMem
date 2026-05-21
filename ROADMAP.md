@@ -6,16 +6,40 @@
 
 ---
 
-## 当前阶段：M0 W3 Day 2 末（Phase α quick win 上线）
+## 当前阶段：M0 W3 Day 2 末（**Phase β 完工 + γ-spec codex 4 轮 APPROVE + Phase γ ready**）
 
 **主分支**：`poc/lnn-validation`
-**最近核心 commit**：`27b9361` (fix demo + UI 友好化 · 5/21 16:00)
+**最近核心 commit**：`265c8f4` (γ-spec v0.2.3 final · codex 4 轮 APPROVE · 5/21 21:00)
 **项目哲学锚**：[ADR-009 拒绝 RAG 捷径，坚守 LNN-FIRST](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md) + [ADR-016 base v3 multimodal self-supervised LNN](docs/decisions/016-base-v3-multimodal-self-supervised-lnn.md)
 **📊 项目状态总览（最新）**：[`docs/project-status.md`](docs/project-status.md)
+**🏗 技术全景**：[`docs/architecture-overview.md`](docs/architecture-overview.md)
+**🤖 AI 同事 30 秒上手**：[`docs/onboarding-ai.md`](docs/onboarding-ai.md)
 
 ## 2026-05-21 Day 2 进展 🎯
 
-> **L4 W+ 三砖完工 + Phase α 多模态升级 + 范式转换 + 修 3 bug**
+> **L4 W+ 三砖 + Phase α 多模态 + Phase β 5 砖 + γ-spec v0.2.3 = 单日 15 commits / 4 ADR**
+
+### 单日 15 commits / 4 ADR (016/017/018/019) / γ-spec codex 4 轮 APPROVE / ~5000 行
+### 详细复盘：[docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md](docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md)
+
+### 关键 commits（按时间倒序）
+
+```
+265c8f4 docs(γ-spec v0.2.3 final): codex 4 轮 APPROVE 通过
+1c580db docs(γ-spec v0.2.2): codex 第三轮 REVISE 抓 3 条 gap 全修
+99b6a5e docs(γ-spec v0.2.1): codex 第二轮 REVISE 抓 6 条 gap 全修
+e5753c0 docs(γ-spec v0.2 + ADR-019): 吸收 codex 5.4 + gemini 3.5 双评审
+04f7aae feat(β-3+β-5): demo 完整状态描述 + multimodal 持久化
+fc69ccb fix(multimodal): py-feat 3 bug 修复 + V-A 投影 v3 + mock 强警告
+27b9361 fix(demo): 修 3 个割裂感 bug + UI 全面友好化
+f4a3340 feat(L4-3+phase-α): Streamlit demo 4-in-1 升级
+e51eedc feat(β-1/2/4): EventTensor v1.1 + parser intent_type + graphiti SQLite
+5efdd37 feat(L4-2): CLS v0 夜间整合最小可行
+720732b docs(ADR-016): 撤回 ADR-015 + 立 base v3 范式
+ed744d1 feat(L4-1): M0 端到端 demo CLI 跑通
+df5002e docs(ADR-015): 视觉感知路径冻结（被 ADR-016 撤回）
+795bef4 feat(ADR-013/014): base v2 失败分析 + v2.1 DFAT 决策检查点
+```
 
 ### 7 commits / 3 ADR / ~1400 行 · 详细复盘：[docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md](docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md)
 
