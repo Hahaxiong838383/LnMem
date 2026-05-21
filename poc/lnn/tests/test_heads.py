@@ -55,16 +55,60 @@ def test_freeze_backbone_for_loss4():
     """spec §3.4 铁律：Loss 4 训练时 backbone freeze 防止 readout 反流"""
     from poc.lnn import CustomCfCCell, CustomCfCCellConfig
     cell = CustomCfCCell(CustomCfCCellConfig(input_dim=52, hidden_dim=64))
-    # 初始 all params trainable
     assert all(p.requires_grad for p in cell.parameters())
-
     freeze_module(cell)
     assert all(not p.requires_grad for p in cell.parameters())
-    assert not cell.training  # eval mode
-
+    assert not cell.training
     unfreeze_module(cell)
     assert all(p.requires_grad for p in cell.parameters())
     assert cell.training
+
+
+def test_freeze_representation_pipeline_critical():
+    """**gemini F-4 CRITICAL**: 仅 freeze backbone 不够，必须同时 freeze fusion 防梯度穿透污染"""
+    from poc.lnn import CustomCfCCell, CustomCfCCellConfig
+    from poc.lnn.heads import freeze_representation_pipeline, unfreeze_representation_pipeline
+
+    fusion = FusionLayer()
+    cell = CustomCfCCell(CustomCfCCellConfig(input_dim=64, hidden_dim=64))
+    heads = ReadoutHeads()
+
+    # 训练前：全部 trainable
+    assert all(p.requires_grad for p in fusion.parameters())
+    assert all(p.requires_grad for p in cell.parameters())
+
+    # freeze 表征生成流水线
+    freeze_representation_pipeline(fusion, cell)
+    assert all(not p.requires_grad for p in fusion.parameters()), \
+        "gemini F-4: fusion 必须 freeze 否则 readout grad 反流污染"
+    assert all(not p.requires_grad for p in cell.parameters())
+    assert all(p.requires_grad for p in heads.parameters()), \
+        "readout heads 应保持 trainable"
+
+    # 模拟 Loss 4 训练: heads loss backward 后 fusion grad 必须为 None（确认无穿透）
+    x = torch.randn(4, 52)
+    h_fused = fusion(x)
+    # CustomCfCCell 单步 forward 需 persona_idx
+    h_prev = torch.zeros(4, 64)
+    persona_idx = torch.zeros(4, dtype=torch.long)
+    h = cell(h_fused, h_prev, persona_idx)
+    out = heads(h)
+    # 触发所有 head 的 backward
+    total = (out["state_logits"].sum() + out["va_cont"].sum()
+             + out["intent_logits"].sum() + out["confidence"].sum())
+    total.backward()
+
+    # 验证：heads 有 grad（至少 state head 因输出依赖最强），fusion 无 grad（无梯度穿透）
+    state_w_grad = heads.head_state.weight.grad
+    assert state_w_grad is not None and state_w_grad.abs().sum().item() > 0, \
+        "head_state 应有非零 grad"
+    fusion_grads = [p.grad for p in fusion.parameters()]
+    assert all(g is None for g in fusion_grads), \
+        f"gemini F-4 漏洞重现：fusion grad 非 None {[g for g in fusion_grads if g is not None]}"
+
+    unfreeze_representation_pipeline(fusion, cell)
+    assert all(p.requires_grad for p in fusion.parameters())
+    assert all(p.requires_grad for p in cell.parameters())
 
 
 def test_fusion_norm_stability():

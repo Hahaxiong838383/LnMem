@@ -205,6 +205,52 @@ spec §11.1 #12 `sep > 1.5` 验收**留 γ-3 训练 1 epoch 后做**（含 L2 re
 
 **📝 第二轮修订**：cc 主线 + gemini 3.5 high 对抗审 | 2026-05-22 01:00 | 14 测试全过
 
+## 8. 第三轮 gemini 评审 γ-3 实现层修订（2026-05-22 02:00）
+
+gemini 第三轮（评 γ-3 InfoNCE/VICReg/Fusion/heads）抓 5 个 finding，cc 全部采纳。
+
+### 8.1 F-1 InfoNCE 可学温度坍塌风险 (HIGH)
+
+**风险**：`learnable_sigma=True` 时 τ 可被压缩到 1e-4 截断值，logits 人为放大，CE 损失「作弊式」降低 → 梯度爆炸 / 表征退化。
+**修正**：`InfoNCEConfig.learnable_sigma` 默认改 `False`，5/22 首跑必须 τ=0.1 固定。spike 双 seed 通过后再考虑开启。
+
+### 8.2 F-2 VICReg N≤1 除零隐患 (HIGH)
+
+**风险**：协方差分母 `N-1`，DataLoader 最后一个不完整 batch N=1 时整轮训练 NaN 崩溃。
+**修正**：
+- `if N <= 1: return zero loss + warning`
+- 分母 `max(N-1, 1)`
+- `N < 8` 时打 warning（Bardes 论文建议 batch ≥ 64）
+
+### 8.3 F-3 test_infonce_perfect_positive 伪装 (MEDIUM)
+
+**问题**：原版 `n = torch.randn() * 0.01` 试图制造「弱负样本」，但 `F.normalize(n)` 第一步就抹除了 0.01 缩放。
+**修正**：构造**真正与 anchor 正交方向**的 negatives（`a_perp = n - (n·â)â`），normalize 后仍正交。这才是真「难度可控弱负样本」。
+
+### 8.4 F-4 freeze 梯度泄露 (**CRITICAL**)
+
+**漏洞**：仅 `freeze_module(backbone)` 不阻止梯度通过 unfrozen FusionLayer 反流。Readout Heads 弱监督信号会更新 fusion projection 矩阵，间接污染表征 → 违反 spec §3.4 Loss 4 弱监督铁律。
+**修正**：新增 `freeze_representation_pipeline(fusion, backbone)` 同时 freeze。
+**验证测试** `test_freeze_representation_pipeline_critical`：模拟 Loss 4 backward → fusion grads 全部 None ✓（无梯度穿透）。
+
+### 8.5 F-5 时序截断未闭环 (HIGH)
+
+**问题**：`detect_semantic_breakpoints` 只是 helper，没接入 `InfoNCELoss.forward`。gemini 终审条件 1 形同虚设。
+**修正**：`InfoNCELoss.forward` 加 `breakpoint_mask: Optional[Tensor]` 参数，mask 为 True 的样本跳过 CE 计算（per-sample loss × keep mask / n_keep）。
+
+### 8.6 关键测试新增
+
+- `test_infonce_breakpoint_mask_closure`: 验证 mask=True 时 loss 跳过
+- `test_infonce_default_no_learnable_sigma`: 验证默认温度 fixed
+- `test_vicreg_n1_no_divide_by_zero`: 验证 N=1 边界 graceful
+- `test_freeze_representation_pipeline_critical`: 验证 fusion grad 无穿透
+
+**结果**：33 测试全过 ✓，spec v0.2.7 → v0.2.8.
+
+---
+
+**📝 第三轮修订**：cc 主线 + gemini 3.5 high γ-3 评审 | 2026-05-22 02:00 | 33 测试全过
+
 ---
 
 **📝 维护者**：cc 主线 | **生效**：2026-05-21 23:40 | **下一步**：γ-2 启动 Path C 实现

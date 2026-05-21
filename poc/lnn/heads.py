@@ -98,19 +98,44 @@ class ReadoutHeads(nn.Module):
 
 
 # -----------------------------------------------------------------------------
-# Backbone Freeze Helper (spec §3.4 Loss 4 弱监督铁律)
+# Freeze Helpers (spec §3.4 Loss 4 弱监督铁律)
 # -----------------------------------------------------------------------------
+# gemini F-4 CRITICAL 修正（2026-05-22 01:50）：
+# 仅 freeze backbone 不够 — Autograd 会穿透 backbone 通过 unfrozen FusionLayer 反流，
+# Readout Heads 的弱监督信号将污染 fusion projection 矩阵，间接污染表征。
+# 必须把整个表征生成流水线（Fusion + Backbone）作为整体 freeze.
 def freeze_module(module: nn.Module) -> None:
-    """spec §3.4：Loss 4 训练时 backbone 必须 freeze (requires_grad=False)
-    防止 readout grad 反流污染表征.
-    """
+    """单模块 freeze（兼容旧 API，但 Loss 4 训练禁止单独用，请用 freeze_representation_pipeline）"""
     for p in module.parameters():
         p.requires_grad = False
     module.eval()
 
 
 def unfreeze_module(module: nn.Module) -> None:
-    """对应解冻（spec §3.4 Step 3.bis 联合微调阶段用，gemini B.2 担心的缓解）"""
     for p in module.parameters():
         p.requires_grad = True
     module.train()
+
+
+def freeze_representation_pipeline(*modules: nn.Module) -> None:
+    """**gemini F-4 CRITICAL**：Loss 4 弱监督训练必用此函数同时 freeze（Fusion + Backbone）.
+
+    传入参数应包含所有表征生成路径模块（一般是 fusion + multilayer_cfc），
+    确保梯度不能通过任何 unfrozen 中间模块反流污染.
+
+    Usage:
+        freeze_representation_pipeline(fusion, backbone)
+        # train readout heads ...
+    """
+    for m in modules:
+        for p in m.parameters():
+            p.requires_grad = False
+        m.eval()
+
+
+def unfreeze_representation_pipeline(*modules: nn.Module) -> None:
+    """对应解冻，spec §3.4 Step 3.bis 联合微调阶段统一启用"""
+    for m in modules:
+        for p in m.parameters():
+            p.requires_grad = True
+        m.train()

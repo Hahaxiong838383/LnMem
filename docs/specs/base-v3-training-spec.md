@@ -1,5 +1,5 @@
 ---
-version: v0.2.7
+version: v0.2.8
 audience: cc / codex / 工程师 / 川哥
 purpose: ADR-016 base v3 multimodal self-supervised LNN 的工程实施细化 spec
 status: 川哥钦定（2026-05-21 v0.2.4，吸收 codex 5.4 + gemini 3.5 双评审修订）
@@ -714,6 +714,14 @@ ADR-016 base v3 实施 spec。本 spec 覆盖 Phase γ（5/27-6/10）工程细�
 - **γ-2 + preflight #12 增 τ-bias 真进 ODE 验证**（含显著性检验 `p < 0.05`）
 - **§7.1 补 14 天磁盘预算**（γ-0 free ≥ 150GB + `<10GB` 自动暂停报警）
 - **§9 #10 ncps 版本修正**：1.0.7 → 1.0.1（PyPI 实测最高版本，1.0.7 拍脑袋错）
+
+**v0.2.8（2026-05-22 02:00 gemini 三轮 γ-3 实现层评审 REVISE 修订）**：吸收 5 个 finding
+- **F-1 InfoNCE 可学温度坍塌 (HIGH)**：`learnable_sigma` 默认 `False`，5/22 首跑 τ=0.1 固定
+- **F-2 VICReg 除零 (HIGH)**：N≤1 graceful 返回 + N<8 warning（Bardes 建议 batch ≥ 64）
+- **F-3 测试伪装 (MEDIUM)**：`n * 0.01` 经 F.normalize 失效 → 改正交方向 negatives
+- **F-4 freeze 梯度泄露 (CRITICAL)**：fusion 未冻 → grad 穿透污染 → 新增 `freeze_representation_pipeline(fusion, backbone)` + 验证测试 fusion grads 全 None
+- **F-5 时序截断未闭环 (HIGH)**：InfoNCELoss.forward 加 `breakpoint_mask` 参数闭环
+- 33 测试全过（poc/lnn/）+ 全量测试待跑
 
 **v0.2.7（2026-05-22 01:00 gemini 二轮对抗审 REVISE 修订）**：吸收 gemini 5 个 finding（CRITICAL/HIGH）+ 1 项 Reject
 - **F-1.1 学术诚实**：「隐式欧拉解析解」→「**半隐式欧拉（Semi-Implicit Euler）离散化**」全文统一

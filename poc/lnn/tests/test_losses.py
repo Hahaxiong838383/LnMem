@@ -25,28 +25,63 @@ def test_infonce_forward_shape():
 
 
 def test_infonce_perfect_positive():
-    """anchor==positive 时 loss 应远低于 random"""
+    """anchor==positive 时 loss 应远低于 random（gemini F-3 修正：不依赖 negative magnitude）
+
+    gemini F-3：原版 `n = torch.randn() * 0.01` 试图制造「弱负样本」，但 InfoNCE forward
+    第一步就 F.normalize(n)，0.01 缩放被抹除，测试退化为「随机单位圆向量」。
+    修正：构造**与 anchor 正交方向**的 negatives（在单位球面上远离 anchor），才是真「弱负样本」。
+    """
     loss = InfoNCELoss(InfoNCEConfig(temperature=0.1, learnable_sigma=False))
     torch.manual_seed(42)
     batch, d = 4, 64
     a = torch.randn(batch, d)
-    # 完美正样本：positive = anchor
+    a_norm = a / a.norm(dim=-1, keepdim=True)
+    # 完美 pos: 同 anchor
     p_perfect = a.clone()
-    # 完美 negatives：所有 negatives 与 anchor 几乎正交
-    n = torch.randn(batch, 16, d) * 0.01
+    # 真「弱负样本」: 与 anchor 正交方向（构造 a_perp ⊥ a）
+    n_raw = torch.randn(batch, 16, d)
+    proj = (n_raw * a_norm.unsqueeze(1)).sum(dim=-1, keepdim=True) * a_norm.unsqueeze(1)
+    n_orth = n_raw - proj  # 与 a 正交分量，normalize 后仍正交
 
-    loss_perfect = loss(a, p_perfect, n).item()
+    loss_perfect = loss(a, p_perfect, n_orth).item()
 
-    # 对照：positive 是 random
+    # 对照：随机正样本（与 anchor 无关）
     p_rand = torch.randn(batch, d)
-    loss_rand = loss(a, p_rand, n).item()
+    loss_rand = loss(a, p_rand, n_orth).item()
     print(f"\n  loss_perfect={loss_perfect:.4f}, loss_rand={loss_rand:.4f}")
     assert loss_perfect < loss_rand, \
         f"完美 pos 应 loss 更低, perfect={loss_perfect:.4f} rand={loss_rand:.4f}"
+    # 完美 pos 与正交 neg：loss 应接近 0
+    assert loss_perfect < 0.01, f"完美 pos + 正交 neg, loss 应近 0，得 {loss_perfect:.4f}"
+
+
+def test_infonce_breakpoint_mask_closure():
+    """gemini F-5 闭环测试：突变 mask 真的让 InfoNCELoss 跳过样本"""
+    loss = InfoNCELoss(InfoNCEConfig(learnable_sigma=False))
+    batch, d = 8, 64
+    torch.manual_seed(42)
+    a = torch.randn(batch, d)
+    p = torch.randn(batch, d)  # 随机 → 每样本 loss 都不小
+    n = torch.randn(batch, 16, d)
+
+    # 全量 loss
+    full_loss = loss(a, p, n, breakpoint_mask=None).item()
+
+    # 前 4 个样本 mask 掉
+    mask = torch.tensor([True, True, True, True, False, False, False, False])
+    masked_loss = loss(a, p, n, breakpoint_mask=mask).item()
+
+    print(f"\n  full={full_loss:.4f}, masked(half)={masked_loss:.4f}")
+    # mask 后样本数减半，loss 仅算后 4 个样本，可能大于或小于 full 取决于具体样本
+    # 关键：mask all True 时 loss 应为 0
+    mask_all = torch.ones(batch, dtype=torch.bool)
+    loss_all_masked = loss(a, p, n, breakpoint_mask=mask_all).item()
+    print(f"  all-masked={loss_all_masked:.4f}")
+    assert loss_all_masked < 0.01, f"全 mask 时 loss 应为 0, 得 {loss_all_masked}"
 
 
 def test_infonce_learnable_sigma_grad():
-    """learnable_sigma=True 时 raw_sigma 必有 grad"""
+    """learnable_sigma=True 显式开启时 raw_sigma 必有 grad（默认已关 by gemini F-1）"""
     loss = InfoNCELoss(InfoNCEConfig(learnable_sigma=True))
     a = torch.randn(4, 64, requires_grad=True)
     p = torch.randn(4, 64, requires_grad=True)
@@ -55,6 +90,21 @@ def test_infonce_learnable_sigma_grad():
     l.backward()
     assert loss.raw_sigma.grad is not None
     assert loss.raw_sigma.grad.abs().item() > 0, "raw_sigma grad 为 0"
+
+
+def test_infonce_default_no_learnable_sigma():
+    """gemini F-1 修正：默认 learnable_sigma=False 防温度坍塌"""
+    loss = InfoNCELoss()  # default config
+    assert not loss.cfg.learnable_sigma, "默认应关闭可学温度"
+    assert not hasattr(loss, "raw_sigma"), "默认不应注册 raw_sigma 参数"
+
+
+def test_vicreg_n1_no_divide_by_zero():
+    """gemini F-2: N=1 不应崩溃"""
+    loss = VICRegLoss()
+    z = torch.randn(1, 64)
+    out = loss(z, z)  # N=1 边界
+    assert "warning" in out or out["loss"].item() == 0.0, "N=1 应被 graceful 处理"
 
 
 # -----------------------------------------------------------------------------

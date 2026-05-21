@@ -29,10 +29,13 @@ import torch.nn.functional as F
 # -----------------------------------------------------------------------------
 @dataclasses.dataclass(frozen=True)
 class InfoNCEConfig:
-    """InfoNCE 温度 + 配对策略."""
+    """InfoNCE 温度 + 配对策略.
+
+    gemini F-1 修正：learnable_sigma 默认 False（防 τ 坍塌 1e-4 截断作弊）.
+    5/22 首跑必须 τ=0.1 固定。γ-3 spike 双 seed 通过后再考虑开启可学。
+    """
     temperature: float = 0.1     # SimCLR 经典 τ=0.1
-    # soft assignment σ 可学（spec LNN-FIRST 一性原理 + feedback_lnn_first_universal_principle）
-    learnable_sigma: bool = True
+    learnable_sigma: bool = False  # gemini F-1: 默认关，防温度坍塌
 
 
 class InfoNCELoss(nn.Module):
@@ -73,30 +76,35 @@ class InfoNCELoss(nn.Module):
         anchor: torch.Tensor,
         positive: torch.Tensor,
         negatives: torch.Tensor,
+        breakpoint_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Args:
             anchor: (batch, hidden_dim)
             positive: (batch, hidden_dim)
             negatives: (batch, num_negs, hidden_dim)
+            breakpoint_mask: (batch,) bool, True 表示该 positive pair 是语义突变点应断开
+                            （gemini F-5 闭环：detect_semantic_breakpoints → 此 mask）
 
         Returns:
-            scalar loss（batch 平均）
+            scalar loss（batch 平均，masked 样本不计入）
         """
-        # L2 normalize 拿余弦相似度（防 magnitude shortcut，VICReg 论文也指出）
         a = F.normalize(anchor, dim=-1)
         p = F.normalize(positive, dim=-1)
         n = F.normalize(negatives, dim=-1)
 
         tau = self.temperature
-        # 正样本 logit: (batch,)
         pos_logit = (a * p).sum(dim=-1) / tau
-        # 负样本 logits: (batch, num_negs)
         neg_logits = torch.einsum("bd,bnd->bn", a, n) / tau
 
-        # 拼起来 cross entropy
-        # logits shape (batch, 1 + num_negs)，target 全 0（pos 在第一列）
         logits = torch.cat([pos_logit.unsqueeze(1), neg_logits], dim=1)
         target = torch.zeros(logits.size(0), dtype=torch.long, device=logits.device)
+
+        # gemini F-5 闭环：突变点 mask 处样本不计入 loss
+        if breakpoint_mask is not None:
+            per_sample_loss = F.cross_entropy(logits, target, reduction='none')
+            keep = (~breakpoint_mask).float()
+            n_keep = keep.sum().clamp(min=1.0)
+            return (per_sample_loss * keep).sum() / n_keep
         return F.cross_entropy(logits, target)
 
 
@@ -138,24 +146,38 @@ class VICRegLoss(nn.Module):
         self.cfg = cfg or VICRegConfig()
 
     def forward(self, z_a: torch.Tensor, z_p: torch.Tensor) -> dict[str, torch.Tensor]:
-        """Returns: {loss, sim, std_a, std_p, cov_a, cov_p}（dict for monitoring）"""
+        """Returns: {loss, sim, std_a, std_p, cov_a, cov_p}（dict for monitoring）.
+
+        gemini F-2 防御：N≤1 时返回 zero loss（不抛除零异常），batch_size 不足 8 时打 warning.
+        """
         cfg = self.cfg
         N, D = z_a.shape
 
-        # 1. Invariance: anchor ≈ positive 的 MSE
+        # gemini F-2: N≤1 防除零 + N<8 warning
+        if N <= 1:
+            zero = torch.tensor(0.0, device=z_a.device, requires_grad=True)
+            return {
+                "loss": zero,
+                "sim_loss": zero.detach(), "std_loss": zero.detach(), "cov_loss": zero.detach(),
+                "mean_std_a": zero.detach(), "mean_std_p": zero.detach(),
+                "warning": "VICReg N<=1: batch too small, skipping",
+            }
+        if N < 8:
+            import warnings
+            warnings.warn(f"VICReg batch_size={N} < 8: 协方差估计不稳定，建议 ≥ 64 (Bardes ICLR2022)")
+
         sim_loss = F.mse_loss(z_a, z_p)
 
-        # 2. Variance: 每个维度的 std 应 ≥ std_target
         std_a = torch.sqrt(z_a.var(dim=0) + cfg.std_eps)
         std_p = torch.sqrt(z_p.var(dim=0) + cfg.std_eps)
         std_loss = torch.mean(F.relu(cfg.std_target - std_a)) + \
                    torch.mean(F.relu(cfg.std_target - std_p))
 
-        # 3. Covariance: 去 batch mean 后 off-diagonal F-norm
         z_a_c = z_a - z_a.mean(dim=0, keepdim=True)
         z_p_c = z_p - z_p.mean(dim=0, keepdim=True)
-        cov_a = (z_a_c.T @ z_a_c) / (N - 1)
-        cov_p = (z_p_c.T @ z_p_c) / (N - 1)
+        denom = max(N - 1, 1)  # gemini F-2: 防 N=1 除零
+        cov_a = (z_a_c.T @ z_a_c) / denom
+        cov_p = (z_p_c.T @ z_p_c) / denom
         cov_loss = (
             (cov_a - torch.diag(torch.diag(cov_a))).pow(2).sum() / D +
             (cov_p - torch.diag(torch.diag(cov_p))).pow(2).sum() / D
