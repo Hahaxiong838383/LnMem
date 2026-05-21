@@ -1,13 +1,17 @@
 ---
-version: v0.1
+version: v0.2
 audience: cc / codex / 工程师 / 川哥
 purpose: ADR-016 base v3 multimodal self-supervised LNN 的工程实施细化 spec
-status: 草稿（2026-05-21 起草，等川哥过目 + codex 对抗审查）
+status: 川哥钦定（2026-05-21 v0.2，吸收 codex 5.4 + gemini 3.5 双评审 5 条建议）
 last_updated: 2026-05-21
+changelog:
+  - v0.1（2026-05-21 起草）: 初稿，Agent 后台写
+  - v0.2（2026-05-21 修订）: 吸收双评审 → Loss 3 默认关 / 评估三联替 silhouette / 2 层先跑通 / collapse 四联监控 / 10-video preflight 门控
 related:
   - ../decisions/016-base-v3-multimodal-self-supervised-lnn.md
   - ../decisions/013-base-v2-failure-and-finetune-plan.md
   - ../decisions/018-eventtensor-schema-v1_1-intent-type-multimodal-context.md
+  - ../decisions/019-spec-v0_2-revision-from-academic-review.md
   - ../principles/lnn-first.md
   - ../product-definition.md
 parent: ../STYLE.md
@@ -76,11 +80,10 @@ ADR-016 的工程实施细化版。ADR-016 解决「v3 为什么不是 v2 + 范�
     - FiLM: γ, β = MLP(persona_embedding)
     - τ-bias: τ_i = τ_base * exp(persona_bias_i)
 
-[CfC Backbone] (ncps 库的 CfC，4 层多时间尺度)
-  Layer 1: τ ∈ [0.1s, 1s]   — 快速表情/微动
-  Layer 2: τ ∈ [1s, 10s]    — 情绪窗口
-  Layer 3: τ ∈ [10s, 60s]   — 短期 mood
-  Layer 4: τ ∈ [60s, 600s]  — 长时段落级
+[CfC Backbone] (ncps 库的 CfC，v0.2 改 2 层先跑通 / 4 层等 γ-2 实测后升)
+  Layer 1: τ ∈ [0.1s, 10s]   — 快速表情 + 情绪窗口（v0.2 合并 v0.1 层 1+2）
+  Layer 2: τ ∈ [10s, 600s]   — 短期 mood + 长时段落级（v0.2 合并 v0.1 层 3+4）
+  # 4 层 hierarchical 实证 ckpt ≤20MB 且训练稳定后才升（γ-2 实测决定）
 
   ↓ 64-dim hidden state h_t (主输出)
 
@@ -94,19 +97,26 @@ ADR-016 的工程实施细化版。ADR-016 解决「v3 为什么不是 v2 + 范�
 
 ### 2.2 各层细节
 
-| 层 | 模块 | input dim | output dim | 参数量预估 |
-|----|------|-----------|------------|-----------|
-| Input projection | nn.Linear + LayerNorm + GELU | 52 | 32（α 试跑）/64（β 全量） | 52×64+64 ≈ 3.4K |
-| Persona embedding | nn.Embedding(num_personas=64, dim=16) | — | 16 | 1K |
-| FiLM head | MLP 16 → 2×fusion_dim | 16 | 128 | 4K |
-| CfC Layer 1-4 | ncps.torch.CfC | 64 | 64 | 4 × ~5K ≈ 20K |
-| Head 1 state_8 | Linear | 64 | 8 | 0.5K |
-| Head 2 va_cont | Linear | 64 | 2 | 0.13K |
-| Head 3 intent | Linear | 64 | 5 | 0.33K |
-| Head 4 conf | Linear | 64 | 1 | 0.07K |
-| Head 5 hidden_repr | Identity | 64 | 64 | 0 |
+| 层 | 模块 | input dim | output dim | 参数量预估（v0.1 拍脑袋）| 实测（v0.2，codex 核验）|
+|----|------|-----------|------------|--------------------------|------------------------|
+| Input projection | nn.Linear + LayerNorm + GELU | 52 | 32（α 试跑）/64（β 全量） | 3.4K | 待 γ-1 spike 落实 |
+| Persona embedding | nn.Embedding(num_personas=64, dim=16) | — | 16 | 1K | 1K（不依赖框架）|
+| FiLM head | MLP 16 → 2×fusion_dim | 16 | 128 | 4K | 待实测 |
+| **CfC stack（2 层）** | ncps.torch.CfC | 64 | 64 | ~10K | **≈ 100K** ⚠️（codex 实测单层 ~50K，spec v0.1 严重低估）|
+| Head 1 state_8 | Linear | 64 | 8 | 0.5K | 0.5K |
+| Head 2 va_cont | Linear | 64 | 2 | 0.13K | 0.13K |
+| Head 3 intent | Linear | 64 | 5 | 0.33K | 0.33K |
+| Head 4 conf | Linear | 64 | 1 | 0.07K | 0.07K |
+| Head 5 hidden_repr | Identity | 64 | 64 | 0 | 0 |
 
-**总参数量预估：≈ 30K**（远小于 base v2 的 ~80K）。ckpt 序列化估 5MB 内（FP32 权重 + persona embedding 表 + 元信息）。
+**v0.2 实测修正**（codex 5.4 评审本地实证）：
+- 单层 CfC(64,64) 实测 **57,736 参数**（不是 v0.1 拍脑袋的 5K）
+- 2 层 stack 估 **~100K 参数**
+- 4 层 stack 估 **~198K 参数**
+
+**总参数量预估（v0.2）：≈ 110-120K**（2 层 CfC + 其他）。ckpt 序列化估 **≤ 20MB**（FP32 权重 + persona embedding 表 + 元信息）。
+
+**ckpt 上限调整**：v0.1 拍脑袋 5MB → v0.2 改 **20MB**。如果 γ-2 实测 ckpt > 20MB → 用 INT8 量化或 LoRA 减参数。daemon 侧 ckpt 加载延迟在 20MB 内仍可接受（M2 Max NVMe < 200ms）。
 
 ### 2.3 Studio M2 Max 推理延迟预估
 
@@ -124,7 +134,7 @@ ADR-016 的工程实施细化版。ADR-016 解决「v3 为什么不是 v2 + 范�
 
 **目标**：同一视频内时间相近的 hidden state 互相接近，时间远离的远离。让 backbone 学到「时序连续性」这个第一性原理。
 
-**形式**：InfoNCE
+**形式**：InfoNCE（v0.2 加 VICReg 双路 spike 备选 · 见 §3.1.bis）
 
 ```
 给定 anchor h_t（视频 V 在时刻 t 的 hidden），
@@ -152,8 +162,34 @@ sim = cosine similarity
 **启用条件**：Step 1 全程（5/27-5/30）
 
 **失败模式**：
-- Mode collapse：所有 hidden 都收敛到同一点 → 监控 `std(h)`，<0.05 报警停训
+- Mode collapse：所有 hidden 都收敛到同一点 → 升级为**四联监控**（v0.2，见 §6.3）：std + 协方差秩 + per-dim variance + 输出能量
 - 学到 ID 而非语义：t-SNE 按视频 ID 分簇而非按语义分簇 → 加 batch-level video shuffle + 混合多视频 batch
+- **视频 ID Shortcut Learning（v0.2 加，Geirhos 2020 Nature MI 警告）**：模型可能匹配背景/光影/相机噪声而非用户连续表征 → 加**视频 ID 反测**（§6.1 M4）：把 video_id 当 label 跑 linear probe，acc > 50% → 学到 ID 不是表征 → 加强 augmentation 或换 SSL 目标
+
+### 3.1.bis VICReg 备选路径（v0.2 加，gemini + codex 双评审建议）
+
+**Why 加备选**：
+- Gemini 评审（D1 学术 B 分）：InfoNCE 在连续动力学有「假阴性惩罚」→ 撕裂相空间轨迹
+- Codex 评审（学术 6.5/10）：纯 InfoNCE 缺 anti-collapse 辅助，2024 SOTA 倾向 VICReg/V-JEPA
+
+**形式**：VICReg (Bardes et al. ICLR 2022, arXiv:2105.04906)
+
+```
+L_vicreg = λ_v * Variance(h) + λ_i * Invariance(h, h') + λ_c * Covariance(h)
+  Variance:    max(0, γ - std(h_i, dim=batch)) for each i  (γ=1)
+  Invariance:  ||h - h'||² where h' = h at t+δ
+  Covariance:  Σ_{i≠j} C_ij² / d                          (C=cov matrix)
+  λ_v=25, λ_i=25, λ_c=1（VICReg 论文默认）
+```
+
+**spike 双路**（γ-1 必跑）：
+- Path A: 纯 InfoNCE（v0.1 默认）
+- Path B: 纯 VICReg
+- Path C: InfoNCE + VICReg 联合（weight 0.5/0.5）
+
+**γ-1 末 5/26 决策**：哪条 path 在 10-video preflight 上 std(h) 稳定 + linear probe acc 高 → 锁定 Path 上 Step 1 全量。
+
+**Why 不直接全量切 VICReg**：v0.1 InfoNCE 范式已熟 + 工程实现少坑 + VICReg 在时序 LNN 上尚无大规模实证（gemini 引 V-JEPA 也未在 ncps CfC 上验证过）。先 spike 不押注。
 
 ### 3.2 Loss 2 — Cross-modal Contrast（M1+，weight=0 本阶段）
 
@@ -161,11 +197,27 @@ sim = cosine similarity
 
 **本阶段不实施**：Phase γ 没有同步的多模态对齐数据（VEATIC 是纯视频 + ratings，没文本不没音频片段对齐）。Phase γ weight=0，留接口和注释占位。
 
-### 3.3 Loss 3 — Persona Contrast（weight=0.3）
+### 3.3 Loss 3 — Persona Contrast（v0.2 默认关 weight=0，重命名 Observer-style Regularizer）
 
-**目标**：同 user 不同时间的 hidden 互相接近（slow drift），不同 user 远离。
+**🚨 v0.2 关键修订**（codex 5.4 评审打脸 + gemini D1 学术批评双重证据）：
 
-**形式**：SupCon (Khosla et al. 2020)
+**v0.1 错误**：把 VEATIC 的 `viewer_id` 当 user persona。但 **VEATIC viewer 是给视频打分的标注员（observer），不是被拍的人（subject）**——viewer 的"persona"只反映标注偏好（如打 V-A 偏高/偏低），不是 LnMem 想学的「主人多模态连续表征」。继续用 viewer 当 persona 会让 Loss 3 把"标注员偏好"硬塞进 hidden state，污染表征。
+
+**学术补充**（gemini）：SupCon 假设离散类别，但 LnMem 的 persona 是**连续演化非平稳的**（用户情绪、认知疲劳是 transient state）。强行 SupCon 拉近会抹杀 LNN 捕获情绪波动的能力，违反 P-1。
+
+**v0.2 决策**：
+- **默认 weight=0**，本阶段不启用
+- 重命名为 **Observer-style Regularizer**（如果未来要启用，明文限定到 VEATIC_Psych 0-82 标注员，作为正则项而不是 persona 学习信号）
+- **真 persona 学习留 Phase δ**（6/11+ 川哥真人 daemon 60w 帧数据，那才是真的 per-user 信号）
+
+**Phase δ 真 persona 路径**（产品定义 §10.1 #4 落地点）：
+- 川哥真人 daemon 累积事件 → persona embedding online learning
+- τ-bias 三件套 + FiLM 启动
+- 不用对比学习，用 daemon 反馈直接监督（已在 daemon V0.3 Phase B 跑通）
+
+**v0.1 SupCon 公式段保留（封存）**：作为参考，未来连续 persona 真有信号时可参考改造（如改用 SoftCLR / DynCL 等连续对比方法）。
+
+**形式（保留，但 weight=0）**：SupCon (Khosla et al. 2020)
 
 ```
 L_persona = -Σ_i (1/|P(i)|) Σ_p∈P(i) log [
@@ -222,17 +274,19 @@ L_readout =
 - Readout 学到 shortcut（如全预测 majority class）→ 监控 pred 熵，熵 < log(2) 报警
 - backbone 意外被更新（漏 detach）→ 训练循环加 `assert backbone params unchanged` 哨兵
 
-### 3.5 三 loss 联合训练流程
+### 3.5 三 loss 联合训练流程（v0.2 更新 weight）
 
 ```python
-# Pseudo-code（实际实施见 §5 schedule）
+# Pseudo-code（v0.2 修订，Loss 3 默认关）
 total_loss = (
-  1.0 * L_temporal +
-  0.0 * L_crossmodal +    # M1+
-  0.3 * L_persona +
-  0.5 * L_readout         # Step 2/3 才启用
+  1.0 * L_temporal +          # 主目标（InfoNCE 或 VICReg，γ-1 决策）
+  0.0 * L_crossmodal +        # M1+
+  0.0 * L_persona_observer +  # v0.2 默认关（VEATIC viewer≠user persona，留 Phase δ）
+  0.5 * L_readout             # Step 2/3 才启用 + backbone frozen
 )
 ```
+
+**v0.2 简化**：γ Step 1 只跑 Loss 1（temporal contrast 单一强 SSL），减少梯度干扰风险（gemini D1 警告：4 loss 联合 → ODE 求解器刚性爆炸）。Step 2/3 backbone 冻结后再加 Loss 4 readout。
 
 **Why（loss weight 选这组）**：Loss 1 是主目标必须 dominant，Loss 3 防 backbone 忽略 persona 信息（v2 失败教训之一），Loss 4 只用 0.5 因为它走 detach 路径不能反传 backbone，但权重不能太低否则 readout 收敛慢。
 
@@ -354,9 +408,16 @@ nohup python scripts/train_base_v3_step1.py \
 
 ---
 
-## 6. 评估指标（LNN-FIRST 守则）
+## 6. 评估指标（LNN-FIRST 守则 · v0.2 大幅重写）
 
-### 6.1 主指标（必须看，禁止用 accuracy 替代）
+**v0.2 关键修订**（吸收 codex + gemini 双评审 D2 评分 C+ 批评）：
+
+| v0.1 主指标 | v0.2 修订 |
+|------------|----------|
+| ❌ Silhouette score 当主指标 | ⚠️ 移到 §6.2 附属 sanity（SSL 阶段 invalid，gemini 警告：高 silhouette 反而证明 collapse）|
+| ❌ KG 召回 / 时序 ratio | ✅ 保留 + 加 **M4 Linear Probe 表征质量** + **M5 视频 ID 反测** |
+
+### 6.1 主指标（v0.2 三联 · 必须看，禁止用 accuracy 替代）
 
 #### M1: KG 召回质量（top）
 
@@ -374,18 +435,6 @@ nohup python scripts/train_base_v3_step1.py \
 
 **失败定义**：Top-5 < base v1 → 整个 v3 路径失败，回退
 
-#### M2: 跨样本 hidden 聚类清晰度（top）
-
-**计算方式**：
-
-1. 对 mst 8-class 测试集 forward 出 hidden state
-2. 计算 silhouette score（按 ground-truth label 分簇）
-3. t-SNE 降到 2D 视觉检查
-
-**期望阈值**：silhouette ≥ 0.25（base v2 应 < 0.05，因为 collapse）
-
-**失败定义**：silhouette < 0.10 → 表征空间 collapse
-
 #### M3: 时序一致性（top）
 
 **计算方式**：
@@ -399,25 +448,66 @@ nohup python scripts/train_base_v3_step1.py \
 
 **失败定义**：ratio < 1.1 → 时序信息没学到
 
-### 6.2 附属指标（次要，仅用于 sanity check）
+**v0.2 加防护**：监控 `||h_t||` 是否常数（防模型输出 0 vector game ratio 指标 — gemini D2 警告）
 
-| 指标 | 计算 | 期望阈值 |
-|------|------|---------|
-| Head 1 8-state acc (mst val) | top-1 accuracy | ≥ 35%（base v2 是 48% 但是 collapsed，v3 真实学习预期低但不 collapse）|
-| Head 2 V-A CCC (EMOTIC val) | Concordance Correlation Coefficient | V ≥ 0.25, A ≥ 0.15 |
-| Head 3 intent acc | top-1 | ≥ 50% |
-| Head 4 confidence calibration | ECE (Expected Calibration Error) | ≤ 0.15 |
+#### M4: Frozen-Feature Linear Probe（v0.2 加，codex 强烈建议）
+
+**计算方式**：
+
+1. base v3 backbone 冻结，forward 出 64-dim hidden
+2. 在 EMOTIC val 上训一个 Linear classifier（V-A 回归）和 mst val 上训 8-state 分类
+3. 报告 **CCC（V-A）+ acc（8-state）**
+
+**期望阈值**：
+- EMOTIC V-A CCC: V ≥ 0.30 / A ≥ 0.20
+- mst 8-state Linear Probe acc ≥ 40%
+
+**Why 这个比 silhouette 靠谱**（codex 评审）：Linear probe 是 SSL 表征评估的金标准（He et al. MAE CVPR 2022 用的就是这个）。Silhouette 在连续 LNN 上反向激励 collapse；Linear probe 直接验证「表征是否对下游任务可分」。
+
+#### M5: 视频 ID Shortcut 反测（v0.2 加，gemini D2 警告）
+
+**计算方式**：
+
+1. 把 VEATIC 的 `video_id` 当 label 跑 Linear probe（不是 emotion）
+2. 看 backbone hidden 能否高准确率分出 video_id
+
+**期望阈值**：
+- video_id Linear probe acc **< 30%**（防 shortcut learning）
+- 若 acc > 50%：模型学到了「这是哪个视频」而不是连续表征 → **直接腐蚀 LNN-FIRST** → 加强 augmentation 或换 SSL 目标
+
+**失败定义**：acc > 50% → Step 1 全部回退重训
+
+### 6.2 附属指标（次要，仅用于 sanity check · v0.2 silhouette 降级到这）
+
+| 指标 | 计算 | 期望阈值 | v0.2 备注 |
+|------|------|---------|----------|
+| **Silhouette score（mst val）** | sklearn.metrics.silhouette_score | ≥ 0.10 | ⚠️ 仅 sanity，**禁止当主指标**（gemini D2 警告：连续 LNN 上高分反而证明 collapse）|
+| **t-SNE 视觉检查（mst val）** | sklearn TSNE + matplotlib | 8 类视觉分离 | 仅人眼定性 sanity |
+| Head 1 8-state acc (mst val) | top-1 accuracy | ≥ 35%（base v2 是 48% 但是 collapsed，v3 真实学习预期低但不 collapse）| |
+| Head 2 V-A CCC (EMOTIC val) | Concordance Correlation Coefficient | V ≥ 0.25, A ≥ 0.15 | |
+| Head 3 intent acc | top-1 | ≥ 50% | 依赖 Phase β intent_type LLM 离线打标 |
+| Head 4 confidence calibration | ECE (Expected Calibration Error) | ≤ 0.15 | |
 
 **Why（附属指标不能当主指标）**：v2 已证明 supervised acc 0.48 但川哥真人 64/64 mismatch，acc 与真实可用性脱钩。v3 主指标必须看「表征质量」，acc 只防训崩。
 
-### 6.3 LNN-FIRST 合规检查
+### 6.3 LNN-FIRST 合规检查（v0.2 升级为四联 collapse 监控）
 
-每 epoch end 跑：
+**每 epoch end + 每 200 step**（v0.2 增加频率，codex 强烈建议）：
+
+四联 collapse 监控（取代 v0.1 的单 std）：
+
+- [ ] **std**: `assert h_t.std() > 0.05`（不全 collapse 到一点）
+- [ ] **协方差秩**: `assert torch.linalg.matrix_rank(cov(h_t), tol=1e-4) >= 32`（hidden state 至少有 32 个独立方向，64-dim 一半）
+- [ ] **per-dim variance**: `assert (h_t.var(dim=0) > 0.01).sum() >= 40`（≥ 40 维有有效信号，防 60+ 维死掉）
+- [ ] **输出能量**: `assert h_t.norm(dim=-1).mean() in [0.5, 50.0]`（防输出全 0 或爆炸）
+
+其他守门检查（每 epoch）：
 
 - [ ] `assert backbone trainable in Step 1, frozen in Step 2/3`
-- [ ] `assert h_t std > 0.05` (不 collapse)
 - [ ] `assert ratio(far/near) > 1.0` (时序信号存在)
-- [ ] `assert persona embedding 多样性 > baseline` (Loss 3 生效)
+- [ ] `assert video_id_probe_acc < 0.50` (无视频 ID shortcut)
+
+**任一不过**：自动停训 + 报警 + 落盘当前 ckpt 给 cc 排查。
 
 ---
 
@@ -505,30 +595,76 @@ nohup python scripts/train_base_v3_step1.py \
 
 ---
 
-## 11. 验收门（Phase γ 完成定义）
+## 11. 验收门（v0.2 重构：先 preflight 门控，再 Phase γ DoD）
+
+### 11.1 Phase γ 启动门控（v0.2 加 · 5/26 必通过才能 5/27 启动 Step 1）
+
+**10-video preflight checklist**（codex 强烈建议）：
+
+- [ ] AU 抽取吞吐 ≥ 500 frame/sec（Studio M2 Max CPU）
+- [ ] Sampler 能稳定取到 ±60 帧正样本 + |Δt|>30s 负样本
+- [ ] **VEATIC viewer_id 实际去重数（必须验证）**，决定 Loss 3 启用与否
+- [ ] **EMOTIC vs VEATIC V-A 标注口径**（Bland-Altman 一致性分析）
+- [ ] ncps CfC 实际参数量 + τ-bias 多尺度注入 spike OK
+- [ ] InfoNCE vs VICReg 双路 spike 跑 1 epoch，看哪个 std(h) 稳定
+- [ ] 视频 ID Shortcut 反测 (M5) acc < 50%
+- [ ] Studio ssh 通 + nohup + ckpt 落盘双轮替（防训练中途崩）
+
+**任一不通过**：
+- 不启动 5/27 全量 Step 1
+- 推迟到 5/29 或重写有问题部分
+
+### 11.2 Phase γ 完成 DoD（v0.2 主指标三联）
 
 Phase γ 视为完成，须同时满足：
 
-- [ ] M1 KG 召回 Top-5 ≥ 40%
-- [ ] M2 silhouette ≥ 0.25
-- [ ] M3 时序 ratio ≥ 1.5
-- [ ] ckpt ≤ 5MB
-- [ ] 单帧推理延迟 ≤ 15ms (CPU)
-- [ ] LNN-FIRST 合规检查 4 项 全 ✅
-- [ ] codex 对抗审查 PR 通过
-- [ ] 川哥签字 + ADR-019 收尾文档落盘
+- [ ] **M1 KG 召回 Top-5 ≥ 40%**（vs base v1 V-A baseline）
+- [ ] **M3 时序一致性 ratio ≥ 1.5**
+- [ ] **M4 Frozen-feature Linear Probe**：EMOTIC V-A CCC ≥ 0.25 / mst 8-state acc ≥ 40%
+- [ ] **M5 视频 ID Shortcut 反测 acc < 30%**（防 SSL 学到 ID）
+- [ ] ckpt ≤ 20MB（v0.2 调整，v0.1 5MB 不实）
+- [ ] 单帧推理延迟 ≤ 15ms (Studio M2 Max CPU)
+- [ ] LNN-FIRST 合规四联 monitor 每 200 step 不报警
+- [ ] codex 对抗审查 PR 通过 + gemini 学术评审通过
+- [ ] 川哥签字 + ADR-019 决策记录已立 + ADR-020 收尾报告落盘
 
 **未通过任一**：
-- M1/M2/M3 任一不达标 → 不导出 `base_v3.pt`，回到 Step 1 调超参（不上线）
+- M1/M3/M4 任一不达标 → 不导出 `base_v3.pt`，回到 Step 1 调超参（不上线）
+- M5 video_id acc > 30% → SSL 学到 shortcut → 加强 augmentation 重训
 - LNN-FIRST 合规失败 → 立即停训 + 写 root cause ADR
-- 推理延迟超标 → 模型压缩（参数量减半或量化 INT8）
+- 推理延迟超标 → 模型压缩（INT8 量化或 LoRA 减参数）
+
+### 11.3 Phase δ 加保 — TTA Fail-safe（v0.2 加，gemini D4 强建议）
+
+**Why 加**：VEATIC 西方人 → 川哥真人是 spec §9 风险 #3 高概率项。Phase δ 用 daemon 数据 fine-tune 是主路径，但 fine-tune 需要 60w+ 帧累积（达标前 demo 仍可能跨域 fail）。
+
+**TTA 备份机制**（推理时熵最小化，Wang et al. ICLR 2021 Tent / arXiv:2006.10726）：
+
+- 推理时仅微调 backbone 的 BatchNorm/LayerNorm 参数
+- 最小化 `H(softmax(head_state_8(h_t)))` 让模型对自己输出更自信
+- daemon 侧每 1000 帧跑一次 TTA，更新归一化参数（不动主权重）
+- Phase δ ADR-021 落地详细方案
 
 ---
 
 ## Summary
 
-ADR-016 base v3 实施 spec v0.1 落盘。本 spec 覆盖 Phase γ（5/27-6/10）工程细化：4 层多时间尺度 CfC backbone（参数量 ~30K，ckpt ≤5MB） + 5 head readout（state/V-A/intent/conf/hidden_repr） + 4 个 loss（Temporal Contrast 主线 weight=1.0，Persona Contrast 0.3，Readout 0.5，Crossmodal 本阶段 weight=0）。3 步 schedule：VEATIC 自监督预训练（4 天）→ EMOTIC readout V-A（3 天）→ mst readout 8-state+intent（4 天）→ 评估调参 4 天。评估指标禁 accuracy，主线看 KG 召回 Top-5 ≥ 40%、hidden 聚类 silhouette ≥ 0.25、时序一致性 ratio ≥ 1.5。12 项风险登记 + 11 项验收门。等川哥过目 + codex 对抗审查。
+**v0.2（2026-05-21 修订，吸收 codex 5.4 high + gemini 3.5 high 双评审 5 条核心建议）**
+
+ADR-016 base v3 实施 spec。本 spec 覆盖 Phase γ（5/27-6/10）工程细化：**2 层 CfC backbone**（v0.2 改 4→2 层 spike，γ-2 实测后再决定升 4 层；参数量待 spike 实证，ckpt ≤20MB） + 5 head readout（state/V-A/intent/conf/hidden_repr） + **3 个 loss 实际生效**（Temporal Contrast 主线 weight=1.0 / Readout weight=0.5 / Persona Loss 3 默认关 weight=0，Crossmodal 0 留 M1+）。
+
+**v0.2 5 核心修订**：
+1. **Loss 3 默认关**：VEATIC viewer 是观察者不是用户 persona（codex 工程实证 + gemini 学术批评双重证据），真 persona 留 Phase δ 川哥真人 daemon
+2. **主指标三联替 silhouette**：M1 KG 召回 + M3 时序 ratio + **M4 Frozen-feature Linear Probe + M5 视频 ID Shortcut 反测**（silhouette 降级附属，因 SSL 阶段高分反而证明 collapse）
+3. **架构 4 层 → 2 层 spike**：v0.1 拍脑袋参数 30K 实测 198K（4 层）/100K（2 层），ckpt 上限调 5MB→20MB
+4. **collapse 四联监控**：std + 协方差秩 + per-dim variance + 输出能量，每 200 step 检查
+5. **加 InfoNCE vs VICReg 双路 γ-1 spike**：5/26 决策日二选一锁定主路径
+6. **新增 10-video preflight 门控**：5/26 前必通过 8 项 checklist 才能 5/27 启动 Step 1
+7. **Phase δ 加 TTA Tent**（fail-safe，跨域兜底）
+
+3 步 schedule 不变：VEATIC self-supervised 预训练（4 天）→ EMOTIC readout V-A（3 天）→ mst readout 8-state+intent（4 天）→ 评估调参 4 天。GO 判定 **CONDITIONAL GO**，5/22-5/26 修订周完 → 5/27 启动 Step 1。
 
 ---
 
-**v0.1 起草：cc（Claude Opus 4.7）| 2026-05-21 | 等川哥拍板**
+**v0.2 修订：cc 主线 + codex 5.4 + gemini 3.5 双评审 | 2026-05-21 | 等川哥钦定**
+**v0.1 起草：Agent 后台 | 2026-05-21**
