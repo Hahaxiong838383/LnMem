@@ -20,7 +20,14 @@ def make_llm_client() -> LLMClient:
 
     endpoint = os.getenv("GEMINI_PROXY_ENDPOINT", "http://23.226.135.149:4000/v1/chat/completions")
     model = os.getenv("LNMEM_PARSER_MODEL", "gemini-3-flash-preview")
-    timeout_s = float(os.getenv("LNMEM_PARSER_TIMEOUT_SECONDS", "15"))
+    # ↑ 15s 默认 timeout 不够留 thinking 余地，但开了 reasoning_effort=minimal 后 ~2s 内必返
+    timeout_s = float(os.getenv("LNMEM_PARSER_TIMEOUT_SECONDS", "20"))
+    # max_tokens + reasoning_effort 是修复 bug 的关键（5/21 14:12 demo timeout 根因）：
+    #   gemini-3-flash-preview 默认强制 thinking → completion_tokens=2 / reasoning_tokens=44
+    #   max_tokens 太小 → thinking 吃光 → 无 content 返回 → KeyError 'message'
+    #   reasoning_effort=minimal → thinking 跳过 → 2s 内返回 JSON
+    max_tokens = int(os.getenv("LNMEM_PARSER_MAX_TOKENS", "4096"))
+    reasoning_effort = os.getenv("LNMEM_PARSER_REASONING_EFFORT", "minimal")
 
     def _call(prompt: str) -> str:
         payload = {
@@ -30,6 +37,8 @@ def make_llm_client() -> LLMClient:
                 {"role": "user", "content": prompt},
             ],
             "temperature": 0.0,
+            "max_tokens": max_tokens,
+            "reasoning_effort": reasoning_effort,
         }
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
