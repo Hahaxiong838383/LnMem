@@ -245,7 +245,8 @@ class TinyTrainer:
                 log_entry = {
                     "step": self.step,
                     "loss": loss.item(),
-                    "bias_grad_ratio": ratio,
+                    "bias_grad_ratio_pre_dgb": ratio,
+                    "bias_grad_ratio_post_dgb": ratio_after_dgb,
                     "collapse_severity": metrics["collapse_severity"],
                     "hidden_var": metrics["var"],
                     "pairwise_dist": metrics["pairwise_dist"],
@@ -253,13 +254,16 @@ class TinyTrainer:
                 }
                 self.logs.append(log_entry)
                 print(f"  step={self.step:3d} loss={loss.item():.4f} "
-                      f"bias_grad_ratio={ratio:.6f} "
+                      f"ratio={ratio:.2e}→DGB→{ratio_after_dgb:.2e} "
                       f"collapse={metrics['collapse_severity']} "
-                      f"var={metrics['var']:.4f} elapsed={elapsed:.1f}s",
+                      f"var={metrics['var']:.4f}",
                       flush=True)
+                # ADR-022 health gate
+                if not (0.1 <= ratio_after_dgb <= 50.0):
+                    print(f"  ⚠️ HEALTH GATE post-DGB ratio={ratio_after_dgb:.2e} "
+                          f"∉ [0.1, 50] (ADR-022 §2.3)", flush=True)
                 if ratio < 1e-3 and not self._freeze_f_net_if_needed_check():
-                    print(f"  ⚠️ ALARM bias_grad_ratio={ratio:.6e} < 1e-3 "
-                          f"(gemini F-4.1 shortcut learning 警告)", flush=True)
+                    print(f"  ⚠️ ALARM pre-DGB ratio < 1e-3 (gemini F-4.1 shortcut)", flush=True)
 
         return {
             "total_steps": self.step + 1,

@@ -80,14 +80,23 @@ def main():
         seed=args.seed,
     )
     trainer = TinyTrainer(cfg, dataset, device="cpu")
-    print(f"\n=== 训练 {args.loss.upper()} ===")
+    print(f"\n=== 训练 {args.loss.upper()} × {args.epochs} epochs ===")
     t0 = time.time()
-    train_result = trainer.train_one_epoch()
+    all_logs = []
+    final_loss = None
+    total_steps = 0
+    for epoch in range(args.epochs):
+        if epoch > 0:
+            print(f"\n--- epoch {epoch+1}/{args.epochs} ---")
+        ep_result = trainer.train_one_epoch()
+        all_logs.extend(ep_result["logs"])
+        final_loss = ep_result.get("final_loss", final_loss)
+        total_steps += ep_result["total_steps"]
     train_elapsed = time.time() - t0
+    train_result = {"total_steps": total_steps, "final_loss": final_loss, "logs": all_logs}
 
-    print(f"\n✅ 训练完成: {train_result['total_steps']} steps, "
-          f"final_loss={train_result['final_loss']:.4f}, "
-          f"elapsed={train_elapsed:.1f}s")
+    print(f"\n✅ 训练完成: {total_steps} steps ({args.epochs} epochs), "
+          f"final_loss={final_loss:.4f}, elapsed={train_elapsed:.1f}s")
 
     # Step 3: Save ckpt
     ckpt_path = Path(args.ckpt_out)
