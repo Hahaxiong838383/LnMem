@@ -136,6 +136,25 @@ cc 主线宏观对账 4 维度（基于 LNN / 多模态 / 识别 / 预测），�
 - daemon 侧每 1000 帧跑一次更新归一化参数（不动主权重）
 - 详细方案留 ADR-021 Phase δ 启动前
 
+## 双评审 9 条建议处理矩阵（v0.2.1 补，codex 第二轮验收 §2.E 强建议）
+
+总计 9 条建议（gemini 4 + codex 5），处理情况：
+
+| # | 建议 | 来源 | v0.2.1 处理 | 决策理由 |
+|---|------|------|------------|----------|
+| 1 | InfoNCE → VICReg 替换 | gemini D1 | ⚠️ **部分采纳** → γ-1 双路 spike | 不预 lock-in；VICReg 在时序 LNN 上无大规模实证；5/26 实测决策 |
+| 2 | silhouette → PHATE | gemini D2 | ⚠️ **改采 Linear Probe** | PHATE 工程实施复杂；Linear Probe 是 SSL 评估金标准（MAE）更直接 |
+| 3 | 4 层 → Hierarchical 分层下采样 | gemini D3 | ⚠️ **改 2 层 spike** | 先工程跑通，hierarchical 留 γ-2 实测后升 |
+| 4 | TTA Tent 加 fail-safe | gemini D4 | ✅ **完全采纳** → §11.3 Phase δ | gemini 论文引用扎实，跨域兜底 0 训练成本 |
+| 5 | Loss 3 默认关或限定 observer | codex 5.4 | ✅ **完全采纳** | 双评审一致，最强证据（codex 实证 + gemini 学术）|
+| 6 | M2 silhouette 拆主次 | codex 5.4 | ✅ **完全采纳** | 与 #2 合并实施 |
+| 7 | 4 层降 2 层先跑通 | codex 5.4 | ✅ **完全采纳** | 与 #3 合并实施（codex 实证 198K 参数打脸 spec 30K）|
+| 8 | collapse std → 四联 + 200 step | codex 5.4 | ✅ **完全采纳** | 早期预警 mode collapse |
+| 9 | 10-video preflight 门控 | codex 5.4 | ✅ **完全采纳 + 加 3 条** | v0.2.1 codex 第二轮验收又加：防数据泄漏 / 四联入 preflight / 双 seed 可复现 |
+
+**采纳率**：完全采纳 6 + 部分采纳 3 = **9/9 全部处理**（零无视）。
+**部分采纳 3 条理由**：均为「方向对但具体方案有更工程友好的等价物」，非否决学术建议。
+
 ## 影响范围
 
 ### spec 文件

@@ -39,8 +39,8 @@ ADR-016 的工程实施细化版。ADR-016 解决「v3 为什么不是 v2 + 范�
 1. 在 VEATIC 视频时序上学到**连续 hidden state 演化**（Loss 1 收敛，相邻帧 hidden 距离 < 远帧）
 2. EMOTIC + mst 上 readout 弱监督训练**不破坏 backbone 表征**（Loss 4 收敛，但 backbone 冻结）
 3. hidden state 64 维**对 graphiti KG 可用**（语义检索 Top-K 命中率优于 base v1 V-A 2 维直接当 query）
-4. 跨样本 hidden 聚类清晰度**优于 base v2**（silhouette score 提升，t-SNE 视觉分离）
-5. ckpt ≤ 5MB，单帧推理延迟 ≤ 15ms（Studio M2 Max CPU 路径，daemon 兼容）
+4. **Frozen-feature Linear Probe 表征质量**（v0.2.1 取代 silhouette 主指标）：M4 EMOTIC V-A CCC + mst Linear acc 优于 base v2；视频 ID Shortcut 反测 acc < 30%（M5）
+5. ckpt **≤ 20MB**（v0.2.1 实测修正，v0.1 5MB 不实），单帧推理延迟 ≤ 15ms（Studio M2 Max CPU 路径，daemon 兼容）
 
 ### 1.3 非目标（明确不做）
 
@@ -120,7 +120,7 @@ ADR-016 的工程实施细化版。ADR-016 解决「v3 为什么不是 v2 + 范�
 
 ### 2.3 Studio M2 Max 推理延迟预估
 
-- CPU 路径（daemon 兼容）：单帧 forward 估 8-12ms（CfC 4 层 + 5 head readout）
+- CPU 路径（daemon 兼容）：单帧 forward 估 8-12ms（v0.2.1 改 **2 层 CfC** + 5 head readout，4 层 γ-2 实测后再决定升）
 - MPS 路径（训练）：batch=64 单步 forward 估 25-40ms
 - 训练吞吐目标：≥ 500 frames/sec（VEATIC 52w 帧约 17 min/epoch）
 
@@ -237,7 +237,7 @@ P(i) = batch 内与 anchor i 同 persona_idx 的样本集
 - τ_supcon = 0.07
 - 同 batch 内 persona 多样性约束：≥ 8 个不同 persona_idx（DataLoader 自定义 sampler 保证）
 
-**启用条件**：Step 1（VEATIC 视频有 viewer_id，可用作 persona）
+**启用条件**：v0.2 起**默认关 weight=0**（参见上方 v0.2 关键修订段）。Step 1 不启用，本段公式为封存参考。
 
 **失败模式**：
 - Persona 数太少 → SupCon degenerate 到 pair contrast，弱化为正则项
@@ -332,7 +332,7 @@ total_loss = (
 | 风险 | 现象 | 缓解 |
 |------|------|------|
 | 西方人 → 亚洲人 AU 分布偏移 | VEATIC/EMOTIC 西方人为主，川哥亚洲人 baseline 差异（py-feat 实测 AU01 偏高 0.85 / AU04 衰减）| **AUCaliper 校准层** 用 base v1 训练时方案（lnn-first.md §4.1）—— 推理时也用，Step 3 加入校准的合成 calibration 样本 |
-| VEATIC viewer ratings 标注稀疏 | 不是每帧都有 V-A label | Loss 1 不需要 label（self-supervised），Loss 3 用 viewer_id 即可，不影响 |
+| VEATIC viewer ratings 标注稀疏 | 不是每帧都有 V-A label | Loss 1 不需要 label（self-supervised），不影响。**v0.2.1 修订**：Loss 3 已默认关，viewer_id 不再当 persona 信号 |
 | EMOTIC 静态图无时序 | Loss 1 无法用 | 只用 EMOTIC 跑 Loss 4 Head 2，不参与 Step 1 |
 
 ---
@@ -348,7 +348,7 @@ total_loss = (
 | epoch 数 | 10 |
 | 优化器 | AdamW (lr=3e-4, weight_decay=1e-4) |
 | lr schedule | Cosine annealing 10 epoch warm 1 epoch |
-| Loss | 1.0 * L_temporal + 0.3 * L_persona |
+| Loss | **1.0 * L_temporal**（v0.2.1 单一强 SSL，L_persona 默认关 weight=0）|
 | backbone | trainable |
 | readout | frozen (随机初始化保留，不训)  |
 | 总时间预估 | ~17 min/epoch × 10 = ~3 hours/run × 多次调参（4 天预算）|
@@ -389,7 +389,7 @@ total_loss = (
 
 - 跑 §6 全部评估指标
 - 必要时回到 Step 1/2/3 调超参
-- 最终导出 `base_v3.pt`（≤ 5MB）+ ONNX/CoreML 兼容性测试
+- 最终导出 `base_v3.pt`（**≤ 20MB**，v0.2.1 修正）+ ONNX/CoreML 兼容性测试
 
 ### 5.5 训练崩溃恢复（Studio nohup + supervisor）
 
@@ -550,7 +550,7 @@ nohup python scripts/train_base_v3_step1.py \
 | γ-3 | Loss 1 (Temporal Contrast) 实现 + tiny 训练（10 video，验证不 collapse）| cc + codex 对抗审 | γ-2 | 1 天 |
 | γ-4 | Step 1 全量预训练（VEATIC 52w 帧）| cc 启动 + 守护 | γ-3 | 4 天 |
 | γ-5 | Step 2 + Step 3 readout 弱监督训练 | codex 5.4 high 实施 | γ-4 step1 ckpt | 3 天 |
-| γ-6 | 评估脚本（M1 KG 召回 / M2 silhouette / M3 时序 ratio） | cc | γ-4 step1 ckpt（M2/M3 可先跑）| 2 天 |
+| γ-6 | 评估脚本（**v0.2.1 主指标三联：M1 KG 召回 / M3 时序 ratio / M4 Linear Probe + M5 视频 ID Shortcut 反测**；silhouette 仅作附属 sanity）| cc | γ-4 step1 ckpt（M3/M5 可先跑）| 2 天 |
 | γ-7 | ckpt 导出 + 序列化 + Air demo 接入 / daemon 切换 base v3 | cc | γ-4/γ-5 final ckpt + γ-6 评估通过 | 2 天 |
 
 **总工时**：14.5 天，与 Phase γ 5/27-6/10 的 15 天预算贴合。
@@ -585,7 +585,7 @@ nohup python scripts/train_base_v3_step1.py \
 | # | 不可妥协项 | base v3 落实状态 |
 |---|-----------|-----------------|
 | 1 | 万能语法 20 槽 | ✅ 作为 input 一部分（+ ADR-018 intent_type 5 槽扩展）|
-| 2 | 多时间尺度 LNN 心智核心 | ✅ **强化**：4 层 CfC，每层 τ 跨度 0.1s ~ 600s，本 spec 直接落地此项 |
+| 2 | 多时间尺度 LNN 心智核心 | ✅ **强化**：v0.2.1 **2 层 CfC spike**（τ 0.1s~10s + 10s~600s），4 层 hierarchical 等 γ-2 实测后再升 |
 | 3 | CLS 双系统离线 consolidation | ⏳ 不在 Phase γ 范围（M2+）|
 | 4 | per-user 个性化栈 | ✅ Persona embedding + FiLM + τ-bias 三件套 backbone 准备好（Phase δ 启动真人微调）|
 | 5 | 居家+车载双场景统一架构 | ⏳ M2+ |
@@ -599,16 +599,22 @@ nohup python scripts/train_base_v3_step1.py \
 
 ### 11.1 Phase γ 启动门控（v0.2 加 · 5/26 必通过才能 5/27 启动 Step 1）
 
-**10-video preflight checklist**（codex 强烈建议）：
+**10-video preflight checklist · v0.2.1 升级 11 项**（codex 第二轮验收补 3 项）：
 
+**基础 8 项**（v0.2 原版）：
 - [ ] AU 抽取吞吐 ≥ 500 frame/sec（Studio M2 Max CPU）
 - [ ] Sampler 能稳定取到 ±60 帧正样本 + |Δt|>30s 负样本
-- [ ] **VEATIC viewer_id 实际去重数（必须验证）**，决定 Loss 3 启用与否
+- [ ] **VEATIC viewer_id 实际去重数（必须验证）**（若 <8 → Loss 3 永久关闭）
 - [ ] **EMOTIC vs VEATIC V-A 标注口径**（Bland-Altman 一致性分析）
 - [ ] ncps CfC 实际参数量 + τ-bias 多尺度注入 spike OK
-- [ ] InfoNCE vs VICReg 双路 spike 跑 1 epoch，看哪个 std(h) 稳定
+- [ ] InfoNCE vs VICReg 双路 spike 跑 1 epoch，**四联监控全过**（std + 秩 + per-dim var + 能量，不只 std）
 - [ ] 视频 ID Shortcut 反测 (M5) acc < 50%
 - [ ] Studio ssh 通 + nohup + ckpt 落盘双轮替（防训练中途崩）
+
+**v0.2.1 新加 3 项**（codex 第二轮验收 §11.1.C 强建议）：
+- [ ] **数据切分防泄漏**：按 `video_id` 严格 train/val 隔离（防 M4/M5 结果虚高）
+- [ ] **四联 collapse 入 preflight 门控**（不只是训练时跑，preflight 阶段就锁定阈值）
+- [ ] **双 seed 可复现性**：preflight 跑 2 次（seed=0/42），核心指标（std/Linear probe acc）波动 < ±15%
 
 **任一不通过**：
 - 不启动 5/27 全量 Step 1
@@ -620,7 +626,7 @@ Phase γ 视为完成，须同时满足：
 
 - [ ] **M1 KG 召回 Top-5 ≥ 40%**（vs base v1 V-A baseline）
 - [ ] **M3 时序一致性 ratio ≥ 1.5**
-- [ ] **M4 Frozen-feature Linear Probe**：EMOTIC V-A CCC ≥ 0.25 / mst 8-state acc ≥ 40%
+- [ ] **M4 Frozen-feature Linear Probe**（与 §6.1 口径对齐）：EMOTIC V-A CCC V ≥ 0.30 / A ≥ 0.20，mst 8-state acc ≥ 40%
 - [ ] **M5 视频 ID Shortcut 反测 acc < 30%**（防 SSL 学到 ID）
 - [ ] ckpt ≤ 20MB（v0.2 调整，v0.1 5MB 不实）
 - [ ] 单帧推理延迟 ≤ 15ms (Studio M2 Max CPU)
@@ -665,6 +671,11 @@ ADR-016 base v3 实施 spec。本 spec 覆盖 Phase γ（5/27-6/10）工程细�
 3 步 schedule 不变：VEATIC self-supervised 预训练（4 天）→ EMOTIC readout V-A（3 天）→ mst readout 8-state+intent（4 天）→ 评估调参 4 天。GO 判定 **CONDITIONAL GO**，5/22-5/26 修订周完 → 5/27 启动 Step 1。
 
 ---
+
+**v0.2.1 补丁（2026-05-21 20:30）**：codex 第二轮验收 REVISE 后口径对齐补丁
+- 修 8 处一致性矛盾（ckpt 5MB→20MB / 4 层→2 层 / Loss 3 默认关 全文统一）
+- §11.1 preflight 8 项 → 11 项（codex 补 3 条：防数据泄漏 / 四联入 preflight / 双 seed 可复现）
+- §6.1 vs §11.2 M4 阈值口径对齐
 
 **v0.2 修订：cc 主线 + codex 5.4 + gemini 3.5 双评审 | 2026-05-21 | 等川哥钦定**
 **v0.1 起草：Agent 后台 | 2026-05-21**
