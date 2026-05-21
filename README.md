@@ -1,24 +1,31 @@
 # LnMem · 以 LNN 为心脏的记忆系统
 
-> **🤖 AI 同事 / 工程师快速上手**：先看 [**ROADMAP.md**](ROADMAP.md)（当下状态 + TODO + 经验教训，3 分钟一览全局）
+> **🤖 AI 同事 / 工程师快速上手**：先看 [**📊 docs/project-status.md**](docs/project-status.md)（3 分钟掌握全局：原则 + 概念 + 进展 + TODO + 协作纪律）
+> **🗺 详细路线**：[**ROADMAP.md**](ROADMAP.md)（含每日进展时间线）
 > **🚀 投资人 / 老板**：读 [`docs/product-definition.md`](docs/product-definition.md) §0 §1
-> **📋 决策记录**：[`docs/decisions/`](docs/decisions/) 9 个 ADR
+> **📋 决策记录**：[`docs/decisions/`](docs/decisions/) 17 个 ADR
 
-## ⚡ 最新进展（2026-05-16）
+## ⚡ 最新进展（2026-05-21 Day 2 末）
 
-**单日 6 commits / 7 ADRs / 522 tests / 5 轮 codex + 3 轮 gemini 协作**
+**L4 W+ 三砖完工 + Phase α 多模态升级 + 范式转换**
 
 | 里程碑 | 状态 |
 |---|---|
-| dual signal_path (raw_au.AU04) 上线 | ✅ [ADR-005](docs/decisions/005-trigger-uses-raw-au04-signal-path-dual.md) |
-| dual replay 揭穿 calibration polarization（共识仅 0.4%） | ✅ commit `602506d` |
-| Phase 4 LNN realtime 接入 daemon（margin/entropy 落盘） | ✅ commit `3c10834` |
-| 锁定规模化 5 阶段路线（base 真人化 + User-LoRA + 拒绝 RAG） | ✅ [ADR-007/008/009](docs/decisions/) |
-| LNN spike 暴露 base ckpt OOD（0% 准确率，证实 ADR-007 必要） | 🔍 |
+| M0 端到端 demo（parser→KG→query）跑通 | ✅ [`scripts/e2e_demo.py`](scripts/e2e_demo.py) + 5/5 通过 |
+| CLS v0 夜间整合最小可行（事实/情绪/未完成）| ✅ [`scripts/cls_consolidate.py`](scripts/cls_consolidate.py) |
+| 记忆 UI v0.1 删除按钮（产品 §10.1 #6）| ✅ [`apps/demo_e2e/main.py`](apps/demo_e2e/main.py) |
+| Phase α webcam snapshot 多模态预览 | ✅ [`apps/demo_e2e/multimodal.py`](apps/demo_e2e/multimodal.py) |
+| **ADR-016 范式转换**：撤回视觉冻结，立 base v3 multimodal self-supervised LNN | ✅ [ADR-016](docs/decisions/016-base-v3-multimodal-self-supervised-lnn.md) |
+| Demo UI 全面友好化（HELP 字典 11 术语 + 4 步引导 + tooltip）| ✅ commit `27b9361` |
 
-**当前 daemon /health**：`lnn.enabled=true · ckpt_sha8=10cc41c3 · signal_path=raw · history_len=60`
+**实测指标（Phase α demo）**：
+- LLM parse: **4.91s/句**（修复前 45s 超时，9x 改进）· P0 槽位填充: 4/4
+- 全量测试: **30 passed / 1 skipped** ✅
+- CLS 精华显示: 昨日 5 events → 3 highlights ✅
 
-详细路线见 [**ROADMAP.md**](ROADMAP.md)。
+**Day 2 复盘**：[`docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md`](docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md)
+
+详细路线见 [**ROADMAP.md**](ROADMAP.md) · 全局状态总览见 [**docs/project-status.md**](docs/project-status.md)。
 
 ---
 

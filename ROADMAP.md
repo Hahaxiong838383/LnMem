@@ -6,11 +6,62 @@
 
 ---
 
-## 当前阶段：M0 W2 后期（PoC → M1 过渡）
+## 当前阶段：M0 W3 Day 2 末（Phase α quick win 上线）
 
 **主分支**：`poc/lnn-validation`
-**最近核心 commit**：`3c10834` (Phase 4 LNN 实时接入 daemon)
-**项目哲学锚**：[ADR-009 拒绝 RAG 捷径，坚守 LNN-FIRST](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md)
+**最近核心 commit**：`27b9361` (fix demo + UI 友好化 · 5/21 16:00)
+**项目哲学锚**：[ADR-009 拒绝 RAG 捷径，坚守 LNN-FIRST](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md) + [ADR-016 base v3 multimodal self-supervised LNN](docs/decisions/016-base-v3-multimodal-self-supervised-lnn.md)
+**📊 项目状态总览（最新）**：[`docs/project-status.md`](docs/project-status.md)
+
+## 2026-05-21 Day 2 进展 🎯
+
+> **L4 W+ 三砖完工 + Phase α 多模态升级 + 范式转换 + 修 3 bug**
+
+### 7 commits / 3 ADR / ~1400 行 · 详细复盘：[docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md](docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md)
+
+| Commit | 内容 |
+|---|---|
+| [`27b9361`](../../commit/27b9361) | **fix(demo)** 修 3 个割裂感 bug + UI 全面友好化 |
+| [`f4a3340`](../../commit/f4a3340) | **feat(L4-3+phase-α)** Streamlit demo 4-in-1 升级 + ADR-017 |
+| [`5efdd37`](../../commit/5efdd37) | **feat(L4-2)** CLS v0 夜间整合最小可行 |
+| [`720732b`](../../commit/720732b) | **docs(ADR-016)** 撤回 ADR-015 + 立 base v3 多模态 self-supervised LNN |
+| [`ed744d1`](../../commit/ed744d1) | **feat(L4-1)** M0 端到端 demo CLI 跑通 |
+| [`df5002e`](../../commit/df5002e) | **docs(ADR-015)** 视觉感知路径阶段性冻结（被 016 撤回）|
+| [`795bef4`](../../commit/795bef4) | **feat(ADR-013/014)** base v2 失败分析 + v2.1 DFAT 决策检查点 |
+
+### Day 2 关键决策
+
+1. **ADR-016 范式转换**：撤回 ADR-015 视觉冻结，立 base v3 multimodal self-supervised LNN（4 loss / 9.8GB 数据全留）
+2. **L4 W+ 三砖完工**：M0 e2e demo / CLS v0 / 记忆 UI v0.1
+3. **Phase α 落地**：webcam snapshot → V-A + 9-state + 20 AU 实时显示（ADR-016 input signal 预览）
+4. **3 bug 修复**：LLM thinking 默认 / streamlit cwd 失锚 / streamlit 14+ deprecation
+5. **UI 友好化范式**：HELP 字典 11 术语 + 4 步引导 + tooltip + 友好错误提示
+
+### Day 2 实测指标（Phase α demo）
+
+- LLM parse: **4.91s/句**（修复前 45s 超时，**9x 改进**）
+- P0 槽位填充: **4/4（100%）**
+- 全量测试: **30 passed / 1 skipped** ✅
+- CLS 精华显示: ✅ 昨日 5 events → 3 highlights
+
+### Day 2 Team 协作纪实
+
+| 引擎 | 角色 | 状态 |
+|------|------|------|
+| **川哥** | 守门员 / 2 次关键纠偏（视觉范式 + UI 友好化） | 主战 |
+| **cc 主线** | 实现 + 文档 + 终验 + commit | 主战 |
+| **gemini-3.5-flash** | 5 维度评审 high reasoning（18.7KB 输出，3 处分歧记 ADR-017）| 评审 |
+| **codex 5.3** | 后台写 multimodal | 14:00 quota 用尽，cc 接管 |
+
+---
+
+## 2026-05-20 Day 1 进展（Team 模式启动）
+
+> 8 commits / 2710 行 / 11h 主战。详细复盘：[`docs/retrospectives/2026-05-20-day1-team-mode-retro.md`](docs/retrospectives/2026-05-20-day1-team-mode-retro.md)
+
+主要产出：ADR-007 Phase 1.2-1.4（VEATIC quality probe + AU extraction + train_base_v2）+ ADR-012 V-A→state Russell + graphiti Phase A InMemory backend。
+
+---
 
 ## 2026-05-16 单日重大进展 🚀
 

@@ -7,6 +7,50 @@
 
 ---
 
+## 0.0ter M0 W3 Day 2 — L4 W+ 三砖完工 + Phase α 多模态升级 + 范式转换（2026-05-21）
+
+**单日 7 commits / 3 ADR / ~1400 行 · 川哥 2 次关键纠偏**。
+详细复盘：[`docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md`](../docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md)
+
+### 当日 commits（origin/poc/lnn-validation）
+
+```
+27b9361 fix(demo): 修 3 个割裂感 bug + UI 全面友好化
+f4a3340 feat(L4-3+phase-α): Streamlit demo 4-in-1 升级
+5efdd37 feat(L4-2): CLS v0 夜间整合最小可行
+720732b docs(ADR-016): 撤回 ADR-015 + 立 base v3 多模态 self-supervised LNN
+ed744d1 feat(L4-1): M0 端到端 demo CLI 跑通
+df5002e docs(ADR-015): 视觉感知路径阶段性冻结（已被 ADR-016 撤回）
+795bef4 feat(ADR-013/014): base v2 失败分析 + v2.1 DFAT 决策检查点
+```
+
+### Day 2 关键决策
+
+| 决策 | 内容 |
+|------|------|
+| **ADR-016 范式转换** | 撤回 ADR-015 视觉冻结，立 base v3 multimodal self-supervised LNN（4 loss / 9.8GB 数据全留）|
+| **L4 W+ 三砖完工** | M0 e2e demo / CLS v0 / 记忆 UI v0.1 |
+| **Phase α 落地** | webcam snapshot → V-A + 9-state + 20 AU 实时显示（ADR-016 input signal 预览）|
+| **3 bug 修复** | LLM thinking 默认 / streamlit cwd 失锚 / streamlit 14+ deprecation |
+| **UI 友好化范式** | HELP 字典 11 术语 + 4 步引导 + 鼠标悬停 tooltip + 友好错误提示 |
+
+### Day 2 经验教训（已沉淀到 mycc memory）
+
+1. **gemini-3.x 默认强 thinking** → parser 必加 `reasoning_effort=minimal + max_tokens=4096`（feedback_gemini_flash_thinking_default_trap.md）
+2. **streamlit nohup cwd 失锚** → 必须用 `Path(__file__).resolve().parents[N]`（feedback_streamlit_nohup_cwd_trap.md）
+3. **cc 二次过度信任 gemini** → CLAUDE.md §3.1 升级，gemini 评审不是最终决策者（feedback_lnn_first_universal_principle.md 已有）
+4. **demo UI 友好化范式** → HELP dict + 数字步骤 + tooltip + 友好错误（feedback_demo_ui_friendlification_pattern.md，可作 streamlit 项目 checklist）
+5. **中文文档 Python 字符串嵌套 ASCII 引号必炸** → 用「」替代（feedback_python_chinese_nested_quotes.md）
+
+### Day 2 实测指标
+
+- LLM parse: 4.91s/句（修复前 45s 超时，9x 改进）· P0 4/4
+- 全量测试: 30 passed / 1 skipped ✅
+- CLS 精华显示: 昨日 5 events → 3 highlights ✅
+- 川哥可立刻在 http://localhost:8501 真实体验
+
+---
+
 ## 0.0bis M0 W3 Day1 — Team 模式三向并行 + B+A 多机协作上线（2026-05-20）
 
 **单日 8 commits / 2710 行 / 11h 主战**。详细复盘：[`docs/retrospectives/2026-05-20-day1-team-mode-retro.md`](../docs/retrospectives/2026-05-20-day1-team-mode-retro.md)
