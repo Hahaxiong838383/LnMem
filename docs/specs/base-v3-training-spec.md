@@ -1,5 +1,5 @@
 ---
-version: v0.2.5
+version: v0.2.6
 audience: cc / codex / 工程师 / 川哥
 purpose: ADR-016 base v3 multimodal self-supervised LNN 的工程实施细化 spec
 status: 川哥钦定（2026-05-21 v0.2.4，吸收 codex 5.4 + gemini 3.5 双评审修订）
@@ -714,6 +714,14 @@ ADR-016 base v3 实施 spec。本 spec 覆盖 Phase γ（5/27-6/10）工程细�
 - **γ-2 + preflight #12 增 τ-bias 真进 ODE 验证**（含显著性检验 `p < 0.05`）
 - **§7.1 补 14 天磁盘预算**（γ-0 free ≥ 150GB + `<10GB` 自动暂停报警）
 - **§9 #10 ncps 版本修正**：1.0.7 → 1.0.1（PyPI 实测最高版本，1.0.7 拍脑袋错）
+
+**v0.2.6（2026-05-22 00:20 γ-2 Path C 实测完工补）**：cc team 模式继续 → Path C 手写 CfCCell 实现完工 + 12 测试全过
+- **手写 CustomCfCCell**（`poc/lnn/custom_cfc_cell.py`）实现 spec §2.1 单步隐式欧拉：`h_new = (τ * h_prev + dt * f) / (τ + dt)`
+- **per-neuron + per-persona τ-bias 真进 ODE**：`τ_i = τ_base_i * exp(persona_bias_i)` 直接进入 ODE 解析解
+- **2 层 stack 实测**（`poc/lnn/multilayer_cfc.py`）参数量 48,449（spec 预估 48.4K 精准）
+- **persona separation 实测**：1 层 transient sep = 363,995x / 2 层 = 68,531x（远超 spec §11.1 #12 门槛 > 1.5x）
+- 全量测试 648 passed / 3 skipped ✅
+- ADR-021 §3 Decision 完全落地验证
 
 **v0.2.5（2026-05-21 23:40 γ-1 spike 完工补）**：cc team 模式 23:00-23:40 跑 γ-1 提前完工 → 实测结论
 - **VEATIC viewer_id 担心彻底打消**：公开版只有 rating_averaged 无 raw per-viewer rating → Loss 3 永久关定案
