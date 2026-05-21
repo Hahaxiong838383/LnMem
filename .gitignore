@@ -75,3 +75,5 @@ Thumbs.db
 # AI session artifacts
 HANDOFF*.md
 /tmp/codex-*
+
+poc/data/checkpoints/

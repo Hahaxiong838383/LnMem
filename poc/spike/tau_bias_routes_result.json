@@ -1,0 +1,24 @@
+{
+  "config": {
+    "input_dim": 52,
+    "hidden_dim": 64,
+    "seq_len": 30,
+    "batch_size": 16,
+    "num_personas": 4,
+    "seed": 42
+  },
+  "path_a": {
+    "status": "ABANDONED \u00b7 ncps 1.0.1 timespans broadcast bug \u5b9e\u6d4b\u786e\u8ba4",
+    "verdict": "ABANDONED"
+  },
+  "path_b": {
+    "mean_hidden_diff_vs_baseline": 2.039454698562622,
+    "paired_t_test_t": 3.8718416928855146,
+    "paired_t_test_p": 0.001505277131358053,
+    "persona_separation_ratio": 1.0030616012898845,
+    "verdict": "WEAK"
+  },
+  "path_c": {
+    "status": "PLACEHOLDER \u00b7 \u03b3-2 \u624d\u9700\u8981"
+  }
+}

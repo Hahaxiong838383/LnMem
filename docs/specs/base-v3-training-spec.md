@@ -1,5 +1,5 @@
 ---
-version: v0.2.4
+version: v0.2.5
 audience: cc / codex / 工程师 / 川哥
 purpose: ADR-016 base v3 multimodal self-supervised LNN 的工程实施细化 spec
 status: 川哥钦定（2026-05-21 v0.2.4，吸收 codex 5.4 + gemini 3.5 双评审修订）
@@ -572,7 +572,7 @@ nohup python scripts/train_base_v3_step1.py \
 | 任务 ID | 内容 | Owner | 依赖 | 估时 |
 |---------|------|-------|------|------|
 | γ-1 | 数据 pipeline spike：用 tiny VEATIC 子集（10 video, 1w 帧）跑通端到端 | cc | ADR-018 schema | 1 天 |
-| γ-2 | 模型架构 PyTorch 实现（fusion + CfC backbone + 5 head + FiLM/τ-bias）+ **v0.2.4 加：ncps τ 注入通道拆解验证（支持则 wrapper；不支持则手写 CfCCell 单步隐式欧拉）** | codex 5.4 high | γ-1 数据格式确定 | 1.5 天 |
+| γ-2 | 模型架构 PyTorch 实现（fusion + CfC backbone + 5 head + FiLM/τ-bias）+ **v0.2.5 实测确认：γ-1 spike 证实 ncps 1.0.1 Path A timespans 有 broadcast bug 不可用 + Path B hook time_a 实测 persona separation 1.003x WEAK → 启用 Path C 手写 CfCCell 单步隐式欧拉（ADR-021）** | codex 5.4 high | γ-1 数据格式确定 | **2.5 天**（+1d for Path C，Step 4 调参 4d→3d 吸收）|
 | γ-3 | Loss 1 (Temporal Contrast) 实现 + tiny 训练（10 video，验证不 collapse）| cc + codex 对抗审 | γ-2 | 1 天 |
 | γ-4 | Step 1 全量预训练（VEATIC 52w 帧）| cc 启动 + 守护 | γ-3 | 4 天 |
 | γ-5 | Step 2 + Step 3 readout 弱监督训练 | codex 5.4 high 实施 | γ-4 step1 ckpt | 3 天 |
@@ -714,6 +714,14 @@ ADR-016 base v3 实施 spec。本 spec 覆盖 Phase γ（5/27-6/10）工程细�
 - **γ-2 + preflight #12 增 τ-bias 真进 ODE 验证**（含显著性检验 `p < 0.05`）
 - **§7.1 补 14 天磁盘预算**（γ-0 free ≥ 150GB + `<10GB` 自动暂停报警）
 - **§9 #10 ncps 版本修正**：1.0.7 → 1.0.1（PyPI 实测最高版本，1.0.7 拍脑袋错）
+
+**v0.2.5（2026-05-21 23:40 γ-1 spike 完工补）**：cc team 模式 23:00-23:40 跑 γ-1 提前完工 → 实测结论
+- **VEATIC viewer_id 担心彻底打消**：公开版只有 rating_averaged 无 raw per-viewer rating → Loss 3 永久关定案
+- **ncps τ Path A ABANDONED**：ncps 1.0.1 `timespans[:,t].squeeze()` 后 (batch,) 无法 broadcast 到 (batch, hidden) 实测 bug
+- **ncps τ Path B WEAK**：hook time_a.weight + persona bias，p<0.05 但 sep=1.003x（persona 无分化）→ 假 LNN-FIRST
+- **ncps τ Path C 启动**：手写 CfCCell 单步隐式欧拉，γ-2 +1d 工时（详 ADR-021）
+- spec §8 γ-2 1.5d → 2.5d，Step 4 调参 4d → 3d 吸收，Phase γ 14d 整体不变
+- §9 #13 风险实测化解，§11.1 #12 sep 阈值收紧 > 1.5
 
 **v0.2.4 后续触发条件（gemini 3.5 终审 APPROVE-with-conditions 留 + cc 实测补）**：
 - 🔮 **5/26 决策日触发**：若 γ-3 spike 最终选 Path A 纯 InfoNCE → 必须加时序梯度截断（相邻帧 AU 变化率 `||x_t - x_{t+1}||₂ > μ+2σ` 时断 positive pair，防低通滤波抹杀微表情）
