@@ -44,45 +44,88 @@ def extract_au_from_video(
     sample_every_n_frames: int = 1,
     max_frames: Optional[int] = None,
 ) -> tuple[np.ndarray, dict]:
-    """从视频抽每帧 AU，返回 (n_frames, num_au) ndarray + metadata.
+    """从视频抽每帧 AU（**per-frame detect_image 模式**，2026-05-22 03:00 修正）.
+
+    **实测发现**：py-feat 0.6.2 `detect_video` 在 VEATIC 视频上**整 batch 全 NaN**
+    （疑似 batch 内 face miss 帧污染其他帧），改为 cv2 拆帧 + 单帧 detect_image：
+    - 单帧 detect_image 实测 1.13s（vs detect_video 1.4s/帧），更快
+    - face miss 帧填 0，不污染其他帧
+    - NaN 自动处理 nan_to_num(0)
 
     Args:
         video_path: 视频路径
         detector: py-feat Detector 实例
-        sample_every_n_frames: 抽帧间隔（>1 减少计算量，但要小心 spec §4.3 Sampler ±60 帧窗口）
+        sample_every_n_frames: 抽帧间隔
         max_frames: 限制抽取帧数（spike 阶段用）
 
     Returns:
         au_array: (n_sampled_frames, len(PYFEAT_AU_COLUMNS))
-        metadata: dict with video_id, n_frames, fps, duration_s, sampled_at
+        metadata: dict with video_id, n_frames, fps, face_miss_rate
     """
     import cv2
+    import tempfile
     video_path = Path(video_path)
     cap = cv2.VideoCapture(str(video_path))
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    cap.release()
 
+    # 选要抽的帧 index
+    sample_indices = list(range(0, total_frames, sample_every_n_frames))
     if max_frames:
-        total_frames = min(total_frames, max_frames * sample_every_n_frames)
+        sample_indices = sample_indices[:max_frames]
 
-    # py-feat 期望文件路径而非 ndarray（实测发现）
-    # detect_video 接路径
     t0 = time.time()
-    out = detector.detect_video(str(video_path), skip_frames=sample_every_n_frames - 1)
-    elapsed = time.time() - t0
+    au_data = []           # per-frame AU vec
+    face_miss_count = 0
+    nan_count = 0
+    num_au = len(PYFEAT_AU_COLUMNS)
 
-    # 提取 AU 列（py-feat 默认输出 dataframe）
-    au_data = []
-    for col in PYFEAT_AU_COLUMNS:
-        if col in out.columns:
-            au_data.append(out[col].values)
-        else:
-            # py-feat 不输出某些 AU → 填 0
-            au_data.append(np.zeros(len(out)))
-    au_arr = np.stack(au_data, axis=1).astype(np.float32)
-    # clip 到 [0, 1]
-    au_arr = np.clip(au_arr, 0.0, 1.0)
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp) / "frame.jpg"
+        for idx_i, frame_idx in enumerate(sample_indices):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+            ret, frame = cap.read()
+            if not ret:
+                au_data.append(np.zeros(num_au, dtype=np.float32))
+                face_miss_count += 1
+                continue
+            cv2.imwrite(str(tmp_path), frame)
+            try:
+                out = detector.detect_image(str(tmp_path))
+            except Exception as e:
+                # face detection 完全 fail
+                au_data.append(np.zeros(num_au, dtype=np.float32))
+                face_miss_count += 1
+                continue
+
+            if len(out) == 0 or out["FaceScore"].iloc[0] < 0.5:
+                au_data.append(np.zeros(num_au, dtype=np.float32))
+                face_miss_count += 1
+                continue
+
+            # 取置信度最高的 face（用 argmax 拿 integer location）
+            best_loc = int(np.argmax(out["FaceScore"].values))
+            frame_au = []
+            for col in PYFEAT_AU_COLUMNS:
+                if col in out.columns:
+                    v = out[col].iloc[best_loc]
+                    if np.isnan(v):
+                        frame_au.append(0.0); nan_count += 1
+                    else:
+                        frame_au.append(float(v))
+                else:
+                    frame_au.append(0.0)
+            au_data.append(np.array(frame_au, dtype=np.float32))
+
+            if (idx_i + 1) % 20 == 0:
+                rate = (idx_i + 1) / (time.time() - t0)
+                print(f"    {idx_i+1}/{len(sample_indices)} frames ({rate:.1f} fps, miss={face_miss_count})", flush=True)
+
+    cap.release()
+    au_arr = np.stack(au_data, axis=0)  # (n, 20)
+    # clip + nan_to_num 双重保险
+    au_arr = np.nan_to_num(np.clip(au_arr, 0.0, 1.0), nan=0.0).astype(np.float32)
+    elapsed = time.time() - t0
 
     metadata = {
         "video_id": video_path.stem,
@@ -92,6 +135,9 @@ def extract_au_from_video(
         "duration_s": total_frames / max(fps, 1.0),
         "sample_every_n_frames": sample_every_n_frames,
         "extract_time_s": elapsed,
+        "face_miss_count": face_miss_count,
+        "face_miss_rate": face_miss_count / max(len(sample_indices), 1),
+        "nan_count": nan_count,
     }
     return au_arr, metadata
 
@@ -119,12 +165,14 @@ def extract_au_batch(
     if video_ids is None:
         video_ids = sorted([p.stem for p in video_dir.glob("*.mp4")], key=lambda x: int(x))
 
+    # py-feat 0.6.2 所有 model 都必须给值（不接受 None），用最轻量配置:
     detector = Detector(
-        face_model="img2pose",
+        face_model="retinaface",
+        landmark_model="mobilefacenet",
         au_model="xgb",
-        emotion_model=None,  # 关掉省 5x 时间
-        landmark_model=None,  # 同上
-        identity_model=None,
+        emotion_model="svm",       # svm 比 resmasknet 轻量
+        facepose_model="img2pose",
+        identity_model="facenet",   # py-feat 要求必给
         device=device,
     )
 
