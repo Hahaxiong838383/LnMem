@@ -38,7 +38,7 @@ def test_contracts_importable() -> None:
 
 def test_parser_signature_compatible_with_protocol() -> None:
     """Skeleton parser has the UniversalGrammarParser method surface."""
-    parser = SchemaGuidedLLMParser()
+    parser = SchemaGuidedLLMParser(llm_client=lambda prompt: '{"slots": {}}')
     typed_parser: UniversalGrammarParser = parser
     assert isinstance(parser, RuntimeUniversalGrammarParser)
     assert callable(typed_parser.parse)

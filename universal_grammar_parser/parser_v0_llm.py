@@ -90,11 +90,14 @@ class SchemaGuidedLLMParser(UniversalGrammarParser):
         backend_result = self.call_backend(prompt)
         self.last_diagnostics = dict(backend_result.diagnostics)
         event = self.postprocessor.build_event(req, backend_result)
+        missing_slots = self._missing_required_slots(event, req.require_priorities)
+        if missing_slots:
+            self.last_diagnostics["missing_required_slots"] = missing_slots
         # 把 diagnostics 嵌进 event.raw_modalities 供调用方查询
-        if backend_result.diagnostics:
+        if self.last_diagnostics:
             try:
                 event.raw_modalities["_parse_diagnostics"] = json.dumps(
-                    backend_result.diagnostics, ensure_ascii=False, default=str,
+                    self.last_diagnostics, ensure_ascii=False, default=str,
                 ).encode("utf-8")
             except Exception:  # noqa: BLE001
                 pass
@@ -243,3 +246,20 @@ text: "我昨晚 8 点跟王总在朝阳门吃了饭聊融资"
                 "retry_history": attempts_log,
             },
         )
+
+    def _missing_required_slots(
+        self,
+        event: EventTensor,
+        priorities: Sequence[int],
+    ) -> dict[str, list[str]]:
+        """Collect missing priority slots. 把 require_priorities 缺槽写入 diagnostics。"""
+        present = set(event.slots)
+        missing_by_priority: dict[str, list[str]] = {}
+        for priority in priorities:
+            required = self.postprocessor.priority_to_slot_ids(priority)
+            missing = sorted(
+                SCHEMA_V1[slot_id].name for slot_id in required if slot_id not in present
+            )
+            if missing:
+                missing_by_priority[f"P{priority}"] = missing
+        return missing_by_priority
