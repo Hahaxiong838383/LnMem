@@ -1,5 +1,5 @@
 ---
-version: v0.2.6
+version: v0.2.7
 audience: cc / codex / 工程师 / 川哥
 purpose: ADR-016 base v3 multimodal self-supervised LNN 的工程实施细化 spec
 status: 川哥钦定（2026-05-21 v0.2.4，吸收 codex 5.4 + gemini 3.5 双评审修订）
@@ -715,7 +715,18 @@ ADR-016 base v3 实施 spec。本 spec 覆盖 Phase γ（5/27-6/10）工程细�
 - **§7.1 补 14 天磁盘预算**（γ-0 free ≥ 150GB + `<10GB` 自动暂停报警）
 - **§9 #10 ncps 版本修正**：1.0.7 → 1.0.1（PyPI 实测最高版本，1.0.7 拍脑袋错）
 
-**v0.2.6（2026-05-22 00:20 γ-2 Path C 实测完工补）**：cc team 模式继续 → Path C 手写 CfCCell 实现完工 + 12 测试全过
+**v0.2.7（2026-05-22 01:00 gemini 二轮对抗审 REVISE 修订）**：吸收 gemini 5 个 finding（CRITICAL/HIGH）+ 1 项 Reject
+- **F-1.1 学术诚实**：「隐式欧拉解析解」→「**半隐式欧拉（Semi-Implicit Euler）离散化**」全文统一
+- **F-1.2 梯度死区修复**：`torch.clamp(bias, -3, 3)` → `3 * tanh(bias/3)` 软有界全域可微
+- **F-2.1 363995x 幻觉化解**：测试加 input noise + random init hidden → 实测 init sep = 1.1-1.25x（**真实状态**），之前 363995x 是 mean_same≈0 / 1e-6 安全垫的数值幻觉
+- **F-3.1 var 阈值不放水**：`tau_init=0.5 + f_net_init_gain=2.5` 调初始化，自然达 var > 0.005，不再降阈值
+- **F-4.1 shortcut learning 量化证实 + γ-3 缓解策略**：实测 `bias_grad/f_net_grad = 0.002`（f_net 强力 MLP 完全 shortcut）→ γ-3 训练必须：(a) f_net L2 reg `weight_decay > 1e-3` (b) `persona_tau_bias lr_scaling = 5-10x` (c) freeze f_net 前 1k step (d) 每 1k step 监控 grad ratio < 1e-3 触发 alarm
+- **F-6.1 长序列**：新增 seq=1000 稳定性测试 + 极端 τ 边界（半隐式欧拉 |h| bounded 天然稳定）
+- **F-5.1 Reject**：gemini 担心 Loss 3 关是学术降级 → cc Reject，VEATIC viewer=annotator 不是 persona，合成 viewer 违反 LNN-FIRST，真 persona 路径走 Phase δ 川哥真人
+- spec §11.1 #12 `sep > 1.5` 验收**留 γ-3 训练 1 epoch 后做**，不在 init 阶段验
+- 14 测试全过（含新增 long_sequence + gradient_flow_to_tau_bias），数字诚实可信
+
+**v0.2.6（2026-05-22 00:20 γ-2 Path C 实测完工补）**：cc team 模式继续 → Path C 手写 CfCCell 实现完工 + 12 测试全过（**注：γ-2 完工度后被 v0.2.7 修订降级，参 ADR-021 §7**）
 - **手写 CustomCfCCell**（`poc/lnn/custom_cfc_cell.py`）实现 spec §2.1 单步隐式欧拉：`h_new = (τ * h_prev + dt * f) / (τ + dt)`
 - **per-neuron + per-persona τ-bias 真进 ODE**：`τ_i = τ_base_i * exp(persona_bias_i)` 直接进入 ODE 解析解
 - **2 层 stack 实测**（`poc/lnn/multilayer_cfc.py`）参数量 48,449（spec 预估 48.4K 精准）

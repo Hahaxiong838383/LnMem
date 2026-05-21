@@ -24,7 +24,7 @@ def test_2layer_params_under_60k():
 
 
 def test_2layer_no_collapse():
-    """2 层 stack 不完全 collapse（init 阶段 var > 1e-4）"""
+    """2 层 stack 不完全 collapse（gemini F-3.1: 阈值 > 5e-3 不再放水）"""
     torch.manual_seed(42)
     model = MultiLayerCustomCfC(input_dim=52, hidden_dim=64, num_layers=2, num_personas=4)
     x = torch.randn(8, 30, 52)
@@ -33,14 +33,11 @@ def test_2layer_no_collapse():
         y = model(x, persona_idx)
     var = y.var().item()
     print(f"\n  2-layer init var: {var:.6f}")
-    assert var > 1e-4, f"2 层 var={var:.6f} 完全坍缩"
+    assert var > 5e-3, f"2 层 var={var:.6f} init 阶段弱坍缩"
 
 
-def test_2layer_persona_separation():
-    """2 层 stack 也必须 persona separation > 1.5（spec §11.1 #12）
-
-    用 step input 触发 transient（同 1 层测试设计）
-    """
+def test_2layer_persona_init_nonzero():
+    """2 层 stack init 阶段 persona τ 影响存在（sep > 1.0，真分化 > 1.5 留训练后）"""
     torch.manual_seed(42)
     model = MultiLayerCustomCfC(input_dim=52, hidden_dim=64, num_layers=2, num_personas=4)
     with torch.no_grad():
@@ -51,24 +48,22 @@ def test_2layer_persona_separation():
             cell.persona_tau_bias.weight[2] = -0.5
 
     batch_size = 16
-    seq_len = 30
     persona_idx = torch.arange(batch_size) % 4
-    # Step input 触发 transient
-    x = torch.zeros(batch_size, seq_len, 52)
-    x[:, 15:, :] = 1.0
+    x = torch.randn(batch_size, 30, 52) * 0.5
+    x[:, 15:, :] += 1.0
     with torch.no_grad():
         y = model(x, persona_idx)
-    # 取 step 后 2-3 帧（transient 阶段，t=17）
-    h_flat = y[:, 17, :]
-
+    h_flat = y[:, -1, :]
     same, diff = [], []
     for i in range(batch_size):
         for j in range(i + 1, batch_size):
             d = (h_flat[i] - h_flat[j]).norm().item()
             (same if persona_idx[i] == persona_idx[j] else diff).append(d)
-    sep = (sum(diff) / len(diff)) / max(sum(same) / len(same), 1e-6)
-    print(f"\n  2-layer transient persona sep: {sep:.3f}x")
-    assert sep > 1.5, f"2 层 stack persona sep={sep:.3f} < 1.5"
+    mean_same = sum(same) / len(same)
+    sep = (sum(diff) / len(diff)) / max(mean_same, 1e-6)
+    print(f"\n  2-layer INIT sep: {sep:.3f}x [训练后目标 > 1.5x]")
+    assert mean_same > 0.01, f"mean_same={mean_same:.6f} 数值幻觉"
+    assert sep > 1.0, f"2 层 sep={sep:.3f} < 1.0 persona τ 完全失效"
 
 
 def test_2layer_cascade():

@@ -121,6 +121,90 @@ class CustomCfCCell(nn.Module):
 - gemini C.1 担心（vanilla ncps 是黑盒）→ 部分否定（time_a/timespans 暴露）+ 部分确认（hook 不够）
 - ncps 上游 PR 机会：fix `timespans[:, t].squeeze()` broadcast bug（社区贡献候选）
 
+## 7. 实测修订（gemini 第二轮对抗审 REVISE 后，2026-05-22 01:00）
+
+gemini 第二轮抓出 5 个修订项，cc 全部采纳 + 1 项 Reject。
+
+### 7.1 数学定义诚实化（gemini F-1.1 HIGH）
+
+**原版**：声称「单步隐式欧拉解析解」
+**实际**：右端 `f(x_t, h_prev)` 作用于 `h_prev` 而非 `h_new` → **半隐式欧拉（Semi-Implicit Euler）**
+**修正**：docstring + ADR + spec 全部改「半隐式欧拉离散化」（学术诚实，避免论文审稿人毁灭性打击）
+
+### 7.2 τ clamp → scaled tanh（gemini F-1.2 MEDIUM）
+
+`torch.clamp(bias, -3, 3)` 在边界处导数=0 → **梯度死区**
+改用 `3 * tanh(bias/3)` 软有界，全域可微，物理范围等价。
+
+### 7.3 363995x 数值幻觉化解（gemini F-2.1 CRITICAL）
+
+**原版测试设计致命缺陷**：
+- 输入完全确定性（前 0 后 1 step）
+- 同 persona_idx → 同 persona_tau_bias → **同 persona 内 hidden 完全相同**
+- mean_same 真实值 = 0 → 撞 `1e-6` 安全垫 → sep = 0.36 / 1e-6 = **360000x 数值幻觉**
+
+**修正**：每样本独立 input noise（std=0.3）+ random init hidden → 真实 mean_same > 0
+
+**真实 init 阶段 sep 实测**：
+- 1 层 sep = **1.109x**（同 persona within=0.70, cross=0.78）
+- 2 层 sep = **1.248x**
+
+→ 之前 363995x **完全是测试设计 cherry-pick**，不是 cell 的真实物理性能。
+
+### 7.4 var 阈值不放水（gemini F-3.1 HIGH）
+
+**原版**：var > 1e-4（从 spec 0.01 放宽 100 倍）→ 工程妥协
+**修正**：
+- 测试阈值定 var > 5e-3
+- `CustomCfCCellConfig` 调 `tau_init: 1.0 → 0.5` + `f_net_init_gain: 2.5`（增大 f_net 输出 gain）
+- 实测：1 层 var = 0.049 / 2 层 var = 0.0072，自然达标不放水
+
+### 7.5 f_net shortcut learning 量化证实（gemini F-4.1 HIGH）
+
+**新测试** `test_gradient_flow_to_tau_bias` 实测：
+```
+bias_grad / f_net_grad ratio = 0.002
+  (persona_tau_bias.grad.sum.abs = 25.33)
+  (f_net.parameters.grad.sum.abs = 12343.27)
+```
+
+**结论**：未做任何缓解时 f_net 27K 强力 MLP **完全 shortcut** 4K 的 persona_tau_bias，grad 比例 1:500。
+
+**γ-3 训练必须缓解（spec v0.2.7 加）**：
+1. **f_net 加 L2 正则**：`weight_decay > 1e-3`
+2. **persona_tau_bias 独立大学习率**：`lr_scaling = 5-10x` 主干 LR
+3. **训练初期 freeze f_net 1k step**：强迫先学 τ-bias
+4. **每 1k step 监控** `bias_grad/f_net_grad ratio`：< 1e-3 触发 alarm
+
+### 7.6 长序列稳定性证实（gemini F-6.1 MEDIUM）
+
+新测试 `test_long_sequence_stability` seq=1000 + 极端 τ：
+- final |h|_max = 0.42（bounded 无爆炸）
+- 无 NaN/Inf
+
+半隐式欧拉公式 `h_new = (τ * h_prev + dt * f) / (τ + dt)` 的天然 bound：|h_new| ≤ max(|h_prev|, |f|)，长序列不会指数爆炸。
+
+### 7.7 Reject: Loss 3 永久关「学术降级」（gemini F-5.1 HIGH）
+
+**gemini 担心**：Loss 3 关 = 失去「多用户个性化对齐」核心学术卖点。提议合成 per-viewer 数据 + 邮件 VEATIC 作者。
+
+**cc 主线 Reject**：
+- VEATIC viewer = **annotator 标注者**，**不是 subject persona 被记录用户**（codex 4 轮严审 + 5/21 22:30 评审已确认）
+- 合成 per-viewer 数据 = 凭空造假，**违反 LNN-FIRST P-1**
+- Loss 3 真路径 = **Phase δ 川哥真人 daemon 数据**（不是 VEATIC）
+- 当前 Phase γ 走自监督表征学习是正确方向，不退化为多 viewer 情感预测器
+
+### 7.8 测试名重命名（认知诚实）
+
+- `test_persona_separation` → `test_persona_init_sep_nonzero`（明确 init 阶段不验 > 1.5）
+- 2 层同名重命名
+
+spec §11.1 #12 `sep > 1.5` 验收**留 γ-3 训练 1 epoch 后做**（含 L2 reg + LR scaling）。
+
+---
+
+**📝 第二轮修订**：cc 主线 + gemini 3.5 high 对抗审 | 2026-05-22 01:00 | 14 测试全过
+
 ---
 
 **📝 维护者**：cc 主线 | **生效**：2026-05-21 23:40 | **下一步**：γ-2 启动 Path C 实现
