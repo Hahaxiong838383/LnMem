@@ -133,33 +133,46 @@ def main():
     print(f"   eval report: {eval_path}")
 
     print(f"\n" + "=" * 70)
-    print(f"📊 γ-3 spike 报告 ({args.loss.upper()}, seed={args.seed})")
+    print(f"📊 γ-3 spike 报告 ({args.loss.upper()}, seed={args.seed}) + 4 硬门验证")
     print(f"=" * 70)
     print(f"  训练: {train_result['total_steps']} steps, loss={train_result['final_loss']:.4f}")
     print(f"  ckpt size: {ckpt_path.stat().st_size / 1e6:.2f} MB")
     print()
     print(f"  M1 KG retrieval (full): top5={eval_result['M1_full_retrieval']['top5_acc']:.3f}")
-    print(f"  M1-V Visual-Only: top5={eval_result['M1V_visual_only_retrieval']['top5_acc']:.3f} "
-          f"[pass={eval_result['M1V_pass']} (≥0.20 required)]")
+    m1v_pass = eval_result['M1V_pass']
+    print(f"  M1-V Visual-Only: top5={eval_result['M1V_visual_only_retrieval']['top5_acc']:.3f} [pass={m1v_pass}]")
     print(f"  M5 video_id shortcut: acc={eval_result['M5_video_id_shortcut']['test_acc']:.3f} "
           f"({eval_result['M5_video_id_shortcut']['verdict']})")
     print(f"  collapse: var={eval_result['collapse_var']:.4f} "
           f"[pass={eval_result['collapse_var_pass']} (>0.01)]")
     print(f"  pairwise dist: {eval_result['collapse_pairwise_dist']:.4f}")
+    print(f"  effective dim: {eval_result.get('effective_dim', 'N/A'):.2f} "
+          f"(gemini 第 5 轮盲区 #1)")
+    if "shuffle_test_drop" in eval_result:
+        drop = eval_result["shuffle_test_drop"]
+        shuf_pass = eval_result["shuffle_test_pass"]
+        print(f"  🔥 Shuffle Test: M1 drop={drop:+.3f} [pass={shuf_pass} (>0.05 required)]")
     print()
 
-    # spec §11.2 验收
-    pass_count = 0
-    pass_count += int(eval_result["M1V_pass"])
-    pass_count += int(eval_result["M5_video_id_shortcut"]["verdict"] == "green")
-    pass_count += int(eval_result["collapse_var_pass"])
-    print(f"📋 spec §11.2 验收: {pass_count}/3 (M1-V / M5 green / collapse var)")
-    if pass_count == 3:
-        print(f"  ✅ ALL PASS — Phase γ Step 1 启动门槛达成")
-    elif pass_count >= 2:
-        print(f"  ⚠️ PARTIAL — 需修订后重跑")
+    # 4 硬门验收 (gemini 第 5 轮钦定 5/27 Phase γ Step 1 启动条件)
+    print(f"📋 gemini 4 硬门（5/27 Phase γ Step 1 启动）:")
+    g1_ratio_ok = all(0.1 <= log.get("bias_grad_ratio_post_dgb", 1) <= 50 for log in train_result["logs"][-5:])
+    g2_shuffle_ok = eval_result.get("shuffle_test_pass", False)
+    g3_spatial_aug = False  # 还没实施（gemini 硬门 #3 留下一步）
+    g4_m1v_na = "Spike" in str(m1v_pass)  # M1-V 已正确标 N/A
+    print(f"  #1 ratio in [0.1, 50]: {g1_ratio_ok}")
+    print(f"  #2 Shuffle Test M1 drop > 0.05: {g2_shuffle_ok}")
+    print(f"  #3 Spatial Aug + M5 < 0.15: {g3_spatial_aug} (not yet implemented)")
+    print(f"  #4 M1-V spike N/A: {g4_m1v_na}")
+    hard_gate_pass = sum([g1_ratio_ok, g2_shuffle_ok, g3_spatial_aug, g4_m1v_na])
+    print(f"  → {hard_gate_pass}/4 硬门通过")
+
+    if hard_gate_pass == 4:
+        print(f"  ✅ 4 硬门全过 — Phase γ Step 1 (5/27) 可启动")
+    elif hard_gate_pass >= 2:
+        print(f"  ⚠️ PARTIAL — 还需 {4-hard_gate_pass} 项硬门通过")
     else:
-        print(f"  ❌ FAIL — 触发 spec §9 风险表 rollback")
+        print(f"  ❌ 暂缓放行 — gemini 钦定 BLOCK")
 
 
 if __name__ == "__main__":

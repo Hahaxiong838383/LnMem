@@ -164,23 +164,45 @@ def evaluate_retrieval_topk(
 # -----------------------------------------------------------------------------
 # Full evaluation pipeline
 # -----------------------------------------------------------------------------
+def shuffle_frames_in_window(et: torch.Tensor, seed: int = 42) -> torch.Tensor:
+    """硬门 #2 Shuffle Test: 打乱 window 内帧顺序（保持 batch 维度不变）.
+
+    Args:
+        et: (B, T, D) 或 (T, D)
+    Returns:
+        same shape, T 维度被打乱
+    """
+    if et.dim() == 2:
+        T = et.size(0)
+        perm = torch.randperm(T, generator=torch.Generator().manual_seed(seed))
+        return et[perm]
+    else:
+        T = et.size(1)
+        perm = torch.randperm(T, generator=torch.Generator().manual_seed(seed))
+        return et[:, perm, :]
+
+
 def run_evaluation(
     trainer,  # TinyTrainer instance
     dataset,  # VEATICDataset
     sample_per_video: int = 5,
+    include_shuffle_test: bool = True,    # 硬门 #2 默认开启
+    spike_phase: bool = True,             # 硬门 #4: spike 阶段 M1-V N/A
 ) -> dict:
-    """跑完整 γ-3 evaluation: M1-V + M5 + collapse.
+    """跑完整 γ-3 evaluation: M1 + M1-V + M5 + collapse + Shuffle Test.
 
     Args:
         trainer: 训练好的 TinyTrainer
         dataset: VEATICDataset
         sample_per_video: 每视频抽多少窗口做评估
+        include_shuffle_test: 硬门 #2 gemini 第 5 轮钦定
+        spike_phase: True=spike 阶段 M1-V 标 N/A（gemini 硬门 #4）
     """
     from .dataset import split_to_windows
 
-    # 收集 hidden states
-    hidden_full = []     # full input
-    hidden_visual = []   # 25d 文本 mask 后
+    hidden_full = []
+    hidden_visual = []
+    hidden_shuffled = []  # 硬门 #2: 打乱帧顺序后 hidden
     video_ids = []
 
     trainer.fusion.eval()
@@ -191,8 +213,7 @@ def run_evaluation(
         for i in range(len(dataset)):
             sample = dataset[i]
             windows = split_to_windows(sample, seq_len=trainer.cfg.seq_len, stride=trainer.cfg.seq_len)
-            # 每视频抽 sample_per_video 窗口
-            for w in windows[:sample_per_video]:
+            for w_idx, w in enumerate(windows[:sample_per_video]):
                 et = w["event_tensor"].unsqueeze(0).to(trainer.device)
                 # Full input
                 h_full = trainer.encode(et, persona_idx)[0, -1, :]
@@ -201,6 +222,11 @@ def run_evaluation(
                 et_masked = mask_text_features(et)
                 h_vis = trainer.encode(et_masked, persona_idx)[0, -1, :]
                 hidden_visual.append(h_vis.cpu().numpy())
+                # 硬门 #2 Shuffle Test
+                if include_shuffle_test:
+                    et_shuf = shuffle_frames_in_window(et, seed=42 + w_idx)
+                    h_shuf = trainer.encode(et_shuf, persona_idx)[0, -1, :]
+                    hidden_shuffled.append(h_shuf.cpu().numpy())
                 video_ids.append(w["video_id"])
 
     hidden_full = np.stack(hidden_full)
@@ -209,7 +235,7 @@ def run_evaluation(
     # M5 video_id shortcut
     m5_result = evaluate_video_id_shortcut(hidden_full, video_ids)
 
-    # M1 retrieval: full vs visual-only
+    # M1 retrieval
     m1_full = evaluate_retrieval_topk(hidden_full, hidden_full, video_ids, video_ids, k=5)
     m1_visual = evaluate_retrieval_topk(hidden_visual, hidden_visual, video_ids, video_ids, k=5)
     m1_visual.method = "visual_only"
@@ -221,13 +247,41 @@ def run_evaluation(
     )
     pairwise_dist = float(pairwise[np.triu_indices_from(pairwise, k=1)].mean())
 
-    return {
+    # 维度坍塌检测（gemini 第 5 轮盲区 #1）
+    # SVD 看奇异值衰减，effective_dim = ratio of sum(s) / s[0]（粗糙估算）
+    try:
+        s = np.linalg.svd(hidden_full - hidden_full.mean(axis=0), compute_uv=False)
+        effective_dim = float((s.sum() / max(s[0], 1e-9)))
+        s_decay_ratio = float(s[0] / max(s[min(len(s)-1, 10)], 1e-9))
+    except Exception:
+        effective_dim = -1.0
+        s_decay_ratio = -1.0
+
+    result = {
         "n_samples": len(hidden_full),
         "M5_video_id_shortcut": dataclasses.asdict(m5_result),
         "M1_full_retrieval": dataclasses.asdict(m1_full),
         "M1V_visual_only_retrieval": dataclasses.asdict(m1_visual),
-        "M1V_pass": m1_visual.top5_acc >= 0.20,  # spec §6.1 M1-V 门槛
+        # 硬门 #4: Spike 阶段 M1-V 标 N/A（文本 0 时 M1-V ≡ M1 trivial pass 无意义）
+        "M1V_pass": "N/A (Spike: text=0, M1-V≡M1)" if spike_phase
+                    else (m1_visual.top5_acc >= 0.20),
         "collapse_var": hidden_var,
         "collapse_pairwise_dist": pairwise_dist,
-        "collapse_var_pass": hidden_var > 0.01,  # spec §6.1 trained 阈值
+        "collapse_var_pass": hidden_var > 0.01,
+        # 维度坍塌（gemini 第 5 轮盲区 #1）
+        "effective_dim": effective_dim,
+        "singular_value_decay_top0_vs_10": s_decay_ratio,
     }
+
+    # 硬门 #2 Shuffle Test
+    if include_shuffle_test and hidden_shuffled:
+        hidden_shuf = np.stack(hidden_shuffled)
+        m1_shuf = evaluate_retrieval_topk(hidden_shuf, hidden_shuf, video_ids, video_ids, k=5)
+        m1_shuf.method = "shuffled_frames"
+        m1_drop = m1_full.top5_acc - m1_shuf.top5_acc
+        result["M1_shuffled_retrieval"] = dataclasses.asdict(m1_shuf)
+        result["shuffle_test_drop"] = m1_drop
+        # gemini 硬门 #2: M1 必须降 > 5%
+        result["shuffle_test_pass"] = m1_drop > 0.05
+
+    return result

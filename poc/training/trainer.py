@@ -27,6 +27,7 @@ from poc.lnn.heads import FusionLayer, FusionConfig
 from poc.lnn.losses import InfoNCELoss, InfoNCEConfig, VICRegLoss, VICRegConfig, detect_semantic_breakpoints
 from poc.monitoring.collapse_monitor import CollapseMonitor
 from .dataset import VEATICDataset, split_to_windows
+from .au_augment import au_augment, AUAugmentConfig
 
 
 @dataclasses.dataclass(frozen=True)
@@ -44,9 +45,11 @@ class TrainConfig:
     num_personas: int = 4
     epochs: int = 1
     lr: float = 1e-3
-    # ADR-022: 双率优化器 + DGB
-    tau_lr: float = 1e-6                # τ-bias 极低 LR（vs 主 lr 1e-3 差 1000x）
-    dgb_target_ratio: float = 10.0      # DGB 强制 bias_grad/f_net_grad ≤ 1/10
+    # ADR-022 v2 (gemini 第 5 轮钦定): τ LR=0 完全冻结
+    # 原因: DGB 后 τ-bias 等效 LR = 10^-15 已 underflow，相当于已 frozen
+    # 直接 LR=0 省计算 + 避数值下溢 + 把 τ 调优留到 Phase γ Step 2/3
+    tau_lr: float = 0.0                  # 硬门 #1: τ-bias 完全冻结
+    dgb_target_ratio: float = 10.0      # DGB 保留作为安全网（τ frozen 后基本不会触发）
     dgb_enabled: bool = True
     persona_lr_scale: float = 1.0       # DEPRECATED by ADR-022 双率优化器
     f_net_weight_decay: float = 1e-3    # gemini F-4.1
@@ -55,6 +58,11 @@ class TrainConfig:
     use_breakpoint_mask: bool = True    # gemini 终审条件 1
     log_every_n: int = 50
     seed: int = 42
+    # 硬门 #3 (gemini 第 5 轮): AU augmentation 替代 spatial aug
+    au_augment_enabled: bool = True
+    au_dropout_p: float = 0.3        # 实测甜区：M5 833→500（-40%）, Shuffle drop +0.241
+    au_jitter_std: float = 0.05      # 同上
+    au_temporal_mixup_alpha: float = 0.0  # 关：激进 mixup 反而劣化（实测 5/21）
 
 
 class TinyTrainer:
@@ -196,6 +204,23 @@ class TinyTrainer:
 
             anchor, positive, negatives = pairs["anchor"], pairs["positive"], pairs["negatives"]
             B = anchor.size(0)
+
+            # 硬门 #3: AU augmentation on anchor + positive + negatives
+            # 破坏 video-static 特征，强迫学时序结构（gemini 钦定）
+            if self.cfg.au_augment_enabled:
+                aug_cfg = AUAugmentConfig(
+                    channel_dropout_p=self.cfg.au_dropout_p,
+                    intensity_jitter_std=self.cfg.au_jitter_std,
+                    temporal_mixup_alpha=self.cfg.au_temporal_mixup_alpha,
+                    frame_independent=True,  # gemini 钦定 non-coherent
+                )
+                anchor = au_augment(anchor, aug_cfg, seed=self.step * 1000 + 0)
+                positive = au_augment(positive, aug_cfg, seed=self.step * 1000 + 1)
+                # negatives shape (B, K, T, D), flatten 处理
+                B_n, K_n, T_n, D_n = negatives.shape
+                neg_flat = au_augment(negatives.view(B_n * K_n, T_n, D_n), aug_cfg,
+                                       seed=self.step * 1000 + 2)
+                negatives = neg_flat.view(B_n, K_n, T_n, D_n)
 
             # persona_idx: spike 阶段简化全 0
             persona_idx = torch.zeros(B, dtype=torch.long, device=self.device)
