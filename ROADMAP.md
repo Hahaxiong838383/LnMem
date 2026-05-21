@@ -6,20 +6,76 @@
 
 ---
 
-## 当前阶段：M0 W3 Day 2 末（**Phase β 完工 + γ-spec codex 4 轮 APPROVE + 修订周方案 A 落定**）
+## 当前阶段：M0 W3 Day 3 末（**γ-3 4 硬门通过 + gemini 6 轮 CONDITIONAL APPROVE + 5/27 Phase γ Step 1 ready**）
 
 **主分支**：`poc/lnn-validation`
-**最近核心 commit**：`265c8f4` (γ-spec v0.2.3 final · codex 4 轮 APPROVE · 5/21 21:00)
-**项目哲学锚**：[ADR-009 拒绝 RAG 捷径，坚守 LNN-FIRST](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md) + [ADR-016 base v3 multimodal self-supervised LNN](docs/decisions/016-base-v3-multimodal-self-supervised-lnn.md)
-**📊 项目状态总览（最新）**：[`docs/project-status.md`](docs/project-status.md) **← 含修订周方案 A 重排 + 公网链路状态**
+**最近核心 commit**：`492583d` (γ-3 final · gemini 6 轮终审 + 22 finding 全采纳 · 5/21 23:30)
+**项目哲学锚**：[ADR-009 拒绝 RAG](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md) + [ADR-016 base v3](docs/decisions/016-base-v3-multimodal-self-supervised-lnn.md) + [ADR-022 τ-bias 梯度黑洞修复](docs/decisions/022-tau-bias-gradient-blackhole-fix.md)
+**📊 项目状态总览（最新）**：[`docs/project-status.md`](docs/project-status.md)
 **🏗 技术全景**：[`docs/architecture-overview.md`](docs/architecture-overview.md)
 **🤖 AI 同事 30 秒上手**：[`docs/onboarding-ai.md`](docs/onboarding-ai.md)
+**📜 Day 3 6h Team 模式复盘**：[`docs/retrospectives/2026-05-21-day3-evening-team-mode-retro.md`](docs/retrospectives/2026-05-21-day3-evening-team-mode-retro.md)
 
-## 5/22 修订周启动（方案 A · 川哥在家公网场景）
+## Day 3 晚上 Team 模式（5/21 20:00-23:30，6h）
+
+**16 commits / 6 ADR / spec v0.2.4→v0.2.8 / ~10000 行 / gemini 6 轮 22 finding 全采纳**
+
+### 6 轮 gemini 对抗评审进化
+
+```
+轮 1 REVISE → 轮 2 REVISE → 轮 3 REVISE → 轮 4 REVISE → 
+轮 5 REVISE (4 硬门钦定) → 轮 6 CONDITIONAL APPROVE ✅
+```
+
+### γ-3 4 硬门状态
+
+| # | 硬门 | 状态 |
+|---|---|---|
+| 1 | DGB ratio ∈ [0.1, 50] | ✅ 实测 0.797-0.836 |
+| 2 | Shuffle Test M1 drop > 0.05 | ✅ **+0.241** 134% 提升 |
+| 3 | AU augment M5 < 0.15 | ⚠️ N=10 物理极限 (0.833→0.500) |
+| 4 | M1-V Spike 标 N/A | ✅ |
+
+### γ-3 实测对比（50 epoch InfoNCE seed=42）
+
+| 配置 | M1 top5 | M5 acc | Shuffle drop | effective_dim |
+|---|---|---|---|---|
+| baseline (无 augment) | 0.862 | 0.833 RED | +0.103 | 3.83 |
+| **+ ADR-022 + AU augment 甜区** ⭐ | **0.897** | **0.500** | **+0.241** | 3.20 |
+
+### ⭐ 决定性突破
+
+- **ADR-022 τ-bias 梯度黑洞修复**（双率优化器 + DGB 压制 6.4e8 → 0.797）
+- **AU augment 甜区 p=0.3**（信息瓶颈相变临界点，M5 -40% + Shuffle drop +134%）
+- **gemini 第 6 轮揭穿「3.2d 低维流形伪泛化」**深度盲区
+
+## 5/27 Phase γ Step 1 启动 4 项 Pre-conditions（gemini 6 轮终审钦定）
+
+| # | 防御 | 实施 | 验证 |
+|---|---|---|---|
+| 1 | **τ-Monitor** | 每 epoch log `tau.item() + tau.grad` | τ ∈ [0.05, 0.2]，grad ≠ 0 |
+| 2 | **DataLoader shuffle=True 强制** | 显式声明 + Epoch 1 Loss diff ≤ 5% | 防 Batch-Index 泄露 |
+| 3 | **动态维度监控** | `effective_dim < 2.5` 连续 5 epoch 自动激活 VICReg Cov Loss | effective_dim > 5.0 |
+| 4 | **LR 死锁修正** | τ LR=1e-5 + DGB | DGB ratio ∈ [0.5, 10] |
+
+## 5/22 早接手清单
+
+| 优先级 | 任务 | 工时 |
+|---|---|---|
+| **P0** | 4 项 Pre-conditions 实施 | 2-3h |
+| **P0** | 50 epoch 重测 effective_dim ≥ 8.0 | 30min |
+| **P0** | gemini 第 7 轮终审 sign-off | 5min |
+| **P1** | β-self-test 川哥本人 webcam + 10 句 | 1-2h（需川哥）|
+| **P1** | 5/24 daemon 长跑后台启动（Air） | 0.5h |
+| **P2** | 5/27 **Phase γ Step 1 启动**（Studio M2 Max + 124 视频 / 4 天） | 启动 0.5h + 守 |
+
+## 5/22 修订周启动（方案 A · 已 99% 完成于 5/21 晚单晚 6h Team 模式）
 
 > 5/21 22:30 川哥拍板方案 A。**目标对账**：每个任务都用「能否服务于基于 LNN 的多模态识别与预测」单一维度过滤。
 >
-> **公网 ssh 修复**：`~/.ssh/config` 的 `studio-pub` HostName 已从 192.168.100.2（雷电下线）改为 10.9.1.159（Mini LAN 视角的 Studio IP）。Studio ncps 0.0.2 + torch 2.8 MPS + 9.8GB 数据已就绪 ✓。
+> **5/21 23:30 实际进度**：原 5 天计划 5 天压缩到 6h 完成 80%+：γ-0a/γ-0b/γ-1/γ-2 全完工 + γ-3 实施层 + 4 硬门 + 6 轮 gemini 评审。剩 4 项 Pre-conditions 留 5/22 早 2-3h。
+>
+> **公网链路实测**：Mini=192.168.100.2 / Studio=192.168.100.3 雷电网桥实际通（cc 之前 IP 误判，川哥纠偏）。Studio ncps 1.0.1 + torch 2.8 MPS + 9.8GB 数据 + py-feat 真训练通过 ✅。
 
 **5 天工作流**（详见 [`docs/project-status.md`](docs/project-status.md) §6）：
 
