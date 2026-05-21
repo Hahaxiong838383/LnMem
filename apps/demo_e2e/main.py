@@ -36,7 +36,9 @@ from graphiti_zh_adapter.adapter import GraphitiZhAdapterSkeleton
 from universal_grammar_parser.config import ParserConfig
 from universal_grammar_parser.parser_v0_llm import SchemaGuidedLLMParser
 
-from apps.demo_e2e.components import event_to_dict, events_to_dataframe
+import dataclasses
+
+from apps.demo_e2e.components import event_to_complete_state, event_to_dict, events_to_dataframe
 from apps.demo_e2e.llm_config import make_llm_client
 from apps.demo_e2e.multimodal import (
     AU_NAMES_20,
@@ -321,7 +323,7 @@ def left_panel() -> None:
             return
 
         try:
-            with st.spinner("🧠 LLM 抽取万能语法 20 槽..."):
+            with st.spinner("🧠 LLM 抽取万能语法 20 槽 + 句式 intent_type..."):
                 req = ParseRequest(text=text, user_id=user_id, timestamp=datetime.now(timezone.utc))
                 event = st.session_state.parser.parse(req)
         except Exception as exc:
@@ -334,20 +336,40 @@ def left_panel() -> None:
             )
             return
 
-        # 多模态 signal 绑定到 event_id（旁挂 session_state）
-        if st.session_state.current_snapshot is not None:
-            st.session_state.event_multimodal[event.event_id] = st.session_state.current_snapshot
+        # #10 多模态持久化：把 webcam snapshot 写进 EventTensor.multimodal_context（v1.1 字段）
+        # 不再用 st.session_state 旁挂，走 schema 正式字段 → 自动随 KG 写入持久化
+        snap = st.session_state.current_snapshot
+        if snap is not None:
+            multimodal_ctx = {
+                "v_a": list(snap["v_a"]),
+                "state_label": snap["state_label"],
+                "state_label_zh": snap["state_label_zh"],
+                "au_vector": {k: v for k, v in snap["au_vector"].items() if v > 0.01},  # 稀疏化省空间
+                "source": snap["source"],
+                "confidence": snap["confidence"],
+                "face_detected": snap["face_detected"],
+            }
+            event = dataclasses.replace(event, multimodal_context=multimodal_ctx)
+            # 兼容旧 session_state 索引（M5 删除）
+            st.session_state.event_multimodal[event.event_id] = snap
 
-        st.subheader("📋 解析结果 · 20 槽符号投影")
-        st.caption(HELP["slot20"])
-        st.json(event_to_dict(event))
+        # #8 完整状态描述（川哥钦定 6 维：text + 20 槽 + intent + emotional + lnn_hidden + follow_up）
+        st.subheader("🎯 完整状态描述 JSON（川哥钦定 6 维）")
+        st.caption("AI 对这句话的完整理解 — Phase β 接通范式（base v3 训完后 lnn_hidden_state 真实化）")
+        complete_state = event_to_complete_state(event, text_raw=text)
+        st.json(complete_state)
 
-        with st.spinner("💾 写入 bi-temporal KG..."):
+        # 仍保留 20 槽折叠展开（旧 UI 兼容）
+        with st.expander("📋 仅看 20 槽符号投影（万能语法）", expanded=False):
+            st.caption(HELP["slot20"])
+            st.json(event_to_dict(event))
+
+        with st.spinner("💾 写入 bi-temporal KG（含 multimodal_context）..."):
             node_id = st.session_state.adapter.upsert(event)
             st.session_state.events_history.append(event)
 
         counts = event.filled_priority_count()
-        st.success(f"✅ 已写入 KG · node_id = `{node_id[:16]}...`")
+        st.success(f"✅ 已写入 KG · node_id = `{node_id[:16]}...` · schema_version={event.schema_version}")
 
         col1, col2 = st.columns(2)
         col1.metric(
@@ -376,14 +398,34 @@ def render_kg_hit(hit, idx: int) -> None:
     title = action.value if action else "(no what_action)"
 
     with st.expander(f"#{idx} · score={hit.score:.3f} · {title}", expanded=(idx == 1)):
-        # 多模态 state（若有）
-        snap = st.session_state.event_multimodal.get(event.event_id)
-        if snap is not None:
-            st.caption("🧠 **关联的 LNN 涌现状态**（解析时同步抓拍的多模态 signal）")
-            render_snapshot_card(snap, key_prefix=f"hit_{idx}")
+        # 多模态 state 优先从 event.multimodal_context（v1.1 持久化字段）拿
+        ctx = event.multimodal_context
+        if ctx:
+            st.caption(f"🧠 **关联的 LNN 涌现状态** · source={ctx.get('source', '?')}")
+            col_a, col_b, col_c = st.columns(3)
+            v, a = ctx.get("v_a", [0, 0])
+            col_a.metric("LNN 涌现状态", ctx.get("state_label_zh", "?"))
+            col_b.metric("Valence", f"{v:+.2f}")
+            col_c.metric("Arousal", f"{a:+.2f}")
+            with st.expander("🔬 20 AU 向量", expanded=False):
+                st.json(ctx.get("au_vector", {}))
             st.divider()
         else:
-            st.caption("（此事件未绑定多模态 signal）")
+            # fallback session_state 旁挂（v1.0 节点兼容）
+            snap = st.session_state.event_multimodal.get(event.event_id)
+            if snap is not None:
+                st.caption("🧠 **关联的 LNN 涌现状态**（session_state 兼容路径）")
+                render_snapshot_card(snap, key_prefix=f"hit_{idx}")
+                st.divider()
+            else:
+                st.caption("（此事件未绑定多模态 signal）")
+
+        # intent_type 句式（v1.1 新展示）
+        st.caption(f"🎭 **句式 intent_type**：{event.intent_type.value}")
+
+        # 完整状态描述（川哥钦定 6 维）
+        with st.expander("🎯 完整状态描述 JSON（6 维全景）", expanded=False):
+            st.json(event_to_complete_state(event))
 
         # 20 槽完整展开
         st.caption("📋 **20 槽符号投影** · " + HELP["slot20"][:60] + "...")
