@@ -120,7 +120,8 @@ def test_snapshot_au_vector_20_dims():
     result = snapshot_to_state(b"test", mode="mock")
     assert set(result["au_vector"].keys()) == set(AU_NAMES_20)
     for name, val in result["au_vector"].items():
-        assert 0.0 <= val <= 5.0, f"{name} out of range: {val}"
+        # AU 范围 [0, 1]（py-feat XGB 概率 + mock 反推都对齐到这个范围，2026-05-21 修复）
+        assert 0.0 <= val <= 1.0, f"{name} out of range: {val}"
 
 
 def test_snapshot_va_in_unit_circle():

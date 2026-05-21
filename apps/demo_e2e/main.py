@@ -271,16 +271,27 @@ def left_panel() -> None:
 
     snap_mode_label = st.radio(
         label="推理模式",
-        options=["mock（毫秒级·演示用）", "pyfeat（真模型·首次约 5s）"],
-        index=0,
+        options=[
+            "🎯 pyfeat（真表情识别 · 推荐）",
+            "⚠️ mock（占位演示 · 与真实表情无关）",
+        ],
+        index=0,  # 默认 pyfeat 真识别（py-feat 已装好）
         horizontal=True,
         help=(
-            "**mock**：图像 hash → 确定性占位 V-A，毫秒级返回，不是真识别。\n\n"
-            "**pyfeat**：调 py-feat 真提取 20 AU，首次需下载 ~150MB 模型，CPU 每次 2-5s。"
-            "失败时自动降级 mock。"
+            "**🎯 pyfeat（推荐）**：调 py-feat 真识别 20 AU 面部动作 → V-A 投影 → 9-state。"
+            "首次推理 ~5s（模型已缓存），后续 2-3s。Phase γ base v3 训完后会替换为 LNN 真表征。\n\n"
+            "**⚠️ mock**：**不是真识别**。V-A 是图像 sha256 hash 出的伪随机值，"
+            "AU 是从 V-A 反推显示用，跟你笑/哭/皱眉**完全无关**。"
+            "**仅用于演示 UI 链路 / 单测稳定性 / 网络故障兜底**。"
         ),
     )
-    mode_key = "pyfeat" if snap_mode_label.startswith("pyfeat") else "mock"
+    mode_key = "pyfeat" if "pyfeat" in snap_mode_label else "mock"
+
+    if mode_key == "mock":
+        st.warning(
+            "⚠️ **当前是 mock 占位模式** —— V-A 是图像 hash 出的伪随机值，"
+            "**与你实际表情完全无关**。切到上面的 🎯 pyfeat 看真识别。"
+        )
 
     img_file = st.camera_input(
         label="点击下方按钮调用摄像头",
