@@ -6,14 +6,34 @@
 
 ---
 
-## 当前阶段：M0 W3 Day 2 末（**Phase β 完工 + γ-spec codex 4 轮 APPROVE + Phase γ ready**）
+## 当前阶段：M0 W3 Day 2 末（**Phase β 完工 + γ-spec codex 4 轮 APPROVE + 修订周方案 A 落定**）
 
 **主分支**：`poc/lnn-validation`
 **最近核心 commit**：`265c8f4` (γ-spec v0.2.3 final · codex 4 轮 APPROVE · 5/21 21:00)
 **项目哲学锚**：[ADR-009 拒绝 RAG 捷径，坚守 LNN-FIRST](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md) + [ADR-016 base v3 multimodal self-supervised LNN](docs/decisions/016-base-v3-multimodal-self-supervised-lnn.md)
-**📊 项目状态总览（最新）**：[`docs/project-status.md`](docs/project-status.md)
+**📊 项目状态总览（最新）**：[`docs/project-status.md`](docs/project-status.md) **← 含修订周方案 A 重排 + 公网链路状态**
 **🏗 技术全景**：[`docs/architecture-overview.md`](docs/architecture-overview.md)
 **🤖 AI 同事 30 秒上手**：[`docs/onboarding-ai.md`](docs/onboarding-ai.md)
+
+## 5/22 修订周启动（方案 A · 川哥在家公网场景）
+
+> 5/21 22:30 川哥拍板方案 A。**目标对账**：每个任务都用「能否服务于基于 LNN 的多模态识别与预测」单一维度过滤。
+>
+> **公网 ssh 修复**：`~/.ssh/config` 的 `studio-pub` HostName 已从 192.168.100.2（雷电下线）改为 10.9.1.159（Mini LAN 视角的 Studio IP）。Studio ncps 0.0.2 + torch 2.8 MPS + 9.8GB 数据已就绪 ✓。
+
+**5 天工作流**（详见 [`docs/project-status.md`](docs/project-status.md) §6）：
+
+```
+5/22 上 γ-0 Studio 前置就绪（70% 已预热）
+5/22 下 β-self-test 川哥 10 句自体验
+5/22 晚-5/23 γ-1 数据 pipeline + ncps spike
+5/23-5/24 γ-2 2 层 CfC 实测 + collapse 四联监控
+5/24 晚 daemon 长跑后台启动（→ 6/10 累积 17 天真人数据）
+5/25 上 γ-3 InfoNCE vs VICReg（半天压缩）
+5/25 下 v2 collapse reproducer 落盘
+5/26 γ-preflight 10-video 11 项 checklist
+5/27 🚀 Phase γ Step 1 启动
+```
 
 ## 2026-05-21 Day 2 进展 🎯
 

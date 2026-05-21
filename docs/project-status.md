@@ -159,7 +159,9 @@ GEMINI_PROXY_TOKEN=<token> PYTHONPATH=. \
 
 详见 [`docs/retrospectives/2026-05-21-day2-phase-alpha-retro.md`](retrospectives/2026-05-21-day2-phase-alpha-retro.md)。
 
-## 6. TODO（按优先级）
+## 6. TODO（按优先级，**方案 A 5/21 22:30 川哥拍板**）
+
+> **复盘对账**：用川哥钦定的「**能符合最初目标、达到基于 LNN 的多模态识别与预测**」单一维度对账，发现 4 个目标-TODO 缺口（γ-0 Studio 前置 / β-self-test 真实体感 / daemon 长跑白时间 / v2 reproducer 锚点）→ 落地方案 A 保守加固。
 
 ### ✅ Phase β（5/22-5/24 原计划，5/21 提前完工）
 
@@ -168,14 +170,39 @@ GEMINI_PROXY_TOKEN=<token> PYTHONPATH=. \
 - [x] ✅ demo 输出完整状态描述 JSON（6 维）
 - [x] ✅ graphiti KG SQLite 持久化（β-4）
 - [x] ✅ multimodal_context 持久化到 EventTensor（β-5）
-- [ ] **P1** L4-bonus UX Cmd+Shift+F 主动状态锚点（留 5/26 修订周）
 
-### 🚀 修订周（5/22-5/26，5 天 · 明日启动）
+### 🚀 修订周（5/22-5/26，5 天 · 方案 A 重排）
 
-- [ ] **γ-1** (5/22) 数据 pipeline + ncps spike：Studio ssh + ncps CfC API + tiny VEATIC AU 抽取 + Sampler ±60/>30s + VEATIC viewer_id 去重数
-- [ ] **γ-2** (5/23-5/24) 模型架构 2 层 CfC 实测：参数量 + FiLM/τ-bias + 5 head readout + collapse 四联监控
-- [ ] **γ-3** (5/25) InfoNCE vs VICReg 双路 spike：tiny 1 epoch + Linear Probe acc + 视频 ID Shortcut 反测 + V-A 标注口径 Bland-Altman
-- [ ] **γ-preflight** (5/26) 10-video 11 项 checklist 川哥钦定 → 5/27 启动 Phase γ Step 1
+| 日期 | 任务 | 工时 |
+|------|------|------|
+| **5/22 上午** | **γ-0 Studio 环境前置就绪**（70% 已就绪 5/21 晚预热）：git pull / 踢闲置 session / 清磁盘 / ncps CfC smoke | ~1h |
+| **5/22 下午** | **β-self-test** webcam + 10 句川哥自体验 + 友好化最后打磨 | 1-2h |
+| **5/22 晚 - 5/23 上** | **γ-1** 数据 pipeline + ncps spike + VEATIC viewer_id 去重数 | 0.5 天 |
+| **5/23 下 - 5/24** | **γ-2** 2 层 CfC 实测 + collapse 四联监控 | 1.5 天 |
+| **5/24 晚** | **daemon 长跑后台启动**（→ 6/10 累积 17 天真人数据，Phase δ 前置） | 0.5h |
+| **5/25 上** | **γ-3** InfoNCE vs VICReg spike（半天压缩） | 0.5 天 |
+| **5/25 下** | **v2 collapse reproducer** 落盘 + 半天缓冲 | 1h |
+| **5/26** | **γ-preflight** 10-video 11 项 checklist 川哥钦定 | 1 天 |
+| **5/27** | 🚀 Phase γ Step 1 启动 | — |
+
+**降级 / 完结**：
+- **L4-bonus Cmd+Shift+F UX** → 推到 Phase γ 训练空窗 5/30-6/3 任意空闲半天（不服务于 LNN 多模态核心目标）
+- **老 ROADMAP TODO-4/5/6 (ADR-007 AffectNet)** → 已被 ADR-016 superseded，从主 TODO 清单移除
+
+### 📡 公网链路状态（川哥在家场景，5/21 22:30 实测）
+
+```
+Air(家 WiFi) → cli4.hahaxiong.cc:22022 (mini-pub FRP) → Mini → 10.9.1.159 (Bonjour LAN) → Studio ✅
+```
+
+| 链路段 | 状态 |
+|---|---|
+| Air → mini-pub (FRP) | ✅ |
+| Mini → 雷电 192.168.100.2 | ❌ **下线**（原 studio-pub config 失效） |
+| Mini → 10.9.1.159 (iBRO LAN) | ✅ 通 |
+| **修复**：~/.ssh/config `studio-pub` HostName 改为 10.9.1.159 | ✅ commit pending |
+
+**Studio 实测基线**（5/21 22:30）：arm64 M2 Max / macOS 26.4.1 / uptime 31d / load 2.73 / 61Gi free / **ncps 0.0.2 + torch 2.8 MPS 已装** / veatic+emotic+mst 9.8GB 全在位 / repo HEAD `c4b5f80` 落后 ~15 commits。
 
 ### ⏳ Phase γ（5/27-6/10，14 天）
 
