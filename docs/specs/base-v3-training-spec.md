@@ -1,12 +1,13 @@
 ---
-version: v0.2
+version: v0.2.4
 audience: cc / codex / 工程师 / 川哥
 purpose: ADR-016 base v3 multimodal self-supervised LNN 的工程实施细化 spec
-status: 川哥钦定（2026-05-21 v0.2，吸收 codex 5.4 + gemini 3.5 双评审 5 条建议）
+status: 川哥钦定（2026-05-21 v0.2.4，吸收 codex 5.4 + gemini 3.5 双评审修订）
 last_updated: 2026-05-21
 changelog:
   - v0.1（2026-05-21 起草）: 初稿，Agent 后台写
   - v0.2（2026-05-21 修订）: 吸收双评审 → Loss 3 默认关 / 评估三联替 silhouette / 2 层先跑通 / collapse 四联监控 / 10-video preflight 门控
+  - v0.2.4（2026-05-21 晚 修订）: 吸收 codex+gemini 双 REVISE → M1 Visual-Only 子指标 / M5 三层梯度 / Loss3 关闭态 N/A 标注 / ncps wrapper τ 真落地 γ-2 验证项 / Studio 14d 磁盘预算表
 related:
   - ../decisions/016-base-v3-multimodal-self-supervised-lnn.md
   - ../decisions/013-base-v2-failure-and-finetune-plan.md
@@ -79,6 +80,7 @@ ADR-016 的工程实施细化版。ADR-016 解决「v3 为什么不是 v2 + 范�
   ↓ Persona Conditioning
     - FiLM: γ, β = MLP(persona_embedding)
     - τ-bias: τ_i = τ_base * exp(persona_bias_i)
+    - （v0.2.4 加）γ-2 必做「τ-bias 真进 ODE」验证：若 ncps 高层 API 不暴露 τ 注入通道，则改为手写 CfCCell 单步隐式欧拉实现
 
 [CfC Backbone] (ncps 库的 CfC，v0.2 改 2 层先跑通 / 4 层等 γ-2 实测后升)
   Layer 1: τ ∈ [0.1s, 10s]   — 快速表情 + 情绪窗口（v0.2 合并 v0.1 层 1+2）
@@ -235,7 +237,7 @@ P(i) = batch 内与 anchor i 同 persona_idx 的样本集
 
 **关键超参**：
 - τ_supcon = 0.07
-- 同 batch 内 persona 多样性约束：≥ 8 个不同 persona_idx（DataLoader 自定义 sampler 保证）
+- 同 batch 内 persona 多样性约束：≥ 8 个不同 persona_idx（DataLoader 自定义 sampler 保证）**[v0.2.4 加：N/A when Loss3 weight=0]**
 
 **启用条件**：v0.2 起**默认关 weight=0**（参见上方 v0.2 关键修订段）。Step 1 不启用，本段公式为封存参考。
 
@@ -436,6 +438,12 @@ nohup python scripts/train_base_v3_step1.py \
 
 **失败定义**：Top-5 < base v1 → 整个 v3 路径失败，回退
 
+**M1-V Visual-Only 压力测试（v0.2.4 加，防文本捷径）**：
+
+- 评估时将 25d 文本特征（20 槽 + 5 intent）强制置零，仅保留 24d 视觉 AU + 2d 时间戳 + 6d 音频占位
+- 子指标阈值：Top-5 hit ≥ 20%
+- 失败定义：M1-V < 20% → 判定多模态融合无效，**整个 v3 路径失败回退**
+
 #### M3: 时序一致性（top）
 
 **计算方式**：
@@ -472,11 +480,14 @@ nohup python scripts/train_base_v3_step1.py \
 1. 把 VEATIC 的 `video_id` 当 label 跑 Linear probe（不是 emotion）
 2. 看 backbone hidden 能否高准确率分出 video_id
 
-**期望阈值**：
-- video_id Linear probe acc **< 30%**（防 shortcut learning）
-- 若 acc > 50%：模型学到了「这是哪个视频」而不是连续表征 → **直接腐蚀 LNN-FIRST** → 加强 augmentation 或换 SSL 目标
+**期望阈值（v0.2.4 加：三层梯度统一）**：
+- `green`: acc < 30%（pass）
+- `yellow`: 30% ≤ acc ≤ 50%（强制做 1 次 augmentation 重跑或切换 SSL 目标后复测）
+- `red`: acc > 50%（reject Phase γ）
 
-**失败定义**：acc > 50% → Step 1 全部回退重训
+**门控规则（v0.2.4 加）**：
+- preflight 允许 `green/yellow`，但 `yellow` 不得直接放行到 final
+- final 必须 `green`
 
 ### 6.2 附属指标（次要，仅用于 sanity check · v0.2 silhouette 降级到这）
 
@@ -526,6 +537,19 @@ nohup python scripts/train_base_v3_step1.py \
 | 数据存储 | `/Users/fu-121/lnmem-data/` 9.8GB |
 | ckpt 存储 | `~/lnmem-ckpts/base_v3_*/` |
 
+**14 天最坏磁盘容量预算（v0.2.4 加）**：
+
+| 占用项 | 单次 | 14 天累 | 备注 |
+|---|---|---|---|
+| ckpt 每 1000 step 存 20MB | 20MB | ~30GB | 14d × Step1-4 各 100 ckpt |
+| TensorBoard / wandb 日志 | — | ~5GB | 每天 0.4GB |
+| 数据集（已落盘） | — | 10GB | 不变 |
+| 临时 cache (pip / torch.hub) | — | ~10GB | 安装 + NCPS + Python wheel |
+| 实验中间产物（embedding cache, 特征图） | — | ~20GB | 每轮调参累积 |
+| **14d 累积下限** | — | **≥75GB** | — |
+| **安全边际** | — | **+75GB** | 应急 + 双备份 |
+| **γ-0 必清磁盘到 free ≥ 150GB** | — | — | — |
+
 ### 7.2 训练守护
 
 - **nohup + supervisor**：见 §5.5
@@ -533,12 +557,13 @@ nohup python scripts/train_base_v3_step1.py \
 - **OOM 防御**：batch_size 自适应降级（OOM 时自动 ÷ 2 重试，最多 3 次）
 - **进度可视化**：每 1000 step 写一行到 `~/lnmem-ckpts/base_v3_*/progress.jsonl`，包含 loss / lr / hidden std / 时序 ratio
 - **每天 23:00 cron rsync** 到 Air `/Users/rayman.chen/lnmem-ckpts-backup/`
+- **磁盘哨兵（v0.2.4 加）**：训练脚本每 5 分钟检测可用空间，`free < 10GB` 自动暂停训练并报警
 
 ### 7.3 失败兜底
 
 - Studio 死机 → Air 拉最近 ckpt 接着跑（但 Air 显存只够 batch=16，会慢 4×）
 - VEATIC 数据损坏 → 单 video 跳过不停训
-- ncps 库更新破坏 API → 锁版本 `ncps==1.0.7`，requirements.txt 强制
+- ncps 库更新破坏 API → 锁版本 `ncps==1.0.1`（v0.2.4 实测纠正：PyPI 最高版本是 1.0.1 而非 1.0.7；available versions: 1.0.1, 1.0.0, 0.0.7..0.0.1）→ requirements.txt 强制
 
 ---
 
@@ -547,7 +572,7 @@ nohup python scripts/train_base_v3_step1.py \
 | 任务 ID | 内容 | Owner | 依赖 | 估时 |
 |---------|------|-------|------|------|
 | γ-1 | 数据 pipeline spike：用 tiny VEATIC 子集（10 video, 1w 帧）跑通端到端 | cc | ADR-018 schema | 1 天 |
-| γ-2 | 模型架构 PyTorch 实现（fusion + CfC backbone + 5 head + FiLM/τ-bias）| codex 5.4 high | γ-1 数据格式确定 | 1.5 天 |
+| γ-2 | 模型架构 PyTorch 实现（fusion + CfC backbone + 5 head + FiLM/τ-bias）+ **v0.2.4 加：ncps τ 注入通道拆解验证（支持则 wrapper；不支持则手写 CfCCell 单步隐式欧拉）** | codex 5.4 high | γ-1 数据格式确定 | 1.5 天 |
 | γ-3 | Loss 1 (Temporal Contrast) 实现 + tiny 训练（10 video，验证不 collapse）| cc + codex 对抗审 | γ-2 | 1 天 |
 | γ-4 | Step 1 全量预训练（VEATIC 52w 帧）| cc 启动 + 守护 | γ-3 | 4 天 |
 | γ-5 | Step 2 + Step 3 readout 弱监督训练 | codex 5.4 high 实施 | γ-4 step1 ckpt | 3 天 |
@@ -572,12 +597,13 @@ nohup python scripts/train_base_v3_step1.py \
 | 4（继承）| 多 head readout 不稳定 | 中 | 每 head 独立 lr + 严格 frozen backbone 哨兵 |
 | 5（继承）| cc/codex 又用 LLM 思路评 v3 | 高 | 评估脚本默认输出 **M1/M3/M4/M5 主指标三联**（v0.2.1 同步），accuracy 仅放附属表 |
 | 6（新增）| Loss 1 mode collapse（hidden 全收敛到一点）| 中 | 监控 `std(h) < 0.05` 自动停训 + 加 BarlowTwins 风格的去相关正则项备用 |
-| 7（新增）| Persona Loss 3 学到 ID 而非 persona drift | 中 | Batch sampler 跨视频 + 同 batch 不同 persona × 不同时间 |
+| 7（新增）| Persona Loss 3 学到 ID 而非 persona drift | 中 | Batch sampler 跨视频 + 同 batch 不同 persona × 不同时间 **[v0.2.4 加：N/A when Loss3 weight=0，启用时风险才生效]** |
 | 8（新增）| `requires_grad=False` 漏挂 backbone 被意外更新 | 中 | 训练循环开头/结尾各跑一次 `assert_backbone_frozen()` 哨兵 |
 | 9（新增）| Studio 训练中断 ckpt 损坏 | 低 | 双 ckpt 轮替（last_a.pt / last_b.pt 交替写）+ rsync 到 Air |
-| 10（新增）| ncps CfC 库 API 不稳定/更新破坏 | 中 | 锁版本 `ncps==1.0.7`，写自适配 wrapper 隔离 |
+| 10（新增）| ncps CfC 库 API 不稳定/更新破坏 | 中 | 锁版本 `ncps==1.0.1`（v0.2.4 实测纠正自 1.0.7），写自适配 wrapper 隔离 |
 | 11（新增）| t-SNE/silhouette 结果不稳定（随机性高）| 低 | 评估时固定 seed + 跑 5 次取中位数 |
 | 12（新增）| EMOTIC 标注质量（V-A 不均衡 + 多人 bbox 混淆）| 中 | Step 2 数据清洗：过滤 multi-person 帧 + 平衡 V-A 象限采样 |
+| 13（v0.2.4 加）| τ-bias 未进入 ODE 内核，仅在 ncps 外层后处理（假 LNN-FIRST） | 高 | γ-2 必做 ncps 源码通道验证；不支持外部 τ 注入则手写 CfCCell 单步隐式欧拉；preflight #12 做显著性检验 |
 
 ---
 
@@ -600,22 +626,23 @@ nohup python scripts/train_base_v3_step1.py \
 
 ### 11.1 Phase γ 启动门控（v0.2 加 · 5/26 必通过才能 5/27 启动 Step 1）
 
-**10-video preflight checklist · v0.2.1 升级 11 项**（codex 第二轮验收补 3 项）：
+**10-video preflight checklist · v0.2.4 升级 12 项**（含 τ-bias 真落地验证）：
 
 **基础 8 项**（v0.2 原版）：
 - [ ] AU 抽取吞吐 ≥ 500 frame/sec（Studio M2 Max CPU）
 - [ ] Sampler 能稳定取到 ±60 帧正样本 + |Δt|>30s 负样本
 - [ ] **VEATIC viewer_id 实际去重数（必须验证）**（若 <8 → Loss 3 永久关闭）
 - [ ] **EMOTIC vs VEATIC V-A 标注口径**（Bland-Altman 一致性分析）
-- [ ] ncps CfC 实际参数量 + τ-bias 多尺度注入 spike OK
+- [ ] ncps CfC 实际参数量 + τ-bias 多尺度注入 spike OK（v0.2.4 加：必须给出 τ 注入路径证据）
 - [ ] InfoNCE vs VICReg 双路 spike 跑 1 epoch，**四联监控全过**（std + 秩 + per-dim var + 能量，不只 std）
-- [ ] 视频 ID Shortcut 反测 (M5) acc < 50%
+- [ ] 视频 ID Shortcut 反测 (M5) 达到 `green` 或 `yellow`（`green`: <30%，`yellow`: 30%-50%，`red`: >50%）
 - [ ] Studio ssh 通 + nohup + ckpt 落盘双轮替（防训练中途崩）
 
 **v0.2.1 新加 3 项**（codex 第二轮验收 §11.1.C 强建议）：
 - [ ] **数据切分防泄漏**：按 `video_id` 严格 train/val 隔离（防 M4/M5 结果虚高）
 - [ ] **四联 collapse 入 preflight 门控**（不只是训练时跑，preflight 阶段就锁定阈值）
 - [ ] **双 seed 可复现性**：preflight 跑 2 次（seed=0/42），核心指标（std/Linear probe acc）波动 < ±15%
+- [ ] **v0.2.4 加 #12：τ-bias 真进 ODE 验证**：参数化 `τ_i` 前后输出差异显著性 `p < 0.05`，且证据链包含 forward 注入点
 
 **任一不通过**：
 - 不启动 5/27 全量 Step 1
@@ -626,9 +653,10 @@ nohup python scripts/train_base_v3_step1.py \
 Phase γ 视为完成，须同时满足：
 
 - [ ] **M1 KG 召回 Top-5 ≥ 40%**（vs base v1 V-A baseline）
+- [ ] **M1-V Visual-Only Top-5 ≥ 20%**（v0.2.4 加：25d 文本特征置零后仍需达标）
 - [ ] **M3 时序一致性 ratio ≥ 1.5**
 - [ ] **M4 Frozen-feature Linear Probe**（与 §6.1 口径对齐）：EMOTIC V-A CCC V ≥ 0.30 / A ≥ 0.20，mst 8-state acc ≥ 40%
-- [ ] **M5 视频 ID Shortcut 反测 acc < 30%**（防 SSL 学到 ID）
+- [ ] **M5 视频 ID Shortcut 反测必须 `green`（acc < 30%）**（v0.2.4 加：`yellow` 仅限 preflight，final 不可通过）
 - [ ] ckpt ≤ 20MB（v0.2 调整，v0.1 5MB 不实）
 - [ ] 单帧推理延迟 ≤ 15ms (Studio M2 Max CPU)
 - [ ] LNN-FIRST 合规四联 monitor 每 200 step 不报警
@@ -637,7 +665,8 @@ Phase γ 视为完成，须同时满足：
 
 **未通过任一**：
 - M1/M3/M4 任一不达标 → 不导出 `base_v3.pt`，回到 Step 1 调超参（不上线）
-- M5 video_id acc > 30% → SSL 学到 shortcut → 加强 augmentation 重训
+- M5 video_id acc 处于 `yellow`（30%-50%）→ 强制做 1 次 augmentation 重跑或切换 SSL 目标后复测
+- M5 video_id acc 处于 `red`（>50%）→ 直接 reject Phase γ
 - LNN-FIRST 合规失败 → 立即停训 + 写 root cause ADR
 - 推理延迟超标 → 模型压缩（INT8 量化或 LoRA 减参数）
 
@@ -677,6 +706,19 @@ ADR-016 base v3 实施 spec。本 spec 覆盖 Phase γ（5/27-6/10）工程细�
 - 修 8 处一致性矛盾（ckpt 5MB→20MB / 4 层→2 层 / Loss 3 默认关 全文统一）
 - §11.1 preflight 8 项 → 11 项（codex 补 3 条：防数据泄漏 / 四联入 preflight / 双 seed 可复现）
 - §6.1 vs §11.2 M4 阈值口径对齐
+
+**v0.2.4（2026-05-21 晚 修订）**：吸收 codex+gemini 双 REVISE
+- **M1 增 M1-V Visual-Only**（25d 文本置零后 Top-5 ≥ 20%，否则整路径回退）
+- **M5 统一 green/yellow/red 三层梯度**（preflight 可 green/yellow，final 必须 green）
+- **Loss 3 关闭态收口**（persona_idx 约束与风险项加 `N/A when weight=0`）
+- **γ-2 + preflight #12 增 τ-bias 真进 ODE 验证**（含显著性检验 `p < 0.05`）
+- **§7.1 补 14 天磁盘预算**（γ-0 free ≥ 150GB + `<10GB` 自动暂停报警）
+- **§9 #10 ncps 版本修正**：1.0.7 → 1.0.1（PyPI 实测最高版本，1.0.7 拍脑袋错）
+
+**v0.2.4 后续触发条件（gemini 3.5 终审 APPROVE-with-conditions 留 + cc 实测补）**：
+- 🔮 **5/26 决策日触发**：若 γ-3 spike 最终选 Path A 纯 InfoNCE → 必须加时序梯度截断（相邻帧 AU 变化率 `||x_t - x_{t+1}||₂ > μ+2σ` 时断 positive pair，防低通滤波抹杀微表情）
+- 🔮 **6/10 Phase γ→δ 演进时**：M5 阈值从 30% 收紧到 ≤15%（写 ADR-020，作为长期泛化保障）
+- ✅ **ncps 1.0.1 实测确认**（5/21 22:55，Air+Studio）：`__version__` 字段仍显 0.0.2 是上游 bug（实际参数量从 57736 → 49536 证 API 已升）；`CfCCell` 暴露 `time_a` + `time_b` Linear(64→128) 两个可微 τ 学习层 + `forward(timespans=...)` 外部时间步注入 → gemini C.1 担心的"完全黑盒"部分错误，γ-2 spike 有 3 条可行路径：(A) timespans 注入 per-persona 时间步 / (B) hook time_a.weight 注 persona-bias / (C) 手写 CfCCell 单步隐式欧拉
 
 **v0.2 修订：cc 主线 + codex 5.4 + gemini 3.5 双评审 | 2026-05-21 | 等川哥钦定**
 **v0.1 起草：Agent 后台 | 2026-05-21**

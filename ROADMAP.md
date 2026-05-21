@@ -141,7 +141,7 @@ df5002e docs(ADR-015): 视觉感知路径冻结（被 ADR-016 撤回）
 | [ADR-004](docs/decisions/004-ab-experiment-raw-vs-calibrated.md) | A/B 实验框架 | accepted |
 | [ADR-005](docs/decisions/005-trigger-uses-raw-au04-signal-path-dual.md) | dual signal_path 最小改动方案 | accepted |
 | [ADR-006](docs/decisions/006-threshold-auto-recalibration.md) | trigger 阈值自动重校准 | placeholder |
-| **[ADR-007](docs/decisions/007-base-ckpt-realhuman-affectnet.md)** | **base ckpt 真人化（AffectNet V-A）** | accepted（M1 启动前必做） |
+| **[ADR-007](docs/decisions/007-base-ckpt-realhuman-affectnet.md)** | **base ckpt 真人化（AffectNet V-A）** | **superseded by [ADR-016](docs/decisions/016-base-v3-multimodal-self-supervised-lnn.md)**（2026-05-21 双评审统一） |
 | **[ADR-008](docs/decisions/008-user-lora-multi-user-schema.md)** | **User-LoRA + multi-user schema** | accepted（M3 启动前必做） |
 | **[ADR-009](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md)** | **拒绝 RAG 捷径，坚守 LNN-FIRST** | accepted（哲学级） |
 
@@ -166,19 +166,11 @@ df5002e docs(ADR-015): 视觉感知路径冻结（被 ADR-016 撤回）
 
 ### ⭐ 短期（M0 W3-W4）
 
-- [ ] **TODO-4 ADR-007 实施：AffectNet 数据准备**
-  - 下载 AffectNet（学术 license）
-  - py-feat 跑 AU 提取 + V-A 标注对照
-  - 设计 V-A → 8 state 离散映射 sweep
-  - 工时：1-2 天
-- [ ] **TODO-5 ADR-007 实施：base ckpt v2 重训**
-  - 用 AffectNet + 川哥真信号训新 base
-  - A/B 对比 v1（合成数据）vs v2（真人）准确率
-  - 工时：1-2 天
-- [ ] **TODO-6 对话流自然询问替代 macOS 弹窗**（cognitive.md 合规）
-  - 当前 daemon 用 macOS dialog 弹窗，cognitive.md §33-37 明确禁止
-  - 集成 mycc 后端 chat UI 做"对话流询问"
-  - 工时：1 周（涉及前后端联调）
+> **2026-05-21 双评审统一**：原 TODO-4/5（ADR-007 AffectNet）已被 ADR-016 base v3 multimodal self-supervised LNN 取代。Phase γ (5/27-6/10) 直接走 VEATIC+EMOTIC+mst 自监督路径，不再走 AffectNet 重训路径。TODO-6 改 P2 等 Phase β 修改卡片 UI 一并做。
+
+- ~~TODO-4 ADR-007 实施：AffectNet 数据准备~~ → **superseded by ADR-016 Phase γ**
+- ~~TODO-5 ADR-007 实施：base ckpt v2 重训~~ → **superseded by ADR-016 base v3**
+- [ ] **TODO-6 对话流自然询问替代 macOS 弹窗**（cognitive.md 合规，P2，与 Phase β 修改卡片 UI 一并做）
 
 ### 🌅 中期（M1-M2 / 1-3 个月）
 
