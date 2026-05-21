@@ -69,14 +69,20 @@ def evaluate_video_id_shortcut(
         VideoIDProbeResult, 含 train/test acc + green/yellow/red verdict
     """
     from sklearn.model_selection import train_test_split
+    from collections import Counter
     n_videos = len(set(video_ids))
     rng = np.random.RandomState(seed)
-    # 数字编码 video_id
     vid_to_int = {vid: i for i, vid in enumerate(sorted(set(video_ids)))}
     y = np.array([vid_to_int[v] for v in video_ids])
 
+    # stratify 需要每类至少 2 个；sample 不足时退化为非 stratified split
+    counts = Counter(y.tolist())
+    min_per_class = min(counts.values())
+    can_stratify = (n_videos > 1) and (min_per_class >= 2)
+
     X_train, X_test, y_train, y_test = train_test_split(
-        hidden_states, y, test_size=test_ratio, random_state=seed, stratify=y if n_videos > 1 else None
+        hidden_states, y, test_size=test_ratio, random_state=seed,
+        stratify=y if can_stratify else None,
     )
 
     scaler = StandardScaler()

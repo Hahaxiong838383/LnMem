@@ -50,14 +50,19 @@ def build_event_tensor(
     """从 AU + 时间戳 拼 52d EventTensor（spec §2.1）.
 
     Args:
-        au: (T, 24) AU 强度
+        au: (T, 20) AU 强度（py-feat 实际输出 20 AU；spec §2.1 24d 包含 4 head pose
+            待 M1+ 集成，本阶段 zero-pad 占位）
         timestamps_norm: (T,) 归一化时间戳 [0, 1]
 
     Returns:
-        (T, 52) EventTensor: 24 AU + 20 槽(含 intent) + 2 time + 6 audio
+        (T, 52) EventTensor: 20 AU + 4 head pose(占位) + 20 槽(含 intent) + 2 time + 6 audio
     """
     T = au.shape[0]
-    assert au.shape[1] == 24, f"au shape {au.shape} expected (T, 24)"
+    # py-feat 实际 20 AU → zero-pad 到 24 维（包含未来 4 head pose 维度占位）
+    if au.shape[1] == 20:
+        au = np.concatenate([au.astype(np.float32),
+                             np.zeros((T, 4), dtype=np.float32)], axis=1)
+    assert au.shape[1] == 24, f"au shape {au.shape} expected (T, 24) after padding"
 
     t_sin = np.sin(2 * np.pi * timestamps_norm).reshape(-1, 1)
     t_cos = np.cos(2 * np.pi * timestamps_norm).reshape(-1, 1)
@@ -104,8 +109,9 @@ class VEATICDataset(Dataset):
     def _validate(self):
         for vid in self.video_ids:
             au = self.au_cache[vid]
-            assert au.ndim == 2 and au.shape[1] == 24, \
-                f"video {vid} AU shape {au.shape} 异常"
+            # 接受 20 AU (py-feat 实际输出) 或 24 (含 head pose)
+            assert au.ndim == 2 and au.shape[1] in (20, 24), \
+                f"video {vid} AU shape {au.shape} 异常（期望 (T, 20) 或 (T, 24)）"
 
     def __len__(self) -> int:
         return len(self.video_ids)
