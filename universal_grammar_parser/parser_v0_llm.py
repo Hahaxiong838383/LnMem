@@ -18,7 +18,7 @@ import logging
 import random
 import time
 from datetime import timezone
-from typing import Any, Callable, List, Sequence
+from typing import Any, Callable, List, Mapping, Sequence
 
 from contracts.event_tensor import EventTensor
 from contracts.protocols import ParseRequest, UniversalGrammarParser
@@ -26,7 +26,7 @@ from contracts.schema_v1 import SCHEMA_V1
 
 from .config import ParserConfig
 from .postprocess import JsonPostprocessor
-from .types import ParseBackendResult
+from .types import IntentType, ParseBackendResult
 
 
 _log = logging.getLogger(__name__)
@@ -90,6 +90,9 @@ class SchemaGuidedLLMParser(UniversalGrammarParser):
         backend_result = self.call_backend(prompt)
         self.last_diagnostics = dict(backend_result.diagnostics)
         event = self.postprocessor.build_event(req, backend_result)
+        parsed_intent = self._extract_intent_type(backend_result.raw_payload)
+        event = self._set_intent_type(event, parsed_intent)
+        self.last_diagnostics["intent_type"] = parsed_intent
         missing_slots = self._missing_required_slots(event, req.require_priorities)
         if missing_slots:
             self.last_diagnostics["missing_required_slots"] = missing_slots
@@ -155,7 +158,13 @@ class SchemaGuidedLLMParser(UniversalGrammarParser):
 
 # 输出要求
 - **严格 JSON only**：不要任何前后说明，不要 markdown ``` 包裹
-- 顶层结构：{{"slots": {{slot_name: {{value, confidence, raw_text}}}}}}
+- 顶层结构：{{"intent_type": "陈述", "slots": {{slot_name: {{value, confidence, raw_text}}}}}}
+- intent_type 只能是以下 5 类之一（无法判断时默认 "陈述"）：
+  - 陈述（例："昨晚吃了越南粉"）
+  - 疑问（例："今天几号"）
+  - 反问（例："这能怪我吗"）
+  - 感叹（例："太累了！"）
+  - 请求（例："帮我订一下票"）
 - value 类型规范：
   - entity / span: 字符串（**必须是原文文本片段或合理推断的实体名**，**禁止使用 user_id 等上下文字段填值**）
   - scalar: 数值（sentiment ∈ [-1, 1]）或 ISO8601（when_time）
@@ -170,7 +179,7 @@ class SchemaGuidedLLMParser(UniversalGrammarParser):
 # 示例
 text: "我昨晚 8 点跟王总在朝阳门吃了饭聊融资"
 输出（截取几个 key 示意）：
-{{"slots": {{
+{{"intent_type": "陈述", "slots": {{
     "who_actor": {{"value": "我", "confidence": 0.95, "raw_text": "我"}},
     "what_action": {{"value": "吃饭", "confidence": 0.9, "raw_text": "吃了饭"}},
     "when_time": {{"value": "2026-05-11T20:00:00+08:00", "confidence": 0.85, "raw_text": "昨晚 8 点"}},
@@ -246,6 +255,26 @@ text: "我昨晚 8 点跟王总在朝阳门吃了饭聊融资"
                 "retry_history": attempts_log,
             },
         )
+
+    def _extract_intent_type(self, payload: Mapping[str, Any]) -> str:
+        """Extract intent_type from payload. 提取并校验 5 类 intent_type。"""
+        raw = payload.get("intent_type")
+        if isinstance(raw, str):
+            value = raw.strip()
+            for intent in IntentType:
+                if value == intent.value:
+                    return value
+        return IntentType.DECLARATIVE.value
+
+    def _set_intent_type(self, event: EventTensor, intent_type: str) -> EventTensor:
+        """Set top-level intent_type. 向后兼容：字段缺失时降级为 dict-style 暂存。"""
+        field_names = getattr(EventTensor, "__dataclass_fields__", {})
+        if "intent_type" in field_names:
+            event_kwargs = {name: getattr(event, name) for name in field_names}
+            event_kwargs["intent_type"] = intent_type
+            return EventTensor(**event_kwargs)
+        event.__dict__["intent_type"] = intent_type
+        return event
 
     def _missing_required_slots(
         self,

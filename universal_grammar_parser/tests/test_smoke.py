@@ -33,7 +33,8 @@ def test_contracts_importable() -> None:
     assert req.require_priorities == (0,)
     assert SlotID.WHO_ACTOR in SCHEMA_V1
     assert slot.confidence == 0.9
-    assert event.schema_version == "v1"
+    # schema_version v1 → v1.1（ADR-018 升级），向后兼容只断言 v1 前缀
+    assert event.schema_version.startswith("v1")
 
 
 def test_parser_signature_compatible_with_protocol() -> None:

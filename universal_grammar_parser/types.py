@@ -7,7 +7,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, Mapping, Optional, Tuple
 
+from contracts.event_tensor import IntentType  # re-export 单一来源（ADR-018）
 from contracts.schema_v1 import SlotID
+
+__all__ = ["IntentType", "RawSlotCandidate", "ParseBackendResult"]
 
 
 @dataclass(frozen=True)
