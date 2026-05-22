@@ -205,6 +205,9 @@ def run_evaluation(
         world_losses_all: list[float] = []
         world_losses_shuffled: list[float] = []
         prefix_hidden_rows: list[np.ndarray] = []
+        # M1 baseline buffers
+        naive_baseline_losses: list[float] = []
+        persistence_baseline_losses: list[float] = []
 
         trainer.fusion.eval()
         trainer.backbone.eval()
@@ -229,6 +232,20 @@ def run_evaluation(
                     world_losses_by_vid.setdefault(vid, []).append(world_loss)
                     world_losses_all.append(world_loss)
                     prefix_hidden_rows.append(out["h_seq_prefix"][0].detach().cpu().numpy())
+
+                    # M1 (cc 第 11 轮整改): 加 trivial baseline 对比，暴露均值/persistence 重构捷径
+                    pf_len = int(out["prefix_len"])
+                    rl_len = int(out["rollout_len"])
+                    x_rollout_target_t = et[:, pf_len : pf_len + rl_len, :]
+                    x_prefix_t = et[:, :pf_len, :]
+                    # baseline 1: 用 prefix 的 per-dim mean 预测 rollout
+                    naive_pred = x_prefix_t.mean(dim=1, keepdim=True).expand_as(x_rollout_target_t)
+                    naive_mse = float(F.mse_loss(naive_pred, x_rollout_target_t).item())
+                    naive_baseline_losses.append(naive_mse)
+                    # baseline 2: persistence — 用 prefix 最后一帧反复预测 rollout
+                    last_frame = et[:, pf_len - 1 : pf_len, :].expand_as(x_rollout_target_t)
+                    pers_mse = float(F.mse_loss(last_frame, x_rollout_target_t).item())
+                    persistence_baseline_losses.append(pers_mse)
 
                     if include_shuffle_test:
                         et_shuf = shuffle_frames_in_window(et, seed=42 + w_idx)
@@ -264,6 +281,20 @@ def run_evaluation(
             "L_world_model_all": float(np.mean(world_losses_all)) if world_losses_all else float("nan"),
             "effective_dim": effective_dim,
         }
+        # M1 整改：暴露 trivial 重构对比指标
+        if naive_baseline_losses:
+            naive_mean = float(np.mean(naive_baseline_losses))
+            pers_mean = float(np.mean(persistence_baseline_losses))
+            result["L_naive_mean_baseline"] = naive_mean
+            result["L_persistence_baseline"] = pers_mean
+            base_world = result["L_world_model_all"]
+            # ratio < 1 → model 比 naive 强；ratio ≥ 1 → trivial 路径 win
+            result["model_vs_naive_ratio"] = base_world / max(naive_mean, 1e-9)
+            result["model_vs_persistence_ratio"] = base_world / max(pers_mean, 1e-9)
+            # 验收门：model 必须比 naive 显著强 (ratio < 0.7)
+            result["trivial_recon_check_pass"] = (
+                result["model_vs_naive_ratio"] < 0.7 and result["model_vs_persistence_ratio"] < 0.7
+            )
         if include_shuffle_test and world_losses_shuffled:
             shuffled_mean = float(np.mean(world_losses_shuffled))
             base_mean = result["L_world_model_all"]

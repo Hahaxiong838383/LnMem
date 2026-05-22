@@ -51,6 +51,7 @@ class TrainConfig:
     dgb_enabled: bool = True
     persona_lr_scale: float = 1.0       # DEPRECATED by ADR-022 双率优化器
     f_net_weight_decay: float = 1e-3    # gemini F-4.1
+    decoder_weight_decay: float = 1e-2  # M3 整改：限制 decoder 容量防 trivial 重构
     freeze_f_net_steps: int = 200       # spike 简化（spec 1k step）
     max_bptt_steps: int = 32            # gemini 第 7 轮 F-4 工程防御
     use_ode_loss: bool = True           # ADR-023 v2 主路径
@@ -88,7 +89,9 @@ class TinyTrainer:
             self.loss_fn = VICRegLoss(VICRegConfig()).to(self.device)
         else:
             self.loss_fn = InfoNCELoss(InfoNCEConfig(learnable_sigma=False)).to(self.device)
-        self.decoder = Decoder(hidden_dim=cfg.hidden_dim, input_dim=52, num_layers=1).to(self.device)
+        # 第 11 轮 gemini 钦定: 必须 bottleneck decoder（64→16→52）截断 hidden→input 直通
+        self.decoder = Decoder(hidden_dim=cfg.hidden_dim, input_dim=52, num_layers=2,
+                                bottleneck_dim=16).to(self.device)
         self.ode_loss = OdeDynamicsLoss(
             cfg=OdeDynamicsLossConfig(),
             decoder=self.decoder,
@@ -112,18 +115,29 @@ class TinyTrainer:
                     other_params.append(p)
         for p in self.fusion.parameters():
             other_params.append(p)
+        # M3 整改（cc 第 11 轮）：decoder 单独 group 加 wd=1e-2 限制 trivial 重构表达
+        decoder_params: list = []
         if cfg.use_ode_loss:
             for p in self.decoder.parameters():
-                other_params.append(p)
+                decoder_params.append(p)
 
         # ADR-022 v3: 双率优化器（τ-bias 释放到 1e-3，主干由 DGB 主控约束）
         self.persona_bias_params = persona_bias_params
         self.f_net_params = f_net_params
-        self.optimizer = AdamW([
+        self.decoder_params = decoder_params
+        param_groups = [
             {"params": other_params, "lr": cfg.lr, "weight_decay": 0.0},
             {"params": f_net_params, "lr": cfg.lr, "weight_decay": cfg.f_net_weight_decay},
             {"params": persona_bias_params, "lr": cfg.tau_lr, "weight_decay": 0.0},
-        ])
+        ]
+        if decoder_params:
+            # M3: 高 weight_decay 限制 decoder 容量，防 trivial 均值/瞬时重构
+            param_groups.append({
+                "params": decoder_params,
+                "lr": cfg.lr,
+                "weight_decay": cfg.decoder_weight_decay,
+            })
+        self.optimizer = AdamW(param_groups)
 
         self.step = 0
         self.logs = []

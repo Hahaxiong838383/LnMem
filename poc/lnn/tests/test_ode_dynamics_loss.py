@@ -156,7 +156,7 @@ def test_rollout_autoregressive_no_future_teacher_forcing():
 def test_shuffle_raises_world_model_loss():
     """Shuffle rollout targets should significantly increase world-model loss."""
     torch.manual_seed(5)
-    cfg = OdeDynamicsLossConfig(prefix_ratio=0.5, rollout_horizon=10)
+    cfg = OdeDynamicsLossConfig(prefix_ratio=0.5, rollout_horizon=10, input_stride=1)
     decoder = Decoder(hidden_dim=4, input_dim=4, num_layers=1)
     with torch.no_grad():
         decoder.net.weight.copy_(torch.eye(4))

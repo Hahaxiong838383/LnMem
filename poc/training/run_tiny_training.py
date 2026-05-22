@@ -163,16 +163,39 @@ def main():
     print(f"  训练: {train_result['total_steps']} steps, loss={train_result['final_loss']:.4f}")
     print(f"  ckpt size: {ckpt_path.stat().st_size / 1e6:.2f} MB")
     print()
-    print(f"  M1 KG retrieval (full): top5={eval_result['M1_full_retrieval']['top5_acc']:.3f}")
-    m1v_pass = eval_result['M1V_pass']
-    print(f"  M1-V Visual-Only: top5={eval_result['M1V_visual_only_retrieval']['top5_acc']:.3f} [pass={m1v_pass}]")
-    print(f"  M5 video_id shortcut: acc={eval_result['M5_video_id_shortcut']['test_acc']:.3f} "
-          f"({eval_result['M5_video_id_shortcut']['verdict']})")
-    print(f"  collapse: var={eval_result['collapse_var']:.4f} "
-          f"[pass={eval_result['collapse_var_pass']} (>0.01)]")
-    print(f"  pairwise dist: {eval_result['collapse_pairwise_dist']:.4f}")
-    print(f"  effective dim: {eval_result.get('effective_dim', 'N/A'):.2f} "
-          f"(gemini 第 5 轮盲区 #1)")
+    # ODE-loss 路径 vs InfoNCE 路径分支输出
+    if "L_world_model_all" in eval_result:
+        # ADR-023 v2 Latent World Model 路径
+        print(f"  L_world_model train/unseen/all: "
+              f"{eval_result.get('L_world_model_train', float('nan')):.4f} / "
+              f"{eval_result.get('L_world_model_unseen', float('nan')):.4f} / "
+              f"{eval_result.get('L_world_model_all', float('nan')):.4f}")
+        if "L_naive_mean_baseline" in eval_result:
+            print(f"  📊 baseline 对比 (M1 整改):")
+            print(f"     naive mean MSE: {eval_result['L_naive_mean_baseline']:.4f}")
+            print(f"     persistence MSE: {eval_result['L_persistence_baseline']:.4f}")
+            print(f"     model/naive ratio: {eval_result['model_vs_naive_ratio']:.3f} "
+                  f"(< 0.7 required)")
+            print(f"     model/persistence ratio: {eval_result['model_vs_persistence_ratio']:.3f}")
+            print(f"     trivial_recon_check_pass: {eval_result.get('trivial_recon_check_pass', False)}")
+        if "L_motion" in eval_result:
+            print(f"  L_motion: {eval_result['L_motion']:.4f}")
+        print(f"  effective dim: {eval_result.get('effective_dim', float('nan')):.2f} (≥ 8.0 required)")
+        if "shuffle_increase_ratio" in eval_result:
+            print(f"  🔥 Shuffle Test ratio: {eval_result['shuffle_increase_ratio']:+.3f} "
+                  f"[pass={eval_result.get('shuffle_test_pass', False)} (≥ 1.5 required)]")
+    else:
+        # 旧 InfoNCE 路径输出
+        print(f"  M1 KG retrieval (full): top5={eval_result['M1_full_retrieval']['top5_acc']:.3f}")
+        m1v_pass = eval_result['M1V_pass']
+        print(f"  M1-V Visual-Only: top5={eval_result['M1V_visual_only_retrieval']['top5_acc']:.3f} [pass={m1v_pass}]")
+        print(f"  M5 video_id shortcut: acc={eval_result['M5_video_id_shortcut']['test_acc']:.3f} "
+              f"({eval_result['M5_video_id_shortcut']['verdict']})")
+        print(f"  collapse: var={eval_result['collapse_var']:.4f} "
+              f"[pass={eval_result['collapse_var_pass']} (>0.01)]")
+        print(f"  pairwise dist: {eval_result['collapse_pairwise_dist']:.4f}")
+        print(f"  effective dim: {eval_result.get('effective_dim', 'N/A'):.2f} "
+              f"(gemini 第 5 轮盲区 #1)")
     if train_result["epoch_logs"]:
         tau_stats = train_result["epoch_logs"][-1].get("tau_stats", {})
         print(

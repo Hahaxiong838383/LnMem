@@ -11,27 +11,45 @@ import torch.nn.functional as F
 
 @dataclasses.dataclass(frozen=True)
 class OdeDynamicsLossConfig:
-    """Configuration for v2 rollout loss. / v2 rollout 损失配置。"""
+    """Configuration for v2 rollout loss. / v2 rollout 损失配置。
+
+    v2.1 整改（cc 第 11 轮 + gemini 第 10 轮 F-3 应验后）：
+    - 加 w_motion 直击 trivial 均值预测路径
+    - 默认 detach_prefix_grad=True（让 rollout 学独立动力学，不污染 prefix encoder）
+    - rollout_horizon 15 → 24（prefix=6, rollout=24, seq_len=30，让短期预测不够）
+    - prefix_ratio 0.5 → 0.2
+    """
 
     w_world_model: float = 1.0
     w_recon_prefix: float = 0.5
-    prefix_ratio: float = 0.5
-    rollout_horizon: int = 15
+    # M2 撤回（gemini 第 11 轮指出: diff(actual)≈0 时会驱使 ODE 输出绝对平直，加剧 shortcut）
+    w_motion: float = 0.0
+    prefix_ratio: float = 0.2   # M4: prefix=6 短，rollout=24 长（动力学主导）
+    rollout_horizon: int = 24   # M4: K=24 让短期均值预测不够
+    # M5 撤回（gemini 第 11 轮指出: detach 断绝 encoder 梯度，毁灭性毒药）
     detach_prefix_grad: bool = False
+    # 第 11 轮 gemini 钦定核心解：时间重采样 stride=3（6Hz→2Hz）拉大相邻帧差异破除准静态死局
+    input_stride: int = 3
 
 
 class Decoder(nn.Module):
-    """Decode hidden state to input space. / hidden 到输入空间解码器。"""
+    """Decode hidden state to input space. / hidden 到输入空间解码器。
 
-    def __init__(self, hidden_dim: int = 64, input_dim: int = 52, num_layers: int = 1) -> None:
+    第 11 轮 gemini 钦定：必须有低秩瓶颈（bottleneck=16）截断 hidden→input 无损直通。
+    防 cc M3 weight_decay 治标不治本（h≈Wx encoder shortcut 仍在）。
+    """
+
+    def __init__(self, hidden_dim: int = 64, input_dim: int = 52, num_layers: int = 1,
+                 bottleneck_dim: int = 16) -> None:
         super().__init__()
         if num_layers == 1:
             self.net: nn.Module = nn.Linear(hidden_dim, input_dim)
         elif num_layers == 2:
+            # 第 11 轮 gemini 钦定瓶颈：hidden(64) → 16 → 52
             self.net = nn.Sequential(
-                nn.Linear(hidden_dim, hidden_dim),
-                nn.GELU(),
-                nn.Linear(hidden_dim, input_dim),
+                nn.Linear(hidden_dim, bottleneck_dim),
+                nn.ReLU(),
+                nn.Linear(bottleneck_dim, input_dim),
             )
         else:
             raise ValueError(f"num_layers must be 1 or 2, got {num_layers}")
@@ -59,6 +77,9 @@ class OdeDynamicsLoss(nn.Module):
         """Compute v2 loss. / 计算 v2 loss。"""
         if x.dim() != 3:
             raise ValueError(f"x must be (B, T, D), got {tuple(x.shape)}")
+        # 第 11 轮 gemini 钦定：input_stride 时间重采样破准静态死局
+        if self.cfg.input_stride > 1:
+            x = x[:, :: self.cfg.input_stride, :]
         batch_size, total_steps, _ = x.shape
         if total_steps < 2:
             raise ValueError("total_steps must be >= 2 for prefix + rollout")
@@ -101,12 +122,27 @@ class OdeDynamicsLoss(nn.Module):
         x_pred_rollout_tensor = torch.stack(x_pred_rollout, dim=1)
         x_rollout_target = x[:, prefix_len : prefix_len + rollout_len, :]
         l_world_model = F.mse_loss(x_pred_rollout_tensor, x_rollout_target)
-        loss = self.cfg.w_world_model * l_world_model + self.cfg.w_recon_prefix * l_recon_prefix
+
+        # M2 motion loss: 强制预测变化（diff）而非均值（gemini 第 10 轮 F-3 应验后整改）
+        # 关键：sin trivial 均值预测让 diff(x_pred) ≈ 0，但 diff(x_actual) != 0 → 大惩罚
+        if rollout_len >= 2:
+            diff_pred = x_pred_rollout_tensor[:, 1:, :] - x_pred_rollout_tensor[:, :-1, :]
+            diff_target = x_rollout_target[:, 1:, :] - x_rollout_target[:, :-1, :]
+            l_motion = F.mse_loss(diff_pred, diff_target)
+        else:
+            l_motion = torch.tensor(0.0, device=x.device, requires_grad=True)
+
+        loss = (
+            self.cfg.w_world_model * l_world_model
+            + self.cfg.w_recon_prefix * l_recon_prefix
+            + self.cfg.w_motion * l_motion
+        )
 
         return {
             "loss": loss,
             "L_world_model": l_world_model,
             "L_recon_prefix": l_recon_prefix,
+            "L_motion": l_motion,
             "prefix_len": prefix_len,
             "rollout_len": rollout_len,
             "x_pred_rollout": x_pred_rollout_tensor,

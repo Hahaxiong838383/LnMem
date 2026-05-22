@@ -70,8 +70,8 @@ def test_effective_dim_from_prefix_hseq_is_not_degenerate():
     assert "L_world_model_shuffled" in eval_result
 
 
-def test_prefix_rollout_split_boundary_n15_k15_t30():
-    """Prefix/rollout split should follow N=15, K=15 when T=30."""
+def test_prefix_rollout_split_boundary_n6_k24_t30():
+    """Prefix/rollout split should follow N=6, K=24 when T=30 (M4 prefix_ratio 0.5→0.2, input_stride=1 显式)."""
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         npz, ratings = _create_mock_veatic(tmp, n_videos=3, n_frames=100)
@@ -89,6 +89,11 @@ def test_prefix_rollout_split_boundary_n15_k15_t30():
             use_vicreg=False,
         )
         trainer = TinyTrainer(cfg, dataset, device="cpu")
+        # 第 11 轮整改：显式禁用 input_stride（默认 stride=3 会让 30→10 帧，prefix=2/rollout=8）
+        import dataclasses as _dc
+        from poc.lnn.ode_dynamics_loss import OdeDynamicsLoss as _ODL
+        new_cfg = _dc.replace(trainer.ode_loss.cfg, input_stride=1)
+        trainer.ode_loss = _ODL(cfg=new_cfg, decoder=trainer.decoder)
         windows = split_to_windows(dataset[0], seq_len=30, stride=10)
         x = torch.stack([windows[0]["event_tensor"], windows[1]["event_tensor"]]).to(trainer.device)
         persona_idx = torch.zeros(x.size(0), dtype=torch.long, device=trainer.device)
@@ -99,5 +104,5 @@ def test_prefix_rollout_split_boundary_n15_k15_t30():
             init_hidden_fn=lambda b, dev: [cell.init_hidden(b, dev) for cell in trainer.backbone.cells],
         )
 
-    assert out["prefix_len"] == 15
-    assert out["rollout_len"] == 15
+    assert out["prefix_len"] == 6
+    assert out["rollout_len"] == 24
