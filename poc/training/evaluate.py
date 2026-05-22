@@ -164,6 +164,29 @@ def evaluate_retrieval_topk(
 # -----------------------------------------------------------------------------
 # Full evaluation pipeline
 # -----------------------------------------------------------------------------
+def measure_input_effective_dim(dataset) -> float:
+    """ADR-024: 测量 AU 输入数据本身的 effective_dim 物理上限.
+
+    11 轮血泪教训：5/27 阈值必须基于 input baseline 的相对值，不能拍 absolute。
+    AU 24 维但 FACS 文献早就说高度相关，实测 ~5.07 (10 视频)。
+    N=124 时预计升到 6-8。
+
+    Returns:
+        effective_dim = sum(s) / s[0]，AU 段 (first 24 dims of event_tensor)
+    """
+    all_au = []
+    for i in range(len(dataset)):
+        sample = dataset[i]
+        et = sample["event_tensor"]
+        # AU schema: first 24 dims are AU values, rest is placeholder
+        au = et[:, :24].detach().cpu().numpy()
+        all_au.append(au)
+    mat = np.concatenate(all_au, axis=0)
+    centered = mat - mat.mean(axis=0, keepdims=True)
+    s = np.linalg.svd(centered, compute_uv=False)
+    return float(s.sum() / max(s[0], 1e-9))
+
+
 def shuffle_frames_in_window(et: torch.Tensor, seed: int = 42) -> torch.Tensor:
     """硬门 #2 Shuffle Test: 打乱 window 内帧顺序（保持 batch 维度不变）.
 
