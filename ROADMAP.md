@@ -6,10 +6,10 @@
 
 ---
 
-## 当前阶段：M0 W3 Day 3 末（**γ-3 4 硬门通过 + gemini 6 轮 CONDITIONAL APPROVE + 5/27 Phase γ Step 1 ready**）
+## 当前阶段：M0 W3 Day 4（**🟩 5/22 P0 5 Pre-conditions 全绿 + gemini 第 7 轮终审 APPROVE + 5/27 Phase γ Step 1 GREEN LIGHT**）
 
 **主分支**：`poc/lnn-validation`
-**最近核心 commit**：`492583d` (γ-3 final · gemini 6 轮终审 + 22 finding 全采纳 · 5/21 23:30)
+**最近核心 commit**：`d023e43` (gemini 第 7 轮终审 APPROVE · 5/22) → `96e47e2` (P0 5 PC v2 整改 · 5/22) → `492583d` (γ-3 final · 5/21)
 **项目哲学锚**：[ADR-009 拒绝 RAG](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md) + [ADR-016 base v3](docs/decisions/016-base-v3-multimodal-self-supervised-lnn.md) + [ADR-022 τ-bias 梯度黑洞修复](docs/decisions/022-tau-bias-gradient-blackhole-fix.md)
 **📊 项目状态总览（最新）**：[`docs/project-status.md`](docs/project-status.md)
 **🏗 技术全景**：[`docs/architecture-overview.md`](docs/architecture-overview.md)
@@ -49,14 +49,17 @@
 - **AU augment 甜区 p=0.3**（信息瓶颈相变临界点，M5 -40% + Shuffle drop +134%）
 - **gemini 第 6 轮揭穿「3.2d 低维流形伪泛化」**深度盲区
 
-## 5/27 Phase γ Step 1 启动 4 项 Pre-conditions（gemini 6 轮终审钦定）
+## 5/27 Phase γ Step 1 启动 5 项 Pre-conditions（gemini 第 7 轮终审 ✅ 全绿 · commit `96e47e2`）
 
-| # | 防御 | 实施 | 验证 |
+| # | 防御 | 实施 | 5/22 实测验收 |
 |---|---|---|---|
-| 1 | **τ-Monitor** | 每 epoch log `tau.item() + tau.grad` | τ ∈ [0.05, 0.2]，grad ≠ 0 |
-| 2 | **DataLoader shuffle=True 强制** | 显式声明 + Epoch 1 Loss diff ≤ 5% | 防 Batch-Index 泄露 |
-| 3 | **动态维度监控** | `effective_dim < 2.5` 连续 5 epoch 自动激活 VICReg Cov Loss | effective_dim > 5.0 |
-| 4 | **LR 死锁修正** | τ LR=1e-5 + DGB | DGB ratio ∈ [0.5, 10] |
+| 1 | **τ-Monitor + F-5 grad 时序** | epoch log τ.mean/std/range/grad_norm/mean_abs_delta；grad 在 backward 后 / step 前捕获 | ✅ τ=1.000 ∈ [0.1, 10]s (spec §86), grad_norm=4e-2, delta=1.8e-3 |
+| 2 | **DataLoader shuffle=True + per-epoch reseed** | WindowDataset + `seed+epoch_idx` generator | ✅ epoch 0 vs 1 first-batch diff=27/32 (84% 变化) |
+| 3 | **VICReg Std+Cov auto-trigger（软门控）** | `λ_cov=sigmoid(4·(2.5-d))` + std+cov 1:1 联合（防自我静音作弊） | ✅ λ=0.88 @ d=2.0, silenced loss > normal loss 4.3x |
+| 4 | **ADR-022 v3 释放 tau_lr=1e-3** | DGB 单项控制（撤销 v2 双重锁死） | ✅ τ.mean_abs_delta=1.8e-3 物理位移 |
+| 5 | **N=124 工程防御**（新增 F-4） | PC-5a memory cache + PC-5b truncated BPTT (max=32 步) | ✅ BPTT t≤7 input.grad 100%=0.0 数学证明 |
+
+> 7 轮 gemini 评审 finding 总数：22 (Day 3) + 5 (Day 4) = **27 findings 全采纳**。详见 [`docs/reports/gemini-round7-final-signoff-2026-05-22.md`](docs/reports/gemini-round7-final-signoff-2026-05-22.md)。
 
 ## 5/22 早接手清单
 
