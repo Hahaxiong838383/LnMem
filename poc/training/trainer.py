@@ -282,10 +282,18 @@ class TinyTrainer:
                     bp = detect_semantic_breakpoints(anchor, sigma_threshold=2.0)
                     breakpoint_mask = bp.any(dim=1)  # (B,) 任一突变即 mask 该样本
                 loss = self.loss_fn(h_a, h_p, h_n, breakpoint_mask=breakpoint_mask)
-            lam = self.vicreg_trigger.current_lambda
-            if lam > 1e-3:
-                aux = self.vicreg_trigger.compute_loss(h_a, h_p)
-                loss = loss + lam * aux["loss"]
+            # PC-3 v3 解耦修法（gemini 第 8b + codex 第 8b 协同钦定 2026-05-22）：
+            # - std_loss **常开**（防方差归零作弊，不受 λ 控制）
+            # - cov_loss 受 λ 软门控（按 effective_dim 自适应）
+            # 前因：v2 把 std+cov 整体乘 λ，λ<0.01 → std 也被压死 → 50ep effective_dim 3.92→坍塌
+            vicreg_cfg = self.vicreg_trigger.cfg
+            if vicreg_cfg.enabled:
+                std_loss = self.vicreg_trigger.compute_std_loss(h_a, h_p)
+                loss = loss + vicreg_cfg.std_weight * std_loss
+                lam = self.vicreg_trigger.current_lambda
+                if lam > 1e-3:
+                    cov_loss = self.vicreg_trigger.compute_cov_loss(h_a, h_p)
+                    loss = loss + lam * vicreg_cfg.cov_weight * cov_loss
 
             self.optimizer.zero_grad(set_to_none=True)
             loss.backward()
