@@ -204,6 +204,9 @@ def run_evaluation(
     hidden_visual = []
     hidden_shuffled = []  # 硬门 #2: 打乱帧顺序后 hidden
     video_ids = []
+    predict_losses = []
+    predict_losses_shuffled = []
+    recon_by_video: dict[str, list[float]] = {}
 
     trainer.fusion.eval()
     trainer.backbone.eval()
@@ -222,11 +225,32 @@ def run_evaluation(
                 et_masked = mask_text_features(et)
                 h_vis = trainer.encode(et_masked, persona_idx)[0, -1, :]
                 hidden_visual.append(h_vis.cpu().numpy())
+                if getattr(trainer.cfg, "use_ode_loss", False):
+                    h_seq = trainer.encode(et, persona_idx)
+                    ode_out = trainer.ode_loss(
+                        x=et,
+                        h_seq=h_seq,
+                        backbone_step_fn=trainer._backbone_step_for_ode,
+                        persona_idx=persona_idx,
+                    )
+                    predict_losses.append(float(ode_out["L_predict"].item()))
+                    recon_by_video.setdefault(str(w["video_id"]), []).append(
+                        float(ode_out["L_recon"].item())
+                    )
                 # 硬门 #2 Shuffle Test
                 if include_shuffle_test:
                     et_shuf = shuffle_frames_in_window(et, seed=42 + w_idx)
                     h_shuf = trainer.encode(et_shuf, persona_idx)[0, -1, :]
                     hidden_shuffled.append(h_shuf.cpu().numpy())
+                    if getattr(trainer.cfg, "use_ode_loss", False):
+                        h_shuf_seq = trainer.encode(et_shuf, persona_idx)
+                        ode_shuf_out = trainer.ode_loss(
+                            x=et_shuf,
+                            h_seq=h_shuf_seq,
+                            backbone_step_fn=trainer._backbone_step_for_ode,
+                            persona_idx=persona_idx,
+                        )
+                        predict_losses_shuffled.append(float(ode_shuf_out["L_predict"].item()))
                 video_ids.append(w["video_id"])
 
     hidden_full = np.stack(hidden_full)
@@ -273,6 +297,25 @@ def run_evaluation(
         "singular_value_decay_top0_vs_10": s_decay_ratio,
     }
 
+    if getattr(trainer.cfg, "use_ode_loss", False):
+        mean_predict = float(np.mean(predict_losses)) if predict_losses else float("nan")
+        result["L_predict_mean"] = mean_predict
+
+        all_recon = [v for values in recon_by_video.values() for v in values]
+        result["L_recon"] = float(np.mean(all_recon)) if all_recon else float("nan")
+
+        seen_videos = sorted(recon_by_video.keys())
+        split_idx = max(1, len(seen_videos) // 2)
+        train_vids = set(seen_videos[:split_idx])
+        unseen_vids = set(seen_videos[split_idx:])
+        recon_train = [x for vid, vals in recon_by_video.items() if vid in train_vids for x in vals]
+        recon_unseen = [x for vid, vals in recon_by_video.items() if vid in unseen_vids for x in vals]
+        train_mean = float(np.mean(recon_train)) if recon_train else float("nan")
+        unseen_mean = float(np.mean(recon_unseen)) if recon_unseen else float("nan")
+        result["M5_recon_train"] = train_mean
+        result["M5_recon_unseen"] = unseen_mean
+        result["M5_recon_gap"] = unseen_mean - train_mean
+
     # 硬门 #2 Shuffle Test
     if include_shuffle_test and hidden_shuffled:
         hidden_shuf = np.stack(hidden_shuffled)
@@ -283,5 +326,11 @@ def run_evaluation(
         result["shuffle_test_drop"] = m1_drop
         # gemini 硬门 #2: M1 必须降 > 5%
         result["shuffle_test_pass"] = m1_drop > 0.05
+        if getattr(trainer.cfg, "use_ode_loss", False) and predict_losses and predict_losses_shuffled:
+            p = float(np.mean(predict_losses))
+            p_shuf = float(np.mean(predict_losses_shuffled))
+            drop = (p_shuf - p) / max(abs(p), 1e-9)
+            result["shuffle_drop_predict"] = drop
+            result["shuffle_test_predict_pass"] = drop > 0.20
 
     return result

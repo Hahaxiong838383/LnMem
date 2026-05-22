@@ -23,6 +23,7 @@ from torch.utils.data import DataLoader
 from poc.lnn import MultiLayerCustomCfC
 from poc.lnn.heads import FusionLayer, FusionConfig
 from poc.lnn.losses import InfoNCELoss, InfoNCEConfig, VICRegLoss, VICRegConfig, detect_semantic_breakpoints
+from poc.lnn.ode_dynamics_loss import Decoder, OdeDynamicsLoss, OdeDynamicsLossConfig
 from poc.monitoring.collapse_monitor import CollapseMonitor
 from .dataset import VEATICDataset, split_to_windows
 from .au_augment import au_augment, AUAugmentConfig
@@ -54,6 +55,7 @@ class TrainConfig:
     freeze_f_net_steps: int = 200       # spike 简化（spec 1k step）
     max_bptt_steps: int = 32            # gemini 第 7 轮 F-4 工程防御
     use_vicreg: bool = False            # False = InfoNCE 主路径
+    use_ode_loss: bool = True           # ADR-023 主路径
     use_breakpoint_mask: bool = True    # gemini 终审条件 1
     log_every_n: int = 50
     seed: int = 42
@@ -87,6 +89,11 @@ class TinyTrainer:
             self.loss_fn = VICRegLoss(VICRegConfig()).to(self.device)
         else:
             self.loss_fn = InfoNCELoss(InfoNCEConfig(learnable_sigma=False)).to(self.device)
+        self.decoder = Decoder(hidden_dim=cfg.hidden_dim, input_dim=52, num_layers=1).to(self.device)
+        self.ode_loss = OdeDynamicsLoss(
+            cfg=OdeDynamicsLossConfig(),
+            decoder=self.decoder,
+        ).to(self.device)
 
         # collapse 监控
         self.monitor = CollapseMonitor()
@@ -106,6 +113,9 @@ class TinyTrainer:
                     other_params.append(p)
         for p in self.fusion.parameters():
             other_params.append(p)
+        if cfg.use_ode_loss:
+            for p in self.decoder.parameters():
+                other_params.append(p)
 
         # ADR-022 v3: 双率优化器（τ-bias 释放到 1e-3，主干由 DGB 主控约束）
         self.persona_bias_params = persona_bias_params
@@ -130,6 +140,22 @@ class TinyTrainer:
             bptt_truncate=self.cfg.max_bptt_steps,
         )
         return h_seq
+
+    def _backbone_step_for_ode(
+        self,
+        x_t: torch.Tensor,
+        h_prev: torch.Tensor,
+        persona_idx: torch.Tensor,
+        dt: float = 1.0,
+    ) -> torch.Tensor:
+        """Single-step helper for ODE losses; x_t uses raw 52d input."""
+        x_fused = self.fusion(x_t)
+        if self.backbone.num_layers == 1:
+            return self.backbone.cells[0](x_fused, h_prev, persona_idx, dt=dt)
+        # 两层近似：layer-1 走短记忆状态（zero init），layer-2 用真实 h_prev
+        h1_prev = torch.zeros_like(h_prev)
+        h1 = self.backbone.cells[0](x_fused, h1_prev, persona_idx, dt=dt)
+        return self.backbone.cells[1](h1, h_prev, persona_idx, dt=dt)
 
     def _freeze_f_net_if_needed(self):
         """gemini F-4.1: 前 N step freeze f_net 强迫先学 τ-bias."""
@@ -198,7 +224,7 @@ class TinyTrainer:
         windows_ds = WindowDataset(all_windows)
         loader = DataLoader(
             windows_ds,
-            batch_size=self.cfg.batch_size * 4,
+            batch_size=self.cfg.batch_size if self.cfg.use_ode_loss else self.cfg.batch_size * 4,
             shuffle=True,
             generator=torch.Generator().manual_seed(self.cfg.seed + epoch_idx),
             collate_fn=lambda x: x,
@@ -235,59 +261,85 @@ class TinyTrainer:
                             flush=True,
                         )
 
-            pairs = self._build_contrastive_pairs(sampled_windows)
-            if pairs is None:
-                continue
-
-            anchor, positive, negatives = pairs["anchor"], pairs["positive"], pairs["negatives"]
-            B = anchor.size(0)
-
-            # 硬门 #3: AU augmentation on anchor + positive + negatives
-            # 破坏 video-static 特征，强迫学时序结构（gemini 钦定）
-            if self.cfg.au_augment_enabled:
-                aug_cfg = AUAugmentConfig(
-                    channel_dropout_p=self.cfg.au_dropout_p,
-                    intensity_jitter_std=self.cfg.au_jitter_std,
-                    temporal_mixup_alpha=self.cfg.au_temporal_mixup_alpha,
-                    frame_independent=True,  # gemini 钦定 non-coherent
+            metric_terms: dict[str, float] = {}
+            if self.cfg.use_ode_loss:
+                # ADR-023: 直接整段时序输入，不走 contrastive pair 构造
+                x = torch.stack([w["event_tensor"] for w in sampled_windows]).to(self.device)
+                B = x.size(0)
+                persona_idx = torch.zeros(B, dtype=torch.long, device=self.device)
+                h_seq = self.encode(x, persona_idx)
+                h_a = h_seq[:, -1, :]
+                h_p = h_seq[:, -2, :] if h_seq.size(1) > 1 else h_seq[:, -1, :]
+                ode_out = self.ode_loss(
+                    x=x,
+                    h_seq=h_seq,
+                    backbone_step_fn=self._backbone_step_for_ode,
+                    persona_idx=persona_idx,
                 )
-                anchor = au_augment(anchor, aug_cfg, seed=self.step * 1000 + 0)
-                positive = au_augment(positive, aug_cfg, seed=self.step * 1000 + 1)
-                # negatives shape (B, K, T, D), flatten 处理
-                B_n, K_n, T_n, D_n = negatives.shape
-                neg_flat = au_augment(negatives.view(B_n * K_n, T_n, D_n), aug_cfg,
-                                       seed=self.step * 1000 + 2)
-                negatives = neg_flat.view(B_n, K_n, T_n, D_n)
-
-            # persona_idx: spike 阶段简化全 0
-            persona_idx = torch.zeros(B, dtype=torch.long, device=self.device)
-
-            # Forward
-            h_a = self.encode(anchor, persona_idx)[:, -1, :]  # (B, 64) 取最后帧
-            h_p = self.encode(positive, persona_idx)[:, -1, :]
-            # negatives shape: (B, num_negs, T, 52) → flatten 跑 → reshape
-            B_, K, T, D = negatives.shape
-            persona_idx_n = torch.zeros(B_ * K, dtype=torch.long, device=self.device)
-            h_n_flat = self.encode(negatives.view(B_ * K, T, D), persona_idx_n)[:, -1, :]
-            h_n = h_n_flat.view(B_, K, -1)  # (B, num_negs, 64)
-
-            # Loss
-            if self.cfg.use_vicreg:
-                loss_dict = self.loss_fn(h_a, h_p)
-                loss = loss_dict["loss"]
+                loss = ode_out["loss"]
+                metric_terms = {
+                    "L_predict": float(ode_out["L_predict"].item()),
+                    "L_recon": float(ode_out["L_recon"].item()),
+                    "L_ode": float(ode_out["L_ode"].item()),
+                    "L_infonce_aux": float(ode_out["L_infonce_aux"].item()),
+                }
             else:
-                # 时序突变 mask（gemini F-5 闭环）
-                breakpoint_mask = None
-                if self.cfg.use_breakpoint_mask:
-                    bp = detect_semantic_breakpoints(anchor, sigma_threshold=2.0)
-                    breakpoint_mask = bp.any(dim=1)  # (B,) 任一突变即 mask 该样本
-                loss = self.loss_fn(h_a, h_p, h_n, breakpoint_mask=breakpoint_mask)
+                pairs = self._build_contrastive_pairs(sampled_windows)
+                if pairs is None:
+                    continue
+
+                anchor, positive, negatives = pairs["anchor"], pairs["positive"], pairs["negatives"]
+                B = anchor.size(0)
+
+                # 硬门 #3: AU augmentation on anchor + positive + negatives
+                # 破坏 video-static 特征，强迫学时序结构（gemini 钦定）
+                if self.cfg.au_augment_enabled:
+                    aug_cfg = AUAugmentConfig(
+                        channel_dropout_p=self.cfg.au_dropout_p,
+                        intensity_jitter_std=self.cfg.au_jitter_std,
+                        temporal_mixup_alpha=self.cfg.au_temporal_mixup_alpha,
+                        frame_independent=True,  # gemini 钦定 non-coherent
+                    )
+                    anchor = au_augment(anchor, aug_cfg, seed=self.step * 1000 + 0)
+                    positive = au_augment(positive, aug_cfg, seed=self.step * 1000 + 1)
+                    # negatives shape (B, K, T, D), flatten 处理
+                    B_n, K_n, T_n, D_n = negatives.shape
+                    neg_flat = au_augment(
+                        negatives.view(B_n * K_n, T_n, D_n),
+                        aug_cfg,
+                        seed=self.step * 1000 + 2,
+                    )
+                    negatives = neg_flat.view(B_n, K_n, T_n, D_n)
+
+                # persona_idx: spike 阶段简化全 0
+                persona_idx = torch.zeros(B, dtype=torch.long, device=self.device)
+
+                # Forward
+                h_a = self.encode(anchor, persona_idx)[:, -1, :]  # (B, 64) 取最后帧
+                h_p = self.encode(positive, persona_idx)[:, -1, :]
+                # negatives shape: (B, num_negs, T, 52) → flatten 跑 → reshape
+                B_, K, T, D = negatives.shape
+                persona_idx_n = torch.zeros(B_ * K, dtype=torch.long, device=self.device)
+                h_n_flat = self.encode(negatives.view(B_ * K, T, D), persona_idx_n)[:, -1, :]
+                h_n = h_n_flat.view(B_, K, -1)  # (B, num_negs, 64)
+
+                # Loss
+                if self.cfg.use_vicreg:
+                    loss_dict = self.loss_fn(h_a, h_p)
+                    loss = loss_dict["loss"]
+                else:
+                    # 时序突变 mask（gemini F-5 闭环）
+                    breakpoint_mask = None
+                    if self.cfg.use_breakpoint_mask:
+                        bp = detect_semantic_breakpoints(anchor, sigma_threshold=2.0)
+                        breakpoint_mask = bp.any(dim=1)  # (B,) 任一突变即 mask 该样本
+                    loss = self.loss_fn(h_a, h_p, h_n, breakpoint_mask=breakpoint_mask)
             # PC-3 v3 解耦修法（gemini 第 8b + codex 第 8b 协同钦定 2026-05-22）：
             # - std_loss **常开**（防方差归零作弊，不受 λ 控制）
             # - cov_loss 受 λ 软门控（按 effective_dim 自适应）
             # 前因：v2 把 std+cov 整体乘 λ，λ<0.01 → std 也被压死 → 50ep effective_dim 3.92→坍塌
             vicreg_cfg = self.vicreg_trigger.cfg
-            if vicreg_cfg.enabled:
+            if (not self.cfg.use_ode_loss) and vicreg_cfg.enabled:
                 std_loss = self.vicreg_trigger.compute_std_loss(h_a, h_p)
                 loss = loss + vicreg_cfg.std_weight * std_loss
                 lam = self.vicreg_trigger.current_lambda
@@ -328,6 +380,7 @@ class TinyTrainer:
                     "pairwise_dist": metrics["pairwise_dist"],
                     "elapsed_s": elapsed,
                 }
+                log_entry.update(metric_terms)
                 self.logs.append(log_entry)
                 print(f"  step={self.step:3d} loss={loss.item():.4f} "
                       f"ratio={ratio:.2e}→DGB→{ratio_after_dgb:.2e} "
