@@ -58,6 +58,7 @@ class MultiLayerCustomCfC(nn.Module):
         x: torch.Tensor,
         persona_idx: torch.Tensor,
         dt: float = 1.0,
+        bptt_truncate: Optional[int] = None,
         return_all_layers: bool = False,
     ) -> torch.Tensor:
         """Sequence forward.
@@ -66,6 +67,7 @@ class MultiLayerCustomCfC(nn.Module):
             x: (batch, seq_len, input_dim)
             persona_idx: (batch,)
             dt: scalar 时间步
+            bptt_truncate: 截断 BPTT 的步长，None/<=0 表示不截断
             return_all_layers: True 返回所有层最后帧 hidden，False 只返回最后层全 seq
 
         Returns:
@@ -91,6 +93,14 @@ class MultiLayerCustomCfC(nn.Module):
                     dt=dt,
                 )
             last_layer_seq.append(h_states[-1])
+            # Truncated BPTT: 每 N 步切断一次历史反传，防长序列图爆炸
+            if bptt_truncate and bptt_truncate > 0 and (t + 1) % bptt_truncate == 0:
+                truncated_states = []
+                for h in h_states:
+                    detached = h.detach()
+                    detached.requires_grad_(h.requires_grad)
+                    truncated_states.append(detached)
+                h_states = truncated_states
 
         out = torch.stack(last_layer_seq, dim=1)  # (batch, seq_len, hidden_dim)
         if return_all_layers:

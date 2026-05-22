@@ -83,17 +83,40 @@ def main():
     print(f"\n=== 训练 {args.loss.upper()} × {args.epochs} epochs ===")
     t0 = time.time()
     all_logs = []
+    epoch_logs = []
+    eval_result = None
+    eval_elapsed = 0.0
     final_loss = None
     total_steps = 0
     for epoch in range(args.epochs):
         if epoch > 0:
             print(f"\n--- epoch {epoch+1}/{args.epochs} ---")
-        ep_result = trainer.train_one_epoch()
-        all_logs.extend(ep_result["logs"])
+        ep_result = trainer.train_one_epoch(epoch_idx=epoch)
         final_loss = ep_result.get("final_loss", final_loss)
         total_steps += ep_result["total_steps"]
+        t_eval = time.time()
+        eval_result = run_evaluation(trainer, dataset, sample_per_video=5)
+        eval_elapsed = time.time() - t_eval
+        trigger_log = trainer.on_epoch_end_with_eval(eval_result, epoch)
+        epoch_log = dict(ep_result.get("epoch_log", {}))
+        epoch_log.update(trigger_log)
+        epoch_log["effective_dim"] = eval_result.get("effective_dim")
+        epoch_logs.append(epoch_log)
+        tau_stats = epoch_log.get("tau_stats", {})
+        print(
+            f"  [epoch {epoch}] τ mean={tau_stats.get('mean', float('nan')):.3f} "
+            f"± {tau_stats.get('std', float('nan')):.3f} "
+            f"grad={tau_stats.get('grad_norm', float('nan')):.2e} "
+            f"λ_cov={epoch_log.get('vicreg_lambda', 0.0):.4f}"
+        )
     train_elapsed = time.time() - t0
-    train_result = {"total_steps": total_steps, "final_loss": final_loss, "logs": all_logs}
+    all_logs = list(trainer.logs)
+    train_result = {
+        "total_steps": total_steps,
+        "final_loss": final_loss,
+        "logs": all_logs,
+        "epoch_logs": epoch_logs,
+    }
 
     print(f"\n✅ 训练完成: {total_steps} steps ({args.epochs} epochs), "
           f"final_loss={final_loss:.4f}, elapsed={train_elapsed:.1f}s")
@@ -108,6 +131,7 @@ def main():
         json.dump({
             "config": train_result.get("config", {}),
             "logs": train_result["logs"],
+            "epoch_logs": train_result["epoch_logs"],
             "final_loss": train_result["final_loss"],
             "total_steps": train_result["total_steps"],
             "elapsed_s": train_elapsed,
@@ -118,9 +142,10 @@ def main():
 
     # Step 4: Evaluation (M1 + M1-V + M5 + collapse)
     print(f"\n=== 评估 ===")
-    t0 = time.time()
-    eval_result = run_evaluation(trainer, dataset, sample_per_video=5)
-    eval_elapsed = time.time() - t0
+    if eval_result is None:
+        t0 = time.time()
+        eval_result = run_evaluation(trainer, dataset, sample_per_video=5)
+        eval_elapsed = time.time() - t0
 
     eval_path = ckpt_path.parent / "eval_report.json"
     with eval_path.open("w") as f:
@@ -148,6 +173,14 @@ def main():
     print(f"  pairwise dist: {eval_result['collapse_pairwise_dist']:.4f}")
     print(f"  effective dim: {eval_result.get('effective_dim', 'N/A'):.2f} "
           f"(gemini 第 5 轮盲区 #1)")
+    if train_result["epoch_logs"]:
+        tau_stats = train_result["epoch_logs"][-1].get("tau_stats", {})
+        print(
+            f"  τ monitor: mean={tau_stats.get('mean', float('nan')):.3f} "
+            f"±{tau_stats.get('std', float('nan')):.3f} "
+            f"grad={tau_stats.get('grad_norm', float('nan')):.2e}"
+        )
+        print(f"  VICReg λ_cov: {train_result['epoch_logs'][-1].get('vicreg_lambda', 0.0):.4f}")
     if "shuffle_test_drop" in eval_result:
         drop = eval_result["shuffle_test_drop"]
         shuf_pass = eval_result["shuffle_test_pass"]
