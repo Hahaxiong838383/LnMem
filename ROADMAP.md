@@ -6,10 +6,11 @@
 
 ---
 
-## 当前阶段：M0 W3 Day 4（**🟩 5/22 P0 5 Pre-conditions 全绿 + gemini 第 7 轮终审 APPROVE + 5/27 Phase γ Step 1 GREEN LIGHT**）
+## 当前阶段：M0 W3 Day 4 晚（**🟢 5/22 11 轮 Team 模式 + ADR-022/023/024 + v3.0 200ep 全门破阈值 + 5/27 Phase γ Step 1 GREEN LIGHT 第 9 次终判**）
 
 **主分支**：`poc/lnn-validation`
-**最近核心 commit**：`d023e43` (gemini 第 7 轮终审 APPROVE · 5/22) → `96e47e2` (P0 5 PC v2 整改 · 5/22) → `492583d` (γ-3 final · 5/21)
+**最近核心 commit**：`7d1fc5f` (ADR-024 AU 物理上限 · 5/22 晚) → `e38d28f` (R1+R3 LNN-FIRST 物理松绑 · 5/22 下) → `f3ee848` (gemini 11 stride=3 准静态死局 · 5/22 中) → `8e38bde` (ADR-023 范式转换 · 5/22 早)
+**📊 完整复盘**：[`docs/reports/2026-05-22-team-mode-11-rounds-retrospective.md`](docs/reports/2026-05-22-team-mode-11-rounds-retrospective.md)
 **项目哲学锚**：[ADR-009 拒绝 RAG](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md) + [ADR-016 base v3](docs/decisions/016-base-v3-multimodal-self-supervised-lnn.md) + [ADR-022 τ-bias 梯度黑洞修复](docs/decisions/022-tau-bias-gradient-blackhole-fix.md)
 **📊 项目状态总览（最新）**：[`docs/project-status.md`](docs/project-status.md)
 **🏗 技术全景**：[`docs/architecture-overview.md`](docs/architecture-overview.md)
@@ -61,16 +62,50 @@
 
 > 7 轮 gemini 评审 finding 总数：22 (Day 3) + 5 (Day 4) = **27 findings 全采纳**。详见 [`docs/reports/gemini-round7-final-signoff-2026-05-22.md`](docs/reports/gemini-round7-final-signoff-2026-05-22.md)。
 
-## 5/22 早接手清单
+## 5/22 早接手清单（已全完成）
+
+| 优先级 | 任务 | 工时 | 完成 |
+|---|---|---|---|
+| ~~P0~~ | ~~4 项 Pre-conditions 实施~~ | 2-3h | ✅ |
+| ~~P0~~ | ~~50 epoch 重测 effective_dim ≥ 8.0~~ | 30min | ⚠️ **发现 8.0 物理不可达 → ADR-024 改判** |
+| ~~P0~~ | ~~gemini 第 7 轮终审 sign-off~~ | 5min | ✅（但 7 → 14 轮持续迭代）|
+
+---
+
+## 5/22 整日 11 轮 Team 模式（5/22 早 - 晚，**单日 13 commits / 3 ADR / 7 轮 gemini 对抗审**）
+
+### 核心成就：**5/27 Phase γ Step 1 verdict 第 9 次更新 → 🟢 GREEN LIGHT 首次过线**
+
+### v3.0 200ep 全 5 启动门破阈值（按 ADR-024 数据驱动相对阈值）
+
+| 门 | 200ep 实测 | 阈值 | 状态 |
+|---|---|---|---|
+| τ.std > 0.5（多时间尺度真分化）| 0.577 | > 0.5 | ✅ |
+| effective_dim / input_effective_dim | **0.97** (4.92/5.07) | ≥ 0.80 | ✅ **+21%** |
+| Shuffle ratio（时序贡献）| **1.73** | ≥ 1.5 | ✅ **+15%** |
+| vs_naive baseline | **0.632** | < 0.7 | ✅ |
+| vs_persistence baseline | **0.50** | < 0.7 | ✅ |
+| trivial_recon_check_pass | **True** | True | ✅ |
+
+### 三大架构级 ADR 单日落地
+
+- **ADR-022 v3** — τ-bias 释放 1e-3 + DGB 单项控制（撤回 v2 双重锁死）
+- **ADR-023** — 范式转换 InfoNCE+L2 → Latent World Model Rollout（Dreamer 风格）
+- **ADR-024** — AU 数据物理上限锁死（input effective_dim=5.07，相对阈值替代绝对 8.0）
+
+### 5/23+ 接手清单（更新）
 
 | 优先级 | 任务 | 工时 |
 |---|---|---|
-| **P0** | 4 项 Pre-conditions 实施 | 2-3h |
-| **P0** | 50 epoch 重测 effective_dim ≥ 8.0 | 30min |
-| **P0** | gemini 第 7 轮终审 sign-off | 5min |
-| **P1** | β-self-test 川哥本人 webcam + 10 句 | 1-2h（需川哥）|
+| **P0** | gemini 第 14 轮 sign-off + ROADMAP/memory 沉淀 | 完成中 |
+| **P0** | β-self-test 川哥本人 webcam + 10 句 | 1-2h |
 | **P1** | 5/24 daemon 长跑后台启动（Air） | 0.5h |
+| **P1** | 优化 long training（200ep work → 500/1000ep 是否还能涨）| 1h |
 | **P2** | 5/27 **Phase γ Step 1 启动**（Studio M2 Max + 124 视频 / 4 天） | 启动 0.5h + 守 |
+
+### 11 轮 6 次 gemini 自我弹劾 + 5 大经验教训
+
+详见 [`docs/reports/2026-05-22-team-mode-11-rounds-retrospective.md`](docs/reports/2026-05-22-team-mode-11-rounds-retrospective.md)
 
 ## 5/22 修订周启动（方案 A · 已 99% 完成于 5/21 晚单晚 6h Team 模式）
 

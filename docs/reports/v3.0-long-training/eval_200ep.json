@@ -1,0 +1,18 @@
+{
+  "n_samples": 26,
+  "L_world_model_train": 0.023885403693254505,
+  "L_world_model_unseen": 0.02155415154993534,
+  "L_world_model_all": 0.022809441165568736,
+  "effective_dim": 4.918126583099365,
+  "L_naive_mean_baseline": 0.03610533295879857,
+  "L_persistence_baseline": 0.04557106622423117,
+  "model_vs_naive_ratio": 0.6317471491426937,
+  "model_vs_persistence_ratio": 0.5005246323036532,
+  "trivial_recon_check_pass": true,
+  "L_world_model_shuffled": 0.06217033530657108,
+  "shuffle_increase_ratio": 1.7256404422752067,
+  "shuffle_test_pass": true,
+  "eval_elapsed_s": 0.2876920700073242,
+  "loss_type": "infonce",
+  "seed": 42
+}
