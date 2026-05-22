@@ -40,6 +40,7 @@ def test_tau_monitor_real_trainer_one_epoch(capsys) -> None:
             num_layers=2,
             num_personas=4,
             freeze_f_net_steps=0,
+            use_ode_loss=False,
             log_every_n=1,
             seed=42,
         )

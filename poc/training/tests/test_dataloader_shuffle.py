@@ -54,6 +54,7 @@ def test_trainer_records_epoch_first_batch_vids() -> None:
             num_layers=2,
             num_personas=4,
             freeze_f_net_steps=0,
+            use_ode_loss=False,
             log_every_n=2,
             seed=42,
         )

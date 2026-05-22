@@ -74,6 +74,7 @@ def test_trainer_dry_run_smoke():
             persona_lr_scale=5.0,
             f_net_weight_decay=1e-3,
             freeze_f_net_steps=2,  # smoke 阶段早 unfreeze
+            use_ode_loss=False,
             use_vicreg=False,
             use_breakpoint_mask=True,
             log_every_n=1,
@@ -104,6 +105,7 @@ def test_trainer_dry_run_vicreg():
             seq_len=20, batch_size=4, num_negs=4, hidden_dim=32,
             num_layers=2, num_personas=4, epochs=1, lr=1e-3,
             freeze_f_net_steps=2, use_vicreg=True,
+            use_ode_loss=False,
             log_every_n=1, seed=42,
         )
         trainer = TinyTrainer(cfg, dataset, device="cpu")
@@ -124,6 +126,7 @@ def test_trainer_checkpoint_under_20mb():
             seq_len=20, batch_size=4, num_negs=4, hidden_dim=64,
             num_layers=2, num_personas=64,  # 真 persona table
             epochs=1, lr=1e-3, freeze_f_net_steps=2,
+            use_ode_loss=False,
             log_every_n=10, seed=42,
         )
         trainer = TinyTrainer(cfg, dataset, device="cpu")
@@ -148,6 +151,7 @@ def test_full_evaluation_pipeline():
             seq_len=20, batch_size=4, num_negs=4, hidden_dim=32,
             num_layers=2, num_personas=4, epochs=1, lr=1e-3,
             freeze_f_net_steps=2, log_every_n=10, seed=42,
+            use_ode_loss=False,
         )
         trainer = TinyTrainer(cfg, dataset, device="cpu")
         trainer.train_one_epoch()

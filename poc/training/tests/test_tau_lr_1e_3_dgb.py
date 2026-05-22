@@ -26,6 +26,7 @@ def test_tau_lr_1e_3_has_measurable_grad_and_shift() -> None:
             dgb_enabled=True,
             dgb_target_ratio=10.0,
             freeze_f_net_steps=0,
+            use_ode_loss=False,
             log_every_n=1,
             seed=7,
         )
@@ -56,6 +57,7 @@ def test_dgb_scales_down_when_needed() -> None:
             num_personas=4,
             tau_lr=1e-3,
             freeze_f_net_steps=0,
+            use_ode_loss=False,
             log_every_n=1,
             seed=42,
         )

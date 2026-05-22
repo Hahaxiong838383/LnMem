@@ -84,14 +84,7 @@ class MultiLayerCustomCfC(nn.Module):
 
         for t in range(seq_len):
             x_t = x[:, t, :]   # (batch, input_dim)
-            for layer_idx, cell in enumerate(self.cells):
-                input_for_layer = x_t if layer_idx == 0 else h_states[layer_idx - 1]
-                h_states[layer_idx] = cell(
-                    x_t=input_for_layer,
-                    h_prev=h_states[layer_idx],
-                    persona_idx=persona_idx,
-                    dt=dt,
-                )
+            h_states = self.step(x_t, h_states, persona_idx, dt=dt)
             last_layer_seq.append(h_states[-1])
             # Truncated BPTT: 每 N 步切断一次历史反传，防长序列图爆炸
             if bptt_truncate and bptt_truncate > 0 and (t + 1) % bptt_truncate == 0:
@@ -106,6 +99,29 @@ class MultiLayerCustomCfC(nn.Module):
         if return_all_layers:
             return out, h_states
         return out
+
+    def step(
+        self,
+        x_t: torch.Tensor,
+        h_prev_list: list[torch.Tensor],
+        persona_idx: torch.Tensor,
+        dt: float = 1.0,
+    ) -> list[torch.Tensor]:
+        """Single-step forward for rollout. / rollout 用单步接口。"""
+        if len(h_prev_list) != self.num_layers:
+            raise ValueError(f"h_prev_list length {len(h_prev_list)} != num_layers {self.num_layers}")
+
+        h_new_list: list[torch.Tensor] = []
+        for layer_idx, cell in enumerate(self.cells):
+            input_for_layer = x_t if layer_idx == 0 else h_new_list[layer_idx - 1]
+            h_new = cell(
+                x_t=input_for_layer,
+                h_prev=h_prev_list[layer_idx],
+                persona_idx=persona_idx,
+                dt=dt,
+            )
+            h_new_list.append(h_new)
+        return h_new_list
 
     def num_parameters(self) -> int:
         return sum(p.numel() for p in self.parameters())

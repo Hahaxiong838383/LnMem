@@ -200,6 +200,78 @@ def run_evaluation(
     """
     from .dataset import split_to_windows
 
+    if getattr(trainer.cfg, "use_ode_loss", False):
+        world_losses_by_vid: dict[str, list[float]] = {}
+        world_losses_all: list[float] = []
+        world_losses_shuffled: list[float] = []
+        prefix_hidden_rows: list[np.ndarray] = []
+
+        trainer.fusion.eval()
+        trainer.backbone.eval()
+        persona_idx = torch.zeros(1, dtype=torch.long, device=trainer.device)
+
+        with torch.no_grad():
+            for i in range(len(dataset)):
+                sample = dataset[i]
+                windows = split_to_windows(sample, seq_len=trainer.cfg.seq_len, stride=trainer.cfg.seq_len)
+                for w_idx, w in enumerate(windows[:sample_per_video]):
+                    et = w["event_tensor"].unsqueeze(0).to(trainer.device)
+                    out = trainer.ode_loss(
+                        x=et,
+                        backbone_step_fn=trainer.backbone_step,
+                        persona_idx=persona_idx,
+                        init_hidden_fn=lambda b, dev: [
+                            cell.init_hidden(b, dev) for cell in trainer.backbone.cells
+                        ],
+                    )
+                    world_loss = float(out["L_world_model"].item())
+                    vid = str(w["video_id"])
+                    world_losses_by_vid.setdefault(vid, []).append(world_loss)
+                    world_losses_all.append(world_loss)
+                    prefix_hidden_rows.append(out["h_seq_prefix"][0].detach().cpu().numpy())
+
+                    if include_shuffle_test:
+                        et_shuf = shuffle_frames_in_window(et, seed=42 + w_idx)
+                        out_shuf = trainer.ode_loss(
+                            x=et_shuf,
+                            backbone_step_fn=trainer.backbone_step,
+                            persona_idx=persona_idx,
+                            init_hidden_fn=lambda b, dev: [
+                                cell.init_hidden(b, dev) for cell in trainer.backbone.cells
+                            ],
+                        )
+                        world_losses_shuffled.append(float(out_shuf["L_world_model"].item()))
+
+        prefix_mat = np.concatenate(prefix_hidden_rows, axis=0) if prefix_hidden_rows else np.zeros((1, 1))
+        prefix_centered = prefix_mat - prefix_mat.mean(axis=0, keepdims=True)
+        try:
+            s = np.linalg.svd(prefix_centered, compute_uv=False)
+            effective_dim = float(s.sum() / max(s[0], 1e-9))
+        except Exception:
+            effective_dim = -1.0
+
+        vids = sorted(world_losses_by_vid.keys())
+        split = max(1, len(vids) // 2)
+        train_vids = set(vids[:split])
+        unseen_vids = set(vids[split:])
+        train_losses = [x for vid, vals in world_losses_by_vid.items() if vid in train_vids for x in vals]
+        unseen_losses = [x for vid, vals in world_losses_by_vid.items() if vid in unseen_vids for x in vals]
+
+        result = {
+            "n_samples": len(world_losses_all),
+            "L_world_model_train": float(np.mean(train_losses)) if train_losses else float("nan"),
+            "L_world_model_unseen": float(np.mean(unseen_losses)) if unseen_losses else float("nan"),
+            "L_world_model_all": float(np.mean(world_losses_all)) if world_losses_all else float("nan"),
+            "effective_dim": effective_dim,
+        }
+        if include_shuffle_test and world_losses_shuffled:
+            shuffled_mean = float(np.mean(world_losses_shuffled))
+            base_mean = result["L_world_model_all"]
+            result["L_world_model_shuffled"] = shuffled_mean
+            result["shuffle_increase_ratio"] = (shuffled_mean - base_mean) / max(abs(base_mean), 1e-9)
+            result["shuffle_test_pass"] = shuffled_mean >= base_mean * 1.5
+        return result
+
     hidden_full = []
     hidden_visual = []
     hidden_shuffled = []  # 硬门 #2: 打乱帧顺序后 hidden
