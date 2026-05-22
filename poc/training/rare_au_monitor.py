@@ -1,6 +1,6 @@
-"""罕见 AU 重建监控（gemini round 14 N=124 长尾警告）.
+"""罕见 AU 重建监控（gemini round 14 + round 2 对抗审改良）.
 
-防 N=124 时模型刷主成分指标而牺牲长尾罕见 AU（AU43 / AU28 类）的重建.
+防 N=124 时模型刷主成分指标而牺牲长尾罕见 AU（AU07 / AU10 类）的重建.
 
 ROADMAP P0-2 (5/23+) 落地：按 AU 频率分桶 (top-7 / mid-6 / bot-7) 独立算
 L_world_model + model_vs_persistence_ratio，输出 green / yellow / red verdict.
@@ -8,9 +8,9 @@ L_world_model + model_vs_persistence_ratio，输出 green / yellow / red verdict
 接口设计原则：
 - 纯函数，无副作用，零侵入 evaluate.py 主流程
 - AU 段约束 = event_tensor[:, :20]（py-feat 真 AU，剔除 head pose padding）
-- 阈值 V0.1 起步，N=124 baseline 后必须迭代（mycc 教训：阈值必须先有数据 baseline）
+- V0.3 已用川哥 14 天 + VEATIC 10 vid 双数据集校准，N=124 全量数据准备好后还需再校准一次
 
-合约见 docs/decisions/025-rare-au-longtail-monitor.md（待写）.
+合约见 docs/decisions/025-rare-au-longtail-monitor.md + 026-rare-au-monitor-v03-cross-dataset-validation.md.
 """
 from __future__ import annotations
 
@@ -40,9 +40,14 @@ RATIO_DENOM_SMOOTHING = 1e-3
 # 模型在罕见 AU 上比 trivial 强一倍以上（ratio_bottom < 0.5）说明长尾未被牺牲，不应警告
 SPREAD_GATE_RATIO_BOTTOM = 0.5
 
-# gemini D3 Finding 4 + round 14 sign-off：spec 钦定必监控的罕见微表情，无论频率如何变化都死守 bottom 桶
-# py-feat 0.6.2 PYFEAT_AU_COLUMNS 列序：AU28 = index 18 (lip suck), AU43 = index 19 (eye closure)
-DEFAULT_FIXED_BOTTOM_INDICES: tuple[int, ...] = (18, 19)
+# V0.3 D'（gemini round 2 改良）：跨数据集共识罕见 AU07/AU10 作为固定 bottom 候选
+# py-feat 0.6.2 PYFEAT_AU_COLUMNS 列序：AU07 = index 5, AU10 = index 7
+DEFAULT_FIXED_BOTTOM_INDICES: tuple[int, ...] = (5, 7)
+
+# V0.4 cc Y2 实证发现：当 ratio_top > TOP_COLLAPSE_RATIO（模型在高频桶也比 trivial 差）
+# 说明模型在当前数据集上整体崩盘，"长尾被牺牲"语义不适用，verdict 应判 N/A 而非 green
+# 触发场景：训练分布与评估分布严重偏移（如 VEATIC 30fps 训练 → daemon 1fps 评估）
+TOP_COLLAPSE_RATIO = 1.0
 
 
 @dataclasses.dataclass(frozen=True)
@@ -53,9 +58,15 @@ class AuBuckets:
     median: tuple[int, ...]   # 中频 6 个
     bottom: tuple[int, ...]   # 罕见 7 个（防 N=124 时被牺牲的目标）
     activation_freq: tuple[float, ...]  # 长度 20，原始激活频率
+    evicted_fixed: tuple[int, ...] = ()  # 被踢出的 fixed（因在当前数据 top-K）
 
     def as_dict(self) -> dict[str, list[int]]:
-        return {"top": list(self.top), "median": list(self.median), "bottom": list(self.bottom)}
+        return {
+            "top": list(self.top),
+            "median": list(self.median),
+            "bottom": list(self.bottom),
+            "evicted_fixed": list(self.evicted_fixed),
+        }
 
 
 @dataclasses.dataclass(frozen=True)
@@ -126,15 +137,15 @@ def partition_au_by_frequency(
 ) -> AuBuckets:
     """按激活频率把 AU 索引划分 top / median / bottom 三桶.
 
-    gemini D3 Finding 4：spec 钦定的核心罕见 AU（AU28/AU43）必须死守 bottom 桶，
-    防 N=10 → N=124 频率分布变化时"罕见 AU 定义漂移"导致指标无法横向对账.
+    V0.3 D'：fixed 仅作为候选，若当前数据里该 AU 已进入 top-K，则自动踢出（evict），
+    bottom 槽位改由纯频率低位补齐，防止把高频 AU 强塞进罕见桶.
 
     Args:
         activation_freq: shape (au_dim,)
         top_k: 高频桶大小（默认 7）
         bottom_k: 罕见桶大小（默认 7）
-        fixed_bottom_indices: 必须落入 bottom 桶的 AU 索引（spec 钦定）.
-            按 PYFEAT_AU_COLUMNS 列序，默认 (18=AU28, 19=AU43).
+        fixed_bottom_indices: 优先落入 bottom 桶的 AU 索引（跨数据集先验）.
+            按 PYFEAT_AU_COLUMNS 列序，默认 (5=AU07, 7=AU10).
             传 () 退化为纯按频率分桶.
 
     Returns:
@@ -155,19 +166,24 @@ def partition_au_by_frequency(
             f"fixed_bottom_indices 数量 {len(fixed_set)} > bottom_k {bottom_k}"
         )
 
-    # 先按频率降序对"剩余索引"排序，再补足 bottom 名额
-    remaining = [i for i in range(au_dim) if i not in fixed_set]
+    # 先做全量 rank，检查 fixed 是否已进入 top-K（高频就踢出）
+    order = np.argsort(-activation_freq)
+    freq_rank = np.empty(au_dim, dtype=np.int64)
+    freq_rank[order] = np.arange(1, au_dim + 1, dtype=np.int64)
+    evicted_fixed = sorted(i for i in fixed_set if int(freq_rank[i]) <= top_k)
+    effective_fixed = fixed_set - set(evicted_fixed)
+
+    # 对剩余索引按频率降序分 top，按低频补 bottom
+    remaining = [i for i in range(au_dim) if i not in effective_fixed]
     remaining_sorted = sorted(remaining, key=lambda i: -activation_freq[i])
 
     top_idx = sorted(remaining_sorted[:top_k])
-    bottom_remaining_slots = bottom_k - len(fixed_set)
-    bottom_from_freq = remaining_sorted[au_dim - bottom_k :] if bottom_remaining_slots > 0 else []
-    # 上面的切片当 fixed 占满 bottom_k 时 = remaining_sorted[au_dim-bottom_k:] 仍非空，需要单独保护
+    bottom_remaining_slots = bottom_k - len(effective_fixed)
     if bottom_remaining_slots > 0:
         bottom_from_freq = remaining_sorted[-bottom_remaining_slots:]
     else:
         bottom_from_freq = []
-    bottom_idx = sorted(list(fixed_set) + list(bottom_from_freq))
+    bottom_idx = sorted(list(effective_fixed) + list(bottom_from_freq))
 
     used = set(top_idx) | set(bottom_idx)
     median_idx = sorted(i for i in range(au_dim) if i not in used)
@@ -176,6 +192,7 @@ def partition_au_by_frequency(
         top=tuple(top_idx),
         median=tuple(median_idx),
         bottom=tuple(bottom_idx),
+        evicted_fixed=tuple(evicted_fixed),
         activation_freq=tuple(activation_freq.tolist()),
     )
 
@@ -259,7 +276,14 @@ def evaluate_rare_au_drop(
     spread = r_bot - r_top
     spread_gate_active = r_bot >= SPREAD_GATE_RATIO_BOTTOM
 
-    if r_bot >= ratio_red:
+    # V0.4 cc Y2 finding：整体崩盘检查（top 桶比 trivial 差 → 长尾监控无意义）
+    if r_top >= TOP_COLLAPSE_RATIO:
+        verdict = "n/a"
+        reason = (
+            f"top ratio {r_top:.3f} >= top_collapse {TOP_COLLAPSE_RATIO}"
+            f"（模型在高频桶也比 trivial 差，整体崩盘，长尾监控不适用）"
+        )
+    elif r_bot >= ratio_red:
         verdict = "red"
         reason = f"bottom ratio {r_bot:.3f} >= ratio_red {ratio_red}（罕见 AU 比 trivial 还差）"
     elif spread_gate_active and spread >= spread_red:
@@ -317,5 +341,6 @@ def verdict_to_dict(v: RareAuVerdict) -> dict:
         "rare_au_reason": v.reason,
         "rare_au_buckets": v.buckets.as_dict(),
         "rare_au_activation_freq": list(v.buckets.activation_freq),
+        "rare_au_evicted_fixed": list(v.buckets.evicted_fixed),
         "rare_au_n_samples": v.n_samples,
     }

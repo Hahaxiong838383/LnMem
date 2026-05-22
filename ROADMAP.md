@@ -104,7 +104,7 @@
 | **P1** | 优化 long training（200ep work → 500/1000ep 是否还能涨）| 1h | ⏳ |
 | **P2** | 5/27 **Phase γ Step 1 启动**（Studio M2 Max + 124 视频 / 4 天） | 启动 0.5h + 守 | ⏳ |
 
-### 5/27 启动 6 道门（ADR-024 5 门 + ADR-025 新增第 6 门）
+### 5/27 启动 6 道门（ADR-024 5 门 + ADR-025/026 rare_au_verdict 门）
 
 | # | 门 | 来源 |
 |---|---|---|
@@ -112,9 +112,10 @@
 | 2 | vs_persistence < 0.7 | ADR-024 |
 | 3 | effective_dim / input_effective_dim ≥ 0.8 | ADR-024 |
 | 4 | Shuffle ratio ≥ 1.5 | ADR-024 |
-| 5 | rare_au_verdict ∈ {green, yellow}（red 必须先排查长尾原因） | **ADR-025 新增** |
+| 5 | rare_au_verdict ∈ {green, yellow}（red 必须先排查长尾原因） | **ADR-025 新增 / ADR-026 更新** |
 
 启动前必须先在 v3.0 ckpt 跑 rare AU baseline，按数据调阈值（mycc 教训：阈值必须先有数据 baseline）。
+备注：V0.3 D' fixed=(AU07, AU10) 跨数据集共识；N=124 启动前需 ADR-026 §N=124-校准 重跑一次 fixed_bottom auto-select。
 
 ### 11 轮 6 次 gemini 自我弹劾 + 5 大经验教训
 

@@ -18,6 +18,7 @@ import numpy as np
 import pytest
 import torch
 
+from poc.training.daemon_dataset import DaemonAUDataset
 from poc.training.dataset import VEATICDataset
 from poc.training.rare_au_monitor import (
     AU_ACTIVATION_THRESHOLD,
@@ -136,18 +137,40 @@ def test_partition_raises_when_k_exceeds_dim():
 
 
 def test_partition_fixed_bottom_enforced_even_when_high_freq():
-    """gemini D3 Finding 4：spec 钦定的 AU 索引必须留在 bottom，无论频率多高."""
-    # 让索引 18, 19（AU28/AU43 默认）频率人为最高
+    """V0.3 D'：若 fixed 已在 top-K，应被 evict 并由低频 AU 动态补位."""
+    # 让索引 18, 19 频率人为最高，并显式作为 fixed 输入
     freq = np.linspace(0.05, 1.0, 20)  # 18, 19 是频率最高的两个
-    buckets = partition_au_by_frequency(freq, top_k=7, bottom_k=7)
-    assert 18 in buckets.bottom, "AU28 (idx 18) 必须死守 bottom 桶"
-    assert 19 in buckets.bottom, "AU43 (idx 19) 必须死守 bottom 桶"
-    assert 18 not in buckets.top
-    assert 19 not in buckets.top
+    buckets = partition_au_by_frequency(freq, top_k=7, bottom_k=7, fixed_bottom_indices=(18, 19))
+    assert buckets.evicted_fixed == (18, 19)
+    assert 18 not in buckets.bottom
+    assert 19 not in buckets.bottom
+    assert 18 in buckets.top
+    assert 19 in buckets.top
+    assert buckets.bottom == tuple(range(0, 7))
     # 三桶仍然不重叠
     assert set(buckets.top).isdisjoint(buckets.bottom)
     assert set(buckets.median).isdisjoint(buckets.bottom)
     assert len(set(buckets.top) | set(buckets.median) | set(buckets.bottom)) == 20
+
+
+def test_partition_evicts_fixed_when_in_top_k():
+    """当 fixed 进入 top-K 时必须 evict，bottom 按纯频率低位补齐."""
+    freq = np.array([0.9, 0.85, 0.6, 0.5, 0.2, 0.1], dtype=np.float64)
+    buckets = partition_au_by_frequency(freq, top_k=2, bottom_k=3, fixed_bottom_indices=(0, 1))
+    assert buckets.evicted_fixed == (0, 1)
+    assert buckets.top == (0, 1)
+    assert buckets.bottom == (3, 4, 5)
+
+
+def test_partition_keeps_fixed_when_truly_in_bottom():
+    """当 fixed 本身是低频时保留在 bottom，evicted_fixed 为空."""
+    freq = np.linspace(1.0, 0.2, 20)
+    freq[18] = 0.01
+    freq[19] = 0.0
+    buckets = partition_au_by_frequency(freq, top_k=7, bottom_k=7, fixed_bottom_indices=(18, 19))
+    assert buckets.evicted_fixed == ()
+    assert 18 in buckets.bottom
+    assert 19 in buckets.bottom
 
 
 def test_partition_raises_when_fixed_bottom_exceeds_bottom_k():
@@ -205,6 +228,7 @@ def _mk_buckets() -> AuBuckets:
         median=(7, 8, 9, 10, 11, 12),
         bottom=(13, 14, 15, 16, 17, 18),
         activation_freq=tuple(np.linspace(0, 1, 20).tolist()),
+        evicted_fixed=(),
     )
 
 
@@ -280,18 +304,36 @@ def test_verdict_to_dict_keys():
         "L_world_top", "L_world_median", "L_world_bottom",
         "ratio_top", "ratio_median", "ratio_bottom",
         "ratio_spread", "rare_au_verdict", "rare_au_reason",
-        "rare_au_buckets", "rare_au_activation_freq", "rare_au_n_samples",
+        "rare_au_buckets", "rare_au_activation_freq", "rare_au_evicted_fixed", "rare_au_n_samples",
     }
     assert expected_keys.issubset(d.keys())
     assert d["rare_au_verdict"] == "green"
 
 
-def test_constants_match_gemini_d3_decisions():
-    """V0.2 关键常量值（gemini D3 Findings 1/2/3/4 决策记录）."""
+def test_constants_match_v03d_v04_decisions():
+    """V0.3 D' + V0.4 关键常量值（round 2 改良 fixed AU07/AU10 + cc Y2 整体崩盘门）."""
+    from poc.training.rare_au_monitor import TOP_COLLAPSE_RATIO
     assert AU_ACTIVATION_THRESHOLD == 0.1
     assert RATIO_DENOM_SMOOTHING == 1e-3
     assert SPREAD_GATE_RATIO_BOTTOM == 0.5
-    assert DEFAULT_FIXED_BOTTOM_INDICES == (18, 19)
+    assert DEFAULT_FIXED_BOTTOM_INDICES == (5, 7)
+    assert TOP_COLLAPSE_RATIO == 1.0
+
+
+def test_verdict_na_when_top_ratio_collapses():
+    """V0.4 cc Y2 finding：top ratio > 1 → n/a（整体崩盘，长尾监控不适用）.
+
+    实测场景：v3.0 200ep 在川哥 daemon 1Hz 数据上跑 inference，因训练分布(VEATIC 30fps)
+    与评估分布严重偏移，ratio_top=2.17 (model > trivial)，spread=-1.44 (top 比 bottom 烂)，
+    旧逻辑 verdict=green 误判长尾未被牺牲。
+    """
+    # 实测数据简化：world_top=0.110 / pers_top=0.050 → ratio≈2.17（崩盘）
+    world = {"top": 0.110, "median": 0.106, "bottom": 0.033}
+    pers = {"top": 0.050, "median": 0.100, "bottom": 0.046}
+    v = evaluate_rare_au_drop(world, pers, n_samples=10, buckets=_mk_buckets())
+    assert v.verdict == "n/a", v.reason
+    assert "top ratio" in v.reason
+    assert "整体崩盘" in v.reason
 
 
 # -----------------------------------------------------------------------------
@@ -321,3 +363,16 @@ def test_end_to_end_pipeline_runs():
         pers = compute_per_bucket_mse(pers_pred, target, buckets)
         v = evaluate_rare_au_drop(world, pers, n_samples=B * T, buckets=buckets)
         assert v.verdict in ("green", "yellow", "red")
+
+
+def test_daemon_cache_end_to_end_default_fixed_not_evicted():
+    """真实 daemon cache dry-run：默认 fixed(AU07/AU10) 在川哥数据应不被 evict."""
+    cache_path = Path("/tmp/daemon_au_cache.npz")
+    if not cache_path.exists():
+        pytest.skip("missing /tmp/daemon_au_cache.npz")
+    ds = DaemonAUDataset(cache_path)
+    freq = compute_au_activation_frequency(ds)
+    buckets = partition_au_by_frequency(freq)
+    assert buckets.evicted_fixed == ()
+    assert 5 in buckets.bottom
+    assert 7 in buckets.bottom
