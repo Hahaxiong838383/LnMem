@@ -215,7 +215,8 @@ def main():
     g1_ratio_ok = all(0.1 <= log.get("bias_grad_ratio_post_dgb", 1) <= 50 for log in train_result["logs"][-5:])
     g2_shuffle_ok = eval_result.get("shuffle_test_pass", False)
     g3_spatial_aug = False  # 还没实施（gemini 硬门 #3 留下一步）
-    g4_m1v_na = "Spike" in str(m1v_pass)  # M1-V 已正确标 N/A
+    # ODE-loss 路径无 M1-V (Latent World Model 不用 retrieval)，直接标 N/A
+    g4_m1v_na = "Spike" in str(eval_result.get('M1V_pass', 'N/A (ODE-loss path)'))
     print(f"  #1 ratio in [0.1, 50]: {g1_ratio_ok}")
     print(f"  #2 Shuffle Test M1 drop > 0.05: {g2_shuffle_ok}")
     print(f"  #3 Spatial Aug + M5 < 0.15: {g3_spatial_aug} (not yet implemented)")

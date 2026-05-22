@@ -52,6 +52,11 @@ class TrainConfig:
     persona_lr_scale: float = 1.0       # DEPRECATED by ADR-022 双率优化器
     f_net_weight_decay: float = 1e-3    # gemini F-4.1
     decoder_weight_decay: float = 1e-2  # M3 整改：限制 decoder 容量防 trivial 重构
+    # R3 (gemini 12 + cc 13 数学纠正 + gemini 13 sign-off): τ-spread 正则强制不同通道 τ 跨数量级分化
+    # gemini 12 钦定 Entropy(σ(τ)) 数学错（softmax+entropy 让 τ 均匀，反向；gemini 13 认错）
+    # cc 改用 std(log τ_base) 直接衡量 τ 跨度，对齐 LNN 多时间尺度精神
+    # gemini 13 建议 λ=0.05 起步（cc 原拍 0.1 太激进，防 τ 边界溢出）
+    lambda_tau_spread: float = 0.05
     freeze_f_net_steps: int = 200       # spike 简化（spec 1k step）
     max_bptt_steps: int = 32            # gemini 第 7 轮 F-4 工程防御
     use_ode_loss: bool = True           # ADR-023 v2 主路径
@@ -89,9 +94,10 @@ class TinyTrainer:
             self.loss_fn = VICRegLoss(VICRegConfig()).to(self.device)
         else:
             self.loss_fn = InfoNCELoss(InfoNCEConfig(learnable_sigma=False)).to(self.device)
-        # 第 11 轮 gemini 钦定: 必须 bottleneck decoder（64→16→52）截断 hidden→input 直通
-        self.decoder = Decoder(hidden_dim=cfg.hidden_dim, input_dim=52, num_layers=2,
-                                bottleneck_dim=16).to(self.device)
+        # R1 (gemini 第 12 轮承认 11 轮错钦定): 砍 bottleneck，回单层 Linear(64→52)
+        # 论据: bottleneck=16 死死卡 effective_dim 上限，3.61 是简并必然结果
+        # 跟 gemini 12 收敛: 释放表征通道，配合 R3 τ-spread 强迫真分化
+        self.decoder = Decoder(hidden_dim=cfg.hidden_dim, input_dim=52, num_layers=1).to(self.device)
         self.ode_loss = OdeDynamicsLoss(
             cfg=OdeDynamicsLossConfig(),
             decoder=self.decoder,
@@ -355,6 +361,11 @@ class TinyTrainer:
                     cov_loss = self.vicreg_trigger.compute_cov_loss(h_a, h_p)
                     loss = loss + lam * vicreg_cfg.cov_weight * cov_loss
 
+            # R3 (gemini 12 + cc 13): τ-spread 正则强制多时间尺度
+            if self.cfg.lambda_tau_spread > 0:
+                tau_spread_loss = self._compute_tau_spread_loss()
+                loss = loss + self.cfg.lambda_tau_spread * tau_spread_loss
+
             self.optimizer.zero_grad(set_to_none=True)
             loss.backward()
             self._capture_tau_grad(tau_grad_buffer)
@@ -466,6 +477,27 @@ class TinyTrainer:
         for p in self.persona_bias_params:
             if p.grad is not None:
                 tau_grad_buffer.append(float(p.grad.detach().norm().item()))
+
+    def _compute_tau_spread_loss(self) -> torch.Tensor:
+        """R3 (gemini 12 + cc 13 数学纠正): τ-spread 正则强制不同通道 τ 跨数量级分化.
+
+        数学论据（cc 改 gemini 12 的 Entropy(σ(τ)) 公式）：
+        - gemini 12 公式: Entropy(softmax(τ)) 最大化 → τ 分布均匀（所有 τ 接近相等），
+          跟"强制分化"的意图反。CLAUDE.md §3.1 cc 与 gemini 冲突时必明示分歧。
+        - cc 公式: std(log τ_base) 最大化 → τ 跨数量级分化（毫秒→秒→分钟），
+          对齐 LNN 多时间尺度精神（Hasani et al. 2021）+ ADR-022 v3 τ 释放自然延续。
+
+        Returns:
+            scalar loss = -std(log τ_base)，最小化它 = 最大化 spread
+        """
+        log_taus = []
+        for cell in self.backbone.cells:
+            log_taus.append(torch.log(cell.tau_base.clamp(min=1e-6)))
+        log_tau = torch.cat(log_taus)  # (num_layers * hidden_dim,)
+        if log_tau.numel() < 2:
+            return torch.tensor(0.0, device=log_tau.device, requires_grad=True)
+        spread = log_tau.std(unbiased=False)
+        return -spread
 
     @staticmethod
     def _summarize_tau_stats(
