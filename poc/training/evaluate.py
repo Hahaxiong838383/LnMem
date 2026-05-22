@@ -18,6 +18,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 
+from .rare_au_monitor import (
+    compute_au_activation_frequency,
+    compute_per_bucket_mse,
+    evaluate_rare_au_drop,
+    partition_au_by_frequency,
+    verdict_to_dict,
+)
+
 
 # -----------------------------------------------------------------------------
 # M1-V Visual-Only mask helper
@@ -228,13 +236,19 @@ def run_evaluation(
         world_losses_all: list[float] = []
         world_losses_shuffled: list[float] = []
         prefix_hidden_rows: list[np.ndarray] = []
+        world_pred_rollouts: list[torch.Tensor] = []
+        world_target_rollouts: list[torch.Tensor] = []
+        persistence_pred_rollouts: list[torch.Tensor] = []
         # M1 baseline buffers
         naive_baseline_losses: list[float] = []
         persistence_baseline_losses: list[float] = []
+        activation_freq = compute_au_activation_frequency(dataset)
+        buckets = partition_au_by_frequency(activation_freq)
 
         trainer.fusion.eval()
         trainer.backbone.eval()
         persona_idx = torch.zeros(1, dtype=torch.long, device=trainer.device)
+        input_stride = int(getattr(trainer.ode_loss.cfg, "input_stride", 1))
 
         with torch.no_grad():
             for i in range(len(dataset)):
@@ -259,14 +273,19 @@ def run_evaluation(
                     # M1 (cc 第 11 轮整改): 加 trivial baseline 对比，暴露均值/persistence 重构捷径
                     pf_len = int(out["prefix_len"])
                     rl_len = int(out["rollout_len"])
-                    x_rollout_target_t = et[:, pf_len : pf_len + rl_len, :]
-                    x_prefix_t = et[:, :pf_len, :]
+                    et_strided = et[:, ::input_stride, :] if input_stride > 1 else et
+                    x_rollout_target_t = et_strided[:, pf_len : pf_len + rl_len, :]
+                    x_prefix_t = et_strided[:, :pf_len, :]
+                    x_pred_rollout_t = out["x_pred_rollout"]
+                    world_pred_rollouts.append(x_pred_rollout_t.detach())
+                    world_target_rollouts.append(x_rollout_target_t.detach())
                     # baseline 1: 用 prefix 的 per-dim mean 预测 rollout
                     naive_pred = x_prefix_t.mean(dim=1, keepdim=True).expand_as(x_rollout_target_t)
                     naive_mse = float(F.mse_loss(naive_pred, x_rollout_target_t).item())
                     naive_baseline_losses.append(naive_mse)
                     # baseline 2: persistence — 用 prefix 最后一帧反复预测 rollout
-                    last_frame = et[:, pf_len - 1 : pf_len, :].expand_as(x_rollout_target_t)
+                    last_frame = et_strided[:, pf_len - 1 : pf_len, :].expand_as(x_rollout_target_t)
+                    persistence_pred_rollouts.append(last_frame.detach())
                     pers_mse = float(F.mse_loss(last_frame, x_rollout_target_t).item())
                     persistence_baseline_losses.append(pers_mse)
 
@@ -318,6 +337,19 @@ def run_evaluation(
             result["trivial_recon_check_pass"] = (
                 result["model_vs_naive_ratio"] < 0.7 and result["model_vs_persistence_ratio"] < 0.7
             )
+        if world_pred_rollouts and world_target_rollouts and persistence_pred_rollouts:
+            x_world_pred = torch.cat(world_pred_rollouts, dim=0)
+            x_world_target = torch.cat(world_target_rollouts, dim=0)
+            x_pers_pred = torch.cat(persistence_pred_rollouts, dim=0)
+            world_buckets = compute_per_bucket_mse(x_world_pred, x_world_target, buckets)
+            pers_buckets = compute_per_bucket_mse(x_pers_pred, x_world_target, buckets)
+            rare_au_verdict = evaluate_rare_au_drop(
+                world_buckets,
+                pers_buckets,
+                n_samples=len(world_losses_all),
+                buckets=buckets,
+            )
+            result.update(verdict_to_dict(rare_au_verdict))
         if include_shuffle_test and world_losses_shuffled:
             shuffled_mean = float(np.mean(world_losses_shuffled))
             base_mean = result["L_world_model_all"]

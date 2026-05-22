@@ -95,13 +95,26 @@
 
 ### 5/23+ 接手清单（更新）
 
-| 优先级 | 任务 | 工时 |
+| 优先级 | 任务 | 工时 | 状态 |
+|---|---|---|---|
+| **P0** | gemini 第 14 轮 sign-off + ROADMAP/memory 沉淀 | 完成中 | ✅ |
+| **P0** | **罕见 AU 重建监控加入 evaluate.py**（gemini 14 N=124 警告 → ADR-025） | 1h | ✅ 5/22 21:45 完成 |
+| **P0** | β-self-test 川哥本人 webcam + 10 句 | 1-2h | ⏳ |
+| **P1** | 5/24 daemon 长跑后台启动（Air） | 0.5h | ⏳ |
+| **P1** | 优化 long training（200ep work → 500/1000ep 是否还能涨）| 1h | ⏳ |
+| **P2** | 5/27 **Phase γ Step 1 启动**（Studio M2 Max + 124 视频 / 4 天） | 启动 0.5h + 守 | ⏳ |
+
+### 5/27 启动 6 道门（ADR-024 5 门 + ADR-025 新增第 6 门）
+
+| # | 门 | 来源 |
 |---|---|---|
-| **P0** | gemini 第 14 轮 sign-off + ROADMAP/memory 沉淀 | 完成中 |
-| **P0** | β-self-test 川哥本人 webcam + 10 句 | 1-2h |
-| **P1** | 5/24 daemon 长跑后台启动（Air） | 0.5h |
-| **P1** | 优化 long training（200ep work → 500/1000ep 是否还能涨）| 1h |
-| **P2** | 5/27 **Phase γ Step 1 启动**（Studio M2 Max + 124 视频 / 4 天） | 启动 0.5h + 守 |
+| 1 | τ.std > 0.5（多时间尺度分化） | ADR-024 |
+| 2 | vs_persistence < 0.7 | ADR-024 |
+| 3 | effective_dim / input_effective_dim ≥ 0.8 | ADR-024 |
+| 4 | Shuffle ratio ≥ 1.5 | ADR-024 |
+| 5 | rare_au_verdict ∈ {green, yellow}（red 必须先排查长尾原因） | **ADR-025 新增** |
+
+启动前必须先在 v3.0 ckpt 跑 rare AU baseline，按数据调阈值（mycc 教训：阈值必须先有数据 baseline）。
 
 ### 11 轮 6 次 gemini 自我弹劾 + 5 大经验教训
 
