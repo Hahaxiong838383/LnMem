@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lnmem.studio-nightly-train</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>cd /Users/fu-121/lnmem-poc &amp;&amp; ./scripts/studio_nightly_train.sh</string>
+    </array>
+
+    <!-- 每天 03:00 跑（ADR-029 Q2=A） -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/fu-121/lnmem-train/logs/train/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/fu-121/lnmem-train/logs/train/launchd.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/fu-121/.local/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/fu-121</string>
+        <key>LNMEM_REPO</key>
+        <string>/Users/fu-121/lnmem-poc</string>
+    </dict>
+</dict>
+</plist>

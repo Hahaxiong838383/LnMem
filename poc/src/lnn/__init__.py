@@ -14,11 +14,15 @@ from poc.src.lnn.intent_head import (
     INTENT_TO_INDEX,
     IntentClassifierHead,
     cost_sensitive_cross_entropy,
+    default_intent_loss,
+    dynamic_focal_loss,
 )
 
 __all__ = [
     "INTENT_LABELS",
     "INTENT_TO_INDEX",
     "IntentClassifierHead",
+    "dynamic_focal_loss",
     "cost_sensitive_cross_entropy",
+    "default_intent_loss",
 ]

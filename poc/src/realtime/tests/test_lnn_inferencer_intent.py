@@ -34,11 +34,12 @@ class _DummyBackbone:
 
 
 class _DummyStateModel:
-    def __init__(self) -> None:
+    def __init__(self, logits_bias: tuple[float, float, float] | None = None) -> None:
         self.hidden_dim = 64
         self.input_projection = torch.nn.Identity()
         self.personalization = _DummyPersonalization()
         self.backbone = _DummyBackbone()
+        self._logits_bias = logits_bias or (0.1, 2.0, -0.3)
 
     def _timespans_from_tau(self, tau_bias: torch.Tensor) -> torch.Tensor:
         return torch.ones_like(tau_bias)
@@ -50,7 +51,9 @@ class _DummyStateModel:
     def __call__(self, x: torch.Tensor, persona_idx: torch.Tensor) -> torch.Tensor:
         _ = persona_idx
         logits = torch.zeros((x.shape[0], x.shape[1], 8), dtype=torch.float32)
-        logits[:, :, 1] = 2.0
+        logits[:, :, 0] = self._logits_bias[0]
+        logits[:, :, 1] = self._logits_bias[1]
+        logits[:, :, 2] = self._logits_bias[2]
         return logits
 
 
@@ -113,3 +116,42 @@ def test_intent_head_ckpt_loading_works(tmp_path: Path) -> None:
 
     assert inferencer._intent_head is not None
     assert inferencer._intent_head_ckpt_sha8 is not None
+
+
+def test_smooth_reload_no_state_jump() -> None:
+    inferencer = RealtimeLNNInferencer(ckpt_path=None, window=2)
+    inferencer._enabled = True
+    inferencer._state_model = _DummyStateModel(logits_bias=(0.1, 2.3, -0.5))
+    inferencer._history = deque(maxlen=2)
+    inferencer._window = 2
+
+    warm = inferencer.infer(_signal_row(frame_id=1))
+    assert warm.lnn_status == "warmup"
+    baseline = inferencer.infer(_signal_row(frame_id=2))
+    assert baseline.lnn_status == "ok"
+    assert baseline.margin is not None
+    assert baseline.entropy is not None
+
+    def _fake_loader(_path: Path) -> tuple[_DummyStateModel, str]:
+        return _DummyStateModel(logits_bias=(2.2, 0.3, -0.2)), "newsha8"
+
+    inferencer._load_ckpt_artifacts = _fake_loader  # type: ignore[method-assign]
+    inferencer.reload_ckpt(Path("dummy.pt"))
+    assert inferencer._in_transition is True
+
+    margins = [baseline.margin]
+    entropies = [baseline.entropy]
+    for idx in range(3, 12):
+        out = inferencer.infer(_signal_row(frame_id=idx))
+        assert out.lnn_status == "ok"
+        assert out.margin is not None
+        assert out.entropy is not None
+        margins.append(out.margin)
+        entropies.append(out.entropy)
+
+    for prev, curr in zip(margins, margins[1:]):
+        delta = abs(curr - prev) / max(abs(prev), 1e-6)
+        assert delta < 0.3
+    for prev, curr in zip(entropies, entropies[1:]):
+        delta = abs(curr - prev) / max(abs(prev), 1e-6)
+        assert delta < 0.3

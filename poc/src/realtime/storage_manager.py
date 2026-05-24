@@ -24,6 +24,8 @@ class StorageManager:
         self._stop_event = stop_event
         self._raw_dir = self._config.data_dir / "raw_video"
         self._raw_dir.mkdir(parents=True, exist_ok=True)
+        self._archive_dir = self._config.data_dir / ".archive"
+        self._archive_dir.mkdir(parents=True, exist_ok=True)
         self._frame_queue: "queue.Queue[CapturedFrame]" = queue.Queue(maxsize=32)
         self._signal_queue: "queue.Queue[dict[str, Any]]" = queue.Queue(maxsize=512)
         self._recent: deque[dict[str, Any]] = deque()
@@ -35,6 +37,8 @@ class StorageManager:
         self._video_hour: str | None = None
         self._signal_handle: Any | None = None
         self._signal_day: str | None = None
+        self._signal_hour: str | None = None
+        self._signal_live_path: Path | None = None
         self._last_prune = 0.0
 
     def start(self) -> None:
@@ -111,15 +115,43 @@ class StorageManager:
         self._video_hour = hour_key
 
     def _write_signal(self, item: dict[str, Any]) -> None:
-        day_key = item["ts"][:10]
-        if self._signal_day != day_key:
+        dt = _parse_ts(item["ts"])
+        day_key = dt.strftime("%Y-%m-%d")
+        hour_key = dt.strftime("%Y-%m-%d-%H")
+        if self._signal_handle is None:
+            self._open_signal_handle(day_key=day_key, hour_key=hour_key)
+        elif self._signal_day != day_key:
             self._close_signal_handle()
-            path = self._config.data_dir / f"signals_{day_key}.jsonl"
-            self._signal_handle = path.open("a", encoding="utf-8")
-            self._signal_day = day_key
+            self._open_signal_handle(day_key=day_key, hour_key=hour_key)
+        elif self._signal_hour != hour_key:
+            self._rotate_signal_hourly(archive_hour=self._signal_hour)
+            self._open_signal_handle(day_key=day_key, hour_key=hour_key)
         if self._signal_handle is not None:
             self._signal_handle.write(json.dumps(item, ensure_ascii=False) + "\n")
             self._signal_handle.flush()
+
+    def _open_signal_handle(self, day_key: str, hour_key: str) -> None:
+        path = self._config.data_dir / f"signals_{day_key}.jsonl"
+        self._signal_handle = path.open("a", encoding="utf-8")
+        self._signal_day = day_key
+        self._signal_hour = hour_key
+        self._signal_live_path = path
+
+    def _rotate_signal_hourly(self, archive_hour: str | None) -> None:
+        if archive_hour is None:
+            return
+        live_path = self._signal_live_path
+        if self._signal_handle is not None:
+            self._signal_handle.flush()
+            self._signal_handle.close()
+        self._signal_handle = None
+        if live_path is None or not live_path.exists():
+            return
+        archive_path = self._archive_dir / f"signals_{archive_hour}.jsonl"
+        if archive_path.exists():
+            stamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d%H%M%S")
+            archive_path = self._archive_dir / f"signals_{archive_hour}-{stamp}.jsonl"
+        live_path.rename(archive_path)
 
     def _cache_recent(self, item: dict[str, Any]) -> None:
         cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=self._recent_cache_seconds)
@@ -130,8 +162,11 @@ class StorageManager:
 
     def _scan_signal_files(self, cutoff: datetime) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
-        for path in sorted(self._config.data_dir.glob("signals_*.jsonl")):
-            if _file_day(path) < cutoff.date():
+        candidates = sorted(self._config.data_dir.glob("signals_*.jsonl"))
+        candidates += sorted(self._archive_dir.glob("signals_*.jsonl"))
+        for path in candidates:
+            file_day = _file_day(path)
+            if file_day is None or file_day < cutoff.date():
                 continue
             with path.open("r", encoding="utf-8") as handle:
                 for line in handle:
@@ -150,8 +185,11 @@ class StorageManager:
         for path in self._raw_dir.glob("raw_*.mp4"):
             if datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc) < raw_cutoff:
                 path.unlink(missing_ok=True)
-        for path in self._config.data_dir.glob("signals_*.jsonl"):
-            if _file_day(path) < signal_cutoff:
+        candidates = list(self._config.data_dir.glob("signals_*.jsonl"))
+        candidates.extend(self._archive_dir.glob("signals_*.jsonl"))
+        for path in candidates:
+            file_day = _file_day(path)
+            if file_day is not None and file_day < signal_cutoff:
                 path.unlink(missing_ok=True)
 
     def _close_video_writer(self) -> None:
@@ -165,6 +203,8 @@ class StorageManager:
             self._signal_handle.close()
         self._signal_handle = None
         self._signal_day = None
+        self._signal_hour = None
+        self._signal_live_path = None
 
     @staticmethod
     def _offer(target: queue.Queue[Any], item: Any) -> None:
@@ -183,7 +223,15 @@ def _parse_ts(value: str) -> datetime:
 
 
 def _file_day(path: Path) -> Any:
-    return datetime.strptime(path.stem.replace("signals_", ""), "%Y-%m-%d").date()
+    stem = path.stem.replace("signals_", "")
+    day_part = stem.split("-")
+    if len(day_part) < 3:
+        return None
+    day_text = "-".join(day_part[:3])
+    try:
+        return datetime.strptime(day_text, "%Y-%m-%d").date()
+    except ValueError:
+        return None
 
 
 __all__ = ["StorageManager"]

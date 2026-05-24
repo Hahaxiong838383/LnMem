@@ -1,17 +1,25 @@
-"""HTTP endpoint for intent feedback write-back."""
+"""HTTP endpoint for intent feedback write-back and admin triggers."""
 
 from __future__ import annotations
 
 import json
+import logging
 import threading
 from dataclasses import dataclass
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 INTENT_LABELS = {"positive", "negative", "none"}
 _ONE_SECOND_NS = 1_000_000_000
+
+
+class RecentWindowProvider(Protocol):
+    """Provider interface for inferencer temporal windows."""
+
+    def get_recent_window(self, seconds: int = 10) -> list[dict[str, Any]]:
+        """Return temporal snapshots with ts_ns/h/au fields."""
 
 
 @dataclass(frozen=True)
@@ -21,6 +29,7 @@ class IntentFeedbackServerConfig:
     host: str = "127.0.0.1"
     port: int = 9877
     data_dir: Path = Path.home() / ".lnmem" / "data" / "intent_feedback"
+    inferencer: RecentWindowProvider | None = None
 
 
 class SessionTsRateLimiter:
@@ -62,15 +71,22 @@ class IntentFeedbackStore:
 
 
 class IntentFeedbackHandler(BaseHTTPRequestHandler):
-    """Serve POST /intent_feedback with strict payload validation."""
+    """Serve POST /intent_feedback and /admin/trigger_training."""
 
     rate_limiter: SessionTsRateLimiter
     store: IntentFeedbackStore
+    inferencer: RecentWindowProvider | None = None
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/intent_feedback":
-            self._reply(404, {"accepted": False, "error": "not_found"})
+        if self.path == "/intent_feedback":
+            self._handle_intent_feedback()
             return
+        if self.path == "/admin/trigger_training":
+            self._handle_trigger_training()
+            return
+        self._reply(404, {"accepted": False, "error": "not_found"})
+
+    def _handle_intent_feedback(self) -> None:
         try:
             payload = self._read_json()
             ts_ns = self._parse_ts_ns(payload.get("ts_ns"))
@@ -85,13 +101,22 @@ class IntentFeedbackHandler(BaseHTTPRequestHandler):
                 self._reply(429, {"accepted": False, "error": "rate_limited"})
                 return
 
+            temporal_window = self._collect_temporal_window(seconds=10)
             record = {
-                "received_at": datetime.now().astimezone().isoformat(),
                 "ts_ns": ts_ns,
                 "predicted": predicted,
                 "corrected": corrected,
                 "ui_session": ui_session,
                 "note": note,
+                "hidden_state_window": [
+                    {"ts_ns": int(item.get("ts_ns", 0)), "h": list(item.get("h", []))}
+                    for item in temporal_window
+                ],
+                "au_window": [
+                    {"ts_ns": int(item.get("ts_ns", 0)), "au": list(item.get("au", []))}
+                    for item in temporal_window
+                ],
+                "recorded_at": datetime.now().astimezone().isoformat(),
             }
             stored_path = self.store.append(record)
             self._reply(200, {"accepted": True, "stored_at": str(stored_path)})
@@ -100,8 +125,41 @@ class IntentFeedbackHandler(BaseHTTPRequestHandler):
         except Exception as exc:  # noqa: BLE001
             self._reply(500, {"accepted": False, "error": "internal_error", "detail": str(exc)})
 
+    def _handle_trigger_training(self) -> None:
+        marker_at = datetime.now().astimezone().isoformat()
+        logging.getLogger(__name__).info(
+            "intent admin trigger marker: trigger_training requested at %s",
+            marker_at,
+        )
+        self._reply(200, {"triggered": True, "marker_at": marker_at})
+
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
         return
+
+    def _collect_temporal_window(self, seconds: int) -> list[dict[str, Any]]:
+        inferencer = getattr(self, "inferencer", None)
+        if inferencer is None:
+            return []
+        try:
+            raw_window = inferencer.get_recent_window(seconds=seconds)
+        except Exception as exc:  # noqa: BLE001
+            logging.getLogger(__name__).warning("get_recent_window failed: %s", exc)
+            return []
+        if not isinstance(raw_window, list):
+            return []
+        normalized: list[dict[str, Any]] = []
+        for item in raw_window:
+            if not isinstance(item, dict):
+                continue
+            ts_ns = item.get("ts_ns")
+            h = item.get("h")
+            au = item.get("au")
+            if not isinstance(ts_ns, int):
+                continue
+            if not isinstance(h, list) or not isinstance(au, list):
+                continue
+            normalized.append({"ts_ns": ts_ns, "h": h, "au": au})
+        return normalized
 
     def _read_json(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length", "0"))
@@ -150,6 +208,7 @@ class IntentFeedbackServer:
             return
         IntentFeedbackHandler.rate_limiter = SessionTsRateLimiter()
         IntentFeedbackHandler.store = IntentFeedbackStore(self._config.data_dir)
+        IntentFeedbackHandler.inferencer = self._config.inferencer
         self._http = ThreadingHTTPServer((self._config.host, self._config.port), IntentFeedbackHandler)
         self._thread = threading.Thread(target=self._http.serve_forever, daemon=True)
         self._thread.start()

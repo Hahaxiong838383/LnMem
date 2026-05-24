@@ -104,7 +104,11 @@ class DaemonApp:
         self._router_threads: list[threading.Thread] = []
         self._http_server: ThreadingHTTPServer | None = None
         self._intent_feedback_server = IntentFeedbackServer(
-            IntentFeedbackServerConfig(host="127.0.0.1", port=9877)
+            IntentFeedbackServerConfig(
+                host="127.0.0.1",
+                port=9877,
+                inferencer=self._lnn_inferencer,
+            )
         )
         self._feedback_engine = self._build_feedback_engine()
         # M0 W2 P0-1 V0.3: user_triggered 状态
