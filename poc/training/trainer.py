@@ -20,7 +20,14 @@ import torch
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 
-from poc.lnn import Decoder, MultiLayerCustomCfC, OdeDynamicsLoss, OdeDynamicsLossConfig
+from poc.lnn import (
+    Decoder,
+    MultiLayerCustomCfC,
+    OdeDynamicsLoss,
+    OdeDynamicsLossConfig,
+    clamp_tau,
+    invariance_loss,
+)
 from poc.lnn.heads import FusionLayer, FusionConfig
 from poc.lnn.losses import InfoNCELoss, InfoNCEConfig, VICRegLoss, VICRegConfig, detect_semantic_breakpoints
 from poc.monitoring.collapse_monitor import CollapseMonitor
@@ -69,6 +76,9 @@ class TrainConfig:
     au_dropout_p: float = 0.3        # 实测甜区：M5 833→500（-40%）, Shuffle drop +0.241
     au_jitter_std: float = 0.05      # 同上
     au_temporal_mixup_alpha: float = 0.0  # 关：激进 mixup 反而劣化（实测 5/21）
+    tau_upper_bound: float = 30.0
+    invariance_weight: float = 0.1
+    va_loss_weight: float = 0.0
 
 
 class TinyTrainer:
@@ -98,6 +108,7 @@ class TinyTrainer:
         # 论据: bottleneck=16 死死卡 effective_dim 上限，3.61 是简并必然结果
         # 跟 gemini 12 收敛: 释放表征通道，配合 R3 τ-spread 强迫真分化
         self.decoder = Decoder(hidden_dim=cfg.hidden_dim, input_dim=52, num_layers=1).to(self.device)
+        self.va_head = torch.nn.Linear(cfg.hidden_dim, 2).to(self.device)
         self.ode_loss = OdeDynamicsLoss(
             cfg=OdeDynamicsLossConfig(),
             decoder=self.decoder,
@@ -120,6 +131,8 @@ class TinyTrainer:
                 else:
                     other_params.append(p)
         for p in self.fusion.parameters():
+            other_params.append(p)
+        for p in self.va_head.parameters():
             other_params.append(p)
         # M3 整改（cc 第 11 轮）：decoder 单独 group 加 wd=1e-2 限制 trivial 重构表达
         decoder_params: list = []
@@ -170,6 +183,27 @@ class TinyTrainer:
         """Single-step fusion + CfC stack for rollout. / rollout 单步。"""
         x_t_fused = self.fusion(x_t.unsqueeze(1)).squeeze(1)
         return self.backbone.step(x_t_fused, h_prev_list, persona_idx, dt=dt)
+
+    def _rollout_hidden_sequence(
+        self,
+        x: torch.Tensor,
+        persona_idx: torch.Tensor,
+        dt: float,
+    ) -> torch.Tensor:
+        """Run teacher-forced hidden rollout for a full sequence."""
+        h_states = [cell.init_hidden(x.size(0), x.device) for cell in self.backbone.cells]
+        h_seq: list[torch.Tensor] = []
+        for t in range(x.size(1)):
+            h_states = self.backbone_step(x[:, t, :], h_states, persona_idx, dt=dt)
+            h_seq.append(h_states[-1])
+        return torch.stack(h_seq, dim=1)
+
+    def _apply_tau_clamp(self, upper_bound: float) -> int:
+        """Clamp tau_base upper bound for all cells and return changed count."""
+        total = 0
+        for cell in self.backbone.cells:
+            total += clamp_tau(cell, upper_bound)
+        return total
 
     def _freeze_f_net_if_needed(self):
         """gemini F-4.1: 前 N step freeze f_net 强迫先学 τ-bias."""
@@ -224,8 +258,14 @@ class TinyTrainer:
 
         return {"anchor": anchor, "positive": positive, "negatives": negatives}
 
-    def train_one_epoch(self, epoch_idx: int = 0) -> dict:
+    def train_one_epoch(
+        self,
+        epoch_idx: int = 0,
+        dataloader: DataLoader | None = None,
+    ) -> dict:
         """跑 1 epoch 训练，返回 logs 摘要."""
+        if dataloader is not None:
+            return self._train_one_epoch_multifps(epoch_idx=epoch_idx, dataloader=dataloader)
         # 把所有视频切成窗口 pool
         all_windows = []
         for i in range(len(self.dataset)):
@@ -250,6 +290,7 @@ class TinyTrainer:
         tau_grad_buffer: list[float] = []
         first_batch_vids: Optional[list[str]] = None
         processed_steps = 0
+        tau_clamp_count = 0
         epoch_step_losses: list[float] = []
 
         for step_idx, sampled_windows in enumerate(loader):
@@ -391,6 +432,7 @@ class TinyTrainer:
                 ratio_after_dgb = ratio
 
             self.optimizer.step()
+            tau_clamp_count += self._apply_tau_clamp(self.cfg.tau_upper_bound)
 
             # collapse 监控（每 N step）
             if self.step % self.cfg.log_every_n == 0:
@@ -439,6 +481,7 @@ class TinyTrainer:
             "steps": processed_steps,
             "tau_stats": tau_stats,
             "first_batch_vids": first_batch_vids,
+            "tau_clamp_count": tau_clamp_count,
         }
         self.epoch_logs.append(epoch_log)
 
@@ -448,6 +491,143 @@ class TinyTrainer:
             "logs": self.logs,
             "epoch_log": epoch_log,
             "tau_stats": tau_stats,
+            "tau_clamp_count": tau_clamp_count,
+            "elapsed_s": time.time() - t0,
+        }
+
+    def _train_one_epoch_multifps(self, epoch_idx: int, dataloader: DataLoader) -> dict:
+        """Multi-FPS curriculum training loop with invariance + tau clamp."""
+        sampler = getattr(dataloader, "batch_sampler", None)
+        if hasattr(sampler, "set_epoch"):
+            sampler.set_epoch(epoch_idx)
+
+        t0 = time.time()
+        tau_start = self._collect_tau_values()
+        tau_grad_buffer: list[float] = []
+        epoch_step_losses: list[float] = []
+        processed_steps = 0
+        tau_clamp_count = 0
+        per_fps_loss: dict[float, list[float]] = {}
+
+        for step_idx, sampled_windows in enumerate(dataloader):
+            if not sampled_windows:
+                continue
+            self.step = step_idx
+            processed_steps += 1
+            self._freeze_f_net_if_needed()
+
+            x = torch.stack([w["event_tensor"] for w in sampled_windows]).to(self.device)
+            labels_va = torch.stack([w["labels_va"] for w in sampled_windows]).to(self.device)
+            batch_fps_set = {float(w.get("fps", 30.0)) for w in sampled_windows}
+            if len(batch_fps_set) != 1:
+                raise ValueError(f"mixed fps in one batch is not supported: {sorted(batch_fps_set)}")
+            batch_fps = next(iter(batch_fps_set))
+
+            batch_size = x.size(0)
+            persona_idx = torch.zeros(batch_size, dtype=torch.long, device=self.device)
+            ode_out = self.ode_loss(
+                x=x,
+                backbone_step_fn=self.backbone_step,
+                persona_idx=persona_idx,
+                init_hidden_fn=lambda b, dev: [cell.init_hidden(b, dev) for cell in self.backbone.cells],
+                fps=batch_fps,
+            )
+            loss = ode_out["loss"]
+
+            # F1: Conditional V-A loss masking when labels are missing (daemon=all zeros).
+            va_loss = torch.tensor(0.0, device=self.device)
+            va_mask_count = int((labels_va.abs().sum(dim=(1, 2)) > 0).sum().item())
+            if self.cfg.va_loss_weight > 0 and va_mask_count > 0:
+                prefix_len = int(ode_out["prefix_len"])
+                va_pred = self.va_head(ode_out["h_seq_prefix"])
+                va_target = labels_va[:, :prefix_len, :]
+                valid = va_target.abs().sum(dim=(1, 2)) > 0
+                va_loss = torch.nn.functional.mse_loss(va_pred[valid], va_target[valid])
+                loss = loss + self.cfg.va_loss_weight * va_loss
+
+            # F1: Invariance loss aligns high-fps hidden with low-fps subsampled hidden.
+            # cc 修补 (5/23)：原条件 `x.size(1) >= fps_ratio*2` 在 seq_len=8 + fps_ratio=30 时永不触发 → invariance 失效。
+            # 改为：fps_ratio 自适应到当前 seq_len，至少 2 帧对齐即可（数学有效性最小条件）。
+            inv_loss = torch.tensor(0.0, device=self.device)
+            if self.cfg.invariance_weight > 0 and batch_fps >= 2.0:
+                max_ratio = max(1, x.size(1) // 2)
+                fps_ratio = min(max(1, int(round(batch_fps))), max_ratio)
+                if fps_ratio >= 2:
+                    x_low = x[:, ::fps_ratio, :]
+                    low_fps = batch_fps / fps_ratio  # 实际 low fps 由 ratio 反推
+                    h_high = self._rollout_hidden_sequence(x, persona_idx, dt=1.0 / batch_fps)
+                    h_low = self._rollout_hidden_sequence(x_low, persona_idx, dt=1.0 / max(low_fps, 1e-6))
+                    inv_loss = invariance_loss(h_high, h_low, fps_ratio=fps_ratio)
+                    loss = loss + self.cfg.invariance_weight * inv_loss
+
+            if self.cfg.lambda_tau_spread > 0:
+                tau_spread_loss = self._compute_tau_spread_loss()
+                loss = loss + self.cfg.lambda_tau_spread * tau_spread_loss
+            else:
+                tau_spread_loss = torch.tensor(0.0, device=self.device)
+
+            self.optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            self._capture_tau_grad(tau_grad_buffer)
+            epoch_step_losses.append(float(loss.item()))
+
+            ratio = self._compute_grad_ratio()
+            if self.cfg.dgb_enabled:
+                self._apply_dgb()
+                ratio_after_dgb = self._compute_grad_ratio()
+            else:
+                ratio_after_dgb = ratio
+
+            self.optimizer.step()
+            tau_clamp_count += self._apply_tau_clamp(self.cfg.tau_upper_bound)
+
+            per_fps_loss.setdefault(float(batch_fps), []).append(float(ode_out["L_world_model"].item()))
+
+            if self.step % self.cfg.log_every_n == 0:
+                log_entry = {
+                    "step": self.step,
+                    "loss": float(loss.item()),
+                    "L_world_model": float(ode_out["L_world_model"].item()),
+                    "L_recon_prefix": float(ode_out["L_recon_prefix"].item()),
+                    "L_invariance": float(inv_loss.item()),
+                    "L_va": float(va_loss.item()),
+                    "va_mask_count": va_mask_count,
+                    "tau_spread_loss": float(tau_spread_loss.item()),
+                    "fps": float(batch_fps),
+                    "actual_dt": float(ode_out.get("actual_dt", 1.0)),
+                    "bias_grad_ratio_pre_dgb": ratio,
+                    "bias_grad_ratio_post_dgb": ratio_after_dgb,
+                }
+                self.logs.append(log_entry)
+                print(
+                    f"  step={self.step:3d} fps={batch_fps:.2f} "
+                    f"loss={loss.item():.4f} inv={inv_loss.item():.4f} "
+                    f"tau_clamp={tau_clamp_count}",
+                    flush=True,
+                )
+
+        tau_end = self._collect_tau_values()
+        tau_stats = self._summarize_tau_stats(tau_end, tau_start, tau_grad_buffer)
+        per_fps_mean = {k: float(sum(v) / len(v)) for k, v in sorted(per_fps_loss.items()) if v}
+        epoch_log = {
+            "epoch": epoch_idx,
+            "loss_mean": float(sum(epoch_step_losses) / len(epoch_step_losses))
+            if epoch_step_losses
+            else None,
+            "steps": processed_steps,
+            "tau_stats": tau_stats,
+            "tau_clamp_count": tau_clamp_count,
+            "per_fps_loss": per_fps_mean,
+        }
+        self.epoch_logs.append(epoch_log)
+        return {
+            "total_steps": processed_steps,
+            "final_loss": self.logs[-1]["loss"] if self.logs else None,
+            "logs": self.logs,
+            "epoch_log": epoch_log,
+            "tau_stats": tau_stats,
+            "tau_clamp_count": tau_clamp_count,
+            "per_fps_loss": per_fps_mean,
             "elapsed_s": time.time() - t0,
         }
 
@@ -566,6 +746,7 @@ class TinyTrainer:
         torch.save({
             "fusion_state": self.fusion.state_dict(),
             "backbone_state": self.backbone.state_dict(),
+            "va_head_state": self.va_head.state_dict(),
             "cfg": dataclasses.asdict(self.cfg),
             "logs": self.logs,
             "step": self.step,

@@ -220,6 +220,7 @@ def run_evaluation(
     include_shuffle_test: bool = True,    # 硬门 #2 默认开启
     spike_phase: bool = True,             # 硬门 #4: spike 阶段 M1-V N/A
     fps: float | None = None,
+    variance_floor_ratio: float = 0.1,
 ) -> dict:
     """跑完整 γ-3 evaluation: M1 + M1-V + M5 + collapse + Shuffle Test.
 
@@ -236,6 +237,8 @@ def run_evaluation(
         world_losses_by_vid: dict[str, list[float]] = {}
         world_losses_all: list[float] = []
         world_losses_shuffled: list[float] = []
+        per_fps_world_losses: dict[float, list[float]] = {}
+        per_fps_shuffled_losses: dict[float, list[float]] = {}
         actual_dts: list[float] = []
         horizons_s: list[float] = []
         rollout_lens: list[int] = []
@@ -244,6 +247,8 @@ def run_evaluation(
         world_pred_rollouts: list[torch.Tensor] = []
         world_target_rollouts: list[torch.Tensor] = []
         persistence_pred_rollouts: list[torch.Tensor] = []
+        world_bucket_losses: dict[str, list[float]] = {"top": [], "median": [], "bottom": []}
+        persistence_bucket_losses: dict[str, list[float]] = {"top": [], "median": [], "bottom": []}
         # M1 baseline buffers
         naive_baseline_losses: list[float] = []
         persistence_baseline_losses: list[float] = []
@@ -282,6 +287,7 @@ def run_evaluation(
                     rollout_lens.append(int(out["rollout_len"]))
                     prefix_lens.append(int(out["prefix_len"]))
                     world_loss = float(out["L_world_model"].item())
+                    per_fps_world_losses.setdefault(float(window_fps), []).append(world_loss)
                     vid = str(w["video_id"])
                     world_losses_by_vid.setdefault(vid, []).append(world_loss)
                     world_losses_all.append(world_loss)
@@ -308,6 +314,11 @@ def run_evaluation(
                     persistence_pred_rollouts.append(last_frame.detach())
                     pers_mse = float(F.mse_loss(last_frame, x_rollout_target_t).item())
                     persistence_baseline_losses.append(pers_mse)
+                    world_bucket_mse = compute_per_bucket_mse(x_pred_rollout_t, x_rollout_target_t, buckets)
+                    pers_bucket_mse = compute_per_bucket_mse(last_frame, x_rollout_target_t, buckets)
+                    for bucket_name in ("top", "median", "bottom"):
+                        world_bucket_losses[bucket_name].append(world_bucket_mse[bucket_name])
+                        persistence_bucket_losses[bucket_name].append(pers_bucket_mse[bucket_name])
 
                     if include_shuffle_test:
                         et_shuf = shuffle_frames_in_window(et, seed=42 + w_idx)
@@ -321,6 +332,9 @@ def run_evaluation(
                             fps=window_fps,
                         )
                         world_losses_shuffled.append(float(out_shuf["L_world_model"].item()))
+                        per_fps_shuffled_losses.setdefault(float(window_fps), []).append(
+                            float(out_shuf["L_world_model"].item())
+                        )
 
         prefix_mat = np.concatenate(prefix_hidden_rows, axis=0) if prefix_hidden_rows else np.zeros((1, 1))
         prefix_centered = prefix_mat - prefix_mat.mean(axis=0, keepdims=True)
@@ -367,11 +381,22 @@ def run_evaluation(
                 result["model_vs_naive_ratio"] < 0.7 and result["model_vs_persistence_ratio"] < 0.7
             )
         if world_pred_rollouts and world_target_rollouts and persistence_pred_rollouts:
-            x_world_pred = torch.cat(world_pred_rollouts, dim=0)
-            x_world_target = torch.cat(world_target_rollouts, dim=0)
-            x_pers_pred = torch.cat(persistence_pred_rollouts, dim=0)
-            world_buckets = compute_per_bucket_mse(x_world_pred, x_world_target, buckets)
-            pers_buckets = compute_per_bucket_mse(x_pers_pred, x_world_target, buckets)
+            pred_flat = torch.cat([x.reshape(-1) for x in world_pred_rollouts], dim=0)
+            target_flat = torch.cat([x.reshape(-1) for x in world_target_rollouts], dim=0)
+            pred_std = float(pred_flat.std(unbiased=False).item())
+            target_std = float(target_flat.std(unbiased=False).item())
+            variance_ratio = pred_std / max(target_std, 1e-9)
+            result["pred_std"] = pred_std
+            result["target_std"] = target_std
+            result["variance_ratio"] = variance_ratio
+            world_buckets = {
+                k: float(np.mean(v)) if v else float("nan")
+                for k, v in world_bucket_losses.items()
+            }
+            pers_buckets = {
+                k: float(np.mean(v)) if v else float("nan")
+                for k, v in persistence_bucket_losses.items()
+            }
             rare_au_verdict = evaluate_rare_au_drop(
                 world_buckets,
                 pers_buckets,
@@ -385,9 +410,32 @@ def run_evaluation(
             result["L_world_model_shuffled"] = shuffled_mean
             result["shuffle_increase_ratio"] = (shuffled_mean - base_mean) / max(abs(base_mean), 1e-9)
             result["shuffle_test_pass"] = shuffled_mean >= base_mean * 1.5
+        variance_ratio = float(result.get("variance_ratio", float("nan")))
+        variance_fail_reason = ""
+        if np.isfinite(variance_ratio) and variance_ratio < variance_floor_ratio:
+            variance_fail_reason = "low-pass filter fake positive"
+            result["shuffle_test_pass"] = False
+        result["variance_aware_fail_reason"] = variance_fail_reason
+        per_fps_summary: dict[float, dict[str, float | int]] = {}
+        for fps_key, losses in sorted(per_fps_world_losses.items()):
+            per_fps_entry: dict[str, float | int] = {
+                "n_samples": len(losses),
+                "L_world_model_all": float(np.mean(losses)) if losses else float("nan"),
+            }
+            shuffled = per_fps_shuffled_losses.get(fps_key, [])
+            if shuffled:
+                per_fps_entry["L_world_model_shuffled"] = float(np.mean(shuffled))
+                base = per_fps_entry["L_world_model_all"]
+                per_fps_entry["shuffle_increase_ratio"] = (
+                    (float(np.mean(shuffled)) - float(base)) / max(abs(float(base)), 1e-9)
+                )
+            per_fps_summary[float(fps_key)] = per_fps_entry
+        result["per_fps_summary"] = per_fps_summary
         result["gates_summary"] = {
             "actual_dt": float(result.get("actual_dt", float("nan"))),
             "total_physical_horizon_s": float(result.get("total_physical_horizon_s", float("nan"))),
+            "variance_ratio": float(result.get("variance_ratio", float("nan"))),
+            "variance_aware_fail_reason": str(result.get("variance_aware_fail_reason", "")),
         }
         return result
 

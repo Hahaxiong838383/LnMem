@@ -2,11 +2,26 @@
 from __future__ import annotations
 
 import dataclasses
+import math
 from typing import Callable
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+
+def clamp_tau(cell: nn.Module, upper_bound: float) -> int:
+    """Clamp log-space tau_base upper bound and return clamped parameter count."""
+    if upper_bound <= 0.0:
+        raise ValueError(f"upper_bound must be > 0, got {upper_bound}")
+    tau_base = getattr(cell, "tau_base", None)
+    if tau_base is None:
+        return 0
+    max_value = math.log(float(upper_bound))
+    with torch.no_grad():
+        before = tau_base.data.clone()
+        tau_base.data.clamp_(max=max_value)
+        return int((before > max_value).sum().item())
 
 
 @dataclasses.dataclass(frozen=True)
@@ -94,12 +109,19 @@ class OdeDynamicsLoss(nn.Module):
             stride = max(1, round(fps_value * actual_dt))
             actual_dt = float(stride / fps_value)
             if actual_dt > self.cfg.dt_target * 1.5:
-                print(
-                    "[dt-aware] WARNING: "
-                    f"actual_dt={actual_dt:.3f} >> dt_target={self.cfg.dt_target:.3f}, "
-                    f"fps={fps_value} 采样率不足",
-                    flush=True,
-                )
+                # cc 修补：节流 print（once-per-fps_value），1.6M 行 stdout I/O 拖死训练
+                _w_set = getattr(OdeDynamicsLoss, "_warned_fps", None)
+                if _w_set is None:
+                    _w_set = set()
+                    setattr(OdeDynamicsLoss, "_warned_fps", _w_set)
+                if fps_value not in _w_set:
+                    _w_set.add(fps_value)
+                    print(
+                        "[dt-aware] WARNING (once-per-fps): "
+                        f"actual_dt={actual_dt:.3f} >> dt_target={self.cfg.dt_target:.3f}, "
+                        f"fps={fps_value} 采样率不足",
+                        flush=True,
+                    )
             if stride > 1:
                 x = x[:, ::stride, :]
         else:
