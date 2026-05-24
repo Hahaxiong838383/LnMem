@@ -6,15 +6,52 @@
 
 ---
 
-## 当前阶段：M0 W3 Day 4 晚（**🟢 5/22 11 轮 Team 模式 + ADR-022/023/024 + v3.0 200ep 全门破阈值 + 5/27 Phase γ Step 1 GREEN LIGHT 第 9 次终判**）
+## ⭐ 当前阶段：v0.1 Sprint 2 启动（5/24 凌晨 → 6/3 M0 demo，10 天冲刺）
+
+> **2026-05-23 ADR-028 战略转折**：LNN 从「24h AU 序列预测」改为「online 三分类意图估计 + 用户反馈闭环」。
+> 复盘文档：[`docs/reports/2026-05-23-v0.1-direction-shift-complete.md`](docs/reports/2026-05-23-v0.1-direction-shift-complete.md)
+> Sprint 2 spec：[`docs/decisions/029-sprint2-intent-classifier-daf-studio-pipeline.md`](docs/decisions/029-sprint2-intent-classifier-daf-studio-pipeline.md)
 
 **主分支**：`poc/lnn-validation`
-**最近核心 commit**：`7d1fc5f` (ADR-024 AU 物理上限 · 5/22 晚) → `e38d28f` (R1+R3 LNN-FIRST 物理松绑 · 5/22 下) → `f3ee848` (gemini 11 stride=3 准静态死局 · 5/22 中) → `8e38bde` (ADR-023 范式转换 · 5/22 早)
-**📊 完整复盘**：[`docs/reports/2026-05-22-team-mode-11-rounds-retrospective.md`](docs/reports/2026-05-22-team-mode-11-rounds-retrospective.md)
-**项目哲学锚**：[ADR-009 拒绝 RAG](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md) + [ADR-016 base v3](docs/decisions/016-base-v3-multimodal-self-supervised-lnn.md) + [ADR-022 τ-bias 梯度黑洞修复](docs/decisions/022-tau-bias-gradient-blackhole-fix.md)
-**📊 项目状态总览（最新）**：[`docs/project-status.md`](docs/project-status.md)
+
+**川哥 5/24 凌晨钦定三选 A**：
+- Q1=A 数据流：Air daemon `.lnmem/data/*.jsonl` 每小时 rsync 到 Studio（排除 raw_video）
+- Q2=A Studio 角色：纯训练（夜间 03:00 cron 训 intent classifier，Air 主动 pull ckpt）
+- Q3=A Sprint 2 节奏：立即启动（不等数据，UI 和 classifier 同步上）
+
+**Sprint 2 进度（实时更新）**：
+
+| 任务 | 状态 | 产出 |
+|------|------|------|
+| S2-1 ADR-029 Sprint 2 spec | ✅ | `docs/decisions/029-*.md` |
+| S2-2 codex 一轮：intent_head + lnn_inferencer + `/intent_feedback` HTTP endpoint | 🔄 | 待 commit |
+| S2-3 rsync 同步脚本（Q1=A） | ✅ | `scripts/sync_daemon_to_studio.sh` |
+| S2-4 Studio 夜训 + Air pull ckpt（Q2=A） | ✅ | `scripts/studio_nightly_train.sh` + `pull_ckpt_from_studio.sh` |
+| S2-5 Streamlit UI v0（DAF 弹卡 + 静默模式） | ✅ | `streamlit_ui/intent_console.py` |
+| S2-6 gemini 对抗审（8 finding，CONDITIONAL GO） | ✅ | 10s hidden state 窗口钦定建议 |
+| S2-2b codex 二轮 retrofit（gemini H1/H2/H3 整改） | ⏳ | 待派 |
+| S2-7 整批 commit + push + 川哥晨起报告 | ⏳ | 待 retrofit 完成 |
+
+**5/24 凌晨 Sprint 2 启动归档**：
+- 战略锚：[ADR-028](docs/decisions/028-lnn-role-redefine-online-intent.md) + [ADR-029](docs/decisions/029-sprint2-intent-classifier-daf-studio-pipeline.md)
+- 决策矩阵：cc + codex + gemini 三方并行 team 模式
+- gemini 钦定建议：10s hidden state 窗口必须落盘（动力学 vs 统计学）
+
+**项目哲学锚**：[ADR-009 拒绝 RAG](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md) + [ADR-028 LNN 角色重定义](docs/decisions/028-lnn-role-redefine-online-intent.md)
 **🏗 技术全景**：[`docs/architecture-overview.md`](docs/architecture-overview.md)
 **🤖 AI 同事 30 秒上手**：[`docs/onboarding-ai.md`](docs/onboarding-ai.md)
+
+---
+
+## 历史归档：M0 W3 Day 4（**🟢 5/22 11 轮 Team 模式 + ADR-022/023/024 + v3.0 200ep 全门破阈值**）
+
+> ⚠️ 这一段记录 5/22 凌晨的训练侧实证。**5/23 ADR-028 已把 LNN 重新定位**，
+> 这里的 effective_dim / shuffle_ratio / vs_persistence 指标在 v0.1 已不是主验收维度。
+> 保留作为「为什么转折」的因果证据。
+
+**最近核心 commit（v0.1 转折前）**：`7d1fc5f` (ADR-024 AU 物理上限 · 5/22 晚) → `e38d28f` (R1+R3 LNN-FIRST 物理松绑 · 5/22 下) → `f3ee848` (gemini 11 stride=3 准静态死局 · 5/22 中) → `8e38bde` (ADR-023 范式转换 · 5/22 早)
+**📊 11 轮完整复盘**：[`docs/reports/2026-05-22-team-mode-11-rounds-retrospective.md`](docs/reports/2026-05-22-team-mode-11-rounds-retrospective.md)
+**📊 项目状态总览**：[`docs/project-status.md`](docs/project-status.md)
 **📜 Day 3 6h Team 模式复盘**：[`docs/retrospectives/2026-05-21-day3-evening-team-mode-retro.md`](docs/retrospectives/2026-05-21-day3-evening-team-mode-retro.md)
 
 ## Day 3 晚上 Team 模式（5/21 20:00-23:30，6h）

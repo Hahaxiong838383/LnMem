@@ -26,9 +26,11 @@ from pathlib import Path
 from typing import Any
 
 import torch
+from torch import Tensor
 
 from poc.src.fusion import MultimodalFusion
 from poc.src.lnn.expression_dynamics import STATE_LABELS
+from poc.src.lnn.intent_head import INTENT_LABELS, IntentClassifierHead
 from poc.src.lnn.model import DefaultLNNFactory
 from poc.src.lnn.online_adapter import OnlineLoRAAdapter
 from poc.src.lnn.online_contracts import OnlineAdapterConfig
@@ -50,6 +52,9 @@ class InferenceResult:
     error: str | None = None
     ckpt_sha8: str | None = None  # 推理结果可追溯到具体 ckpt
     signal_path_used: str | None = None  # F-05: 推理时的 signal_path 元数据
+    intent_probs: list[float] | None = None
+    intent_pred: str | None = None
+    intent_confidence: float | None = None
 
 
 class RealtimeLNNInferencer:
@@ -61,6 +66,7 @@ class RealtimeLNNInferencer:
     def __init__(
         self,
         ckpt_path: Path | None = None,
+        intent_head_ckpt: Path | None = None,
         persona_idx: int = 30,  # vboss_self
         window: int = _DEFAULT_WINDOW,
         signal_path: str = "calibrated",
@@ -72,6 +78,8 @@ class RealtimeLNNInferencer:
         self._history: deque[list[float]] = deque(maxlen=window)
         self._state_model = None
         self._ckpt_sha8: str | None = None
+        self._intent_head: IntentClassifierHead | None = None
+        self._intent_head_ckpt_sha8: str | None = None
         self._enabled = False
         self._fail_count = 0
         self._fail_count_circuit_break = 100  # 连续 100 次失败 → 永久 disable
@@ -83,10 +91,16 @@ class RealtimeLNNInferencer:
 
         try:
             self._load_ckpt(ckpt_path)
+            if intent_head_ckpt is not None:
+                self._load_intent_head_ckpt(intent_head_ckpt)
             self._enabled = True
             self._logger.info(
-                "RealtimeLNNInferencer ready: ckpt=%s sha8=%s persona_idx=%d signal_path=%s",
-                ckpt_path.name, self._ckpt_sha8, persona_idx, signal_path,
+                "RealtimeLNNInferencer ready: ckpt=%s sha8=%s intent=%s persona_idx=%d signal_path=%s",
+                ckpt_path.name,
+                self._ckpt_sha8,
+                "on" if self._intent_head is not None else "off",
+                persona_idx,
+                signal_path,
             )
         except Exception as exc:
             self._logger.warning(
@@ -123,6 +137,45 @@ class RealtimeLNNInferencer:
                 )
 
         self._state_model = sm
+
+    def _load_intent_head_ckpt(self, ckpt_path: Path) -> None:
+        """加载 intent head，失败时仅禁用 intent 输出，不影响 state 推理。"""
+        import hashlib
+
+        payload = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+        if isinstance(payload, dict):
+            state_dict = payload.get("intent_head") or payload.get("state_dict") or payload
+        else:
+            raise ValueError("intent head checkpoint must be a dict payload")
+
+        hidden_dim = int(getattr(self._state_model, "hidden_dim", 64))
+        head = IntentClassifierHead(hidden_dim=hidden_dim)
+        head.load_state_dict(state_dict)
+        head.eval()
+
+        self._intent_head = head
+        self._intent_head_ckpt_sha8 = hashlib.sha256(ckpt_path.read_bytes()).hexdigest()[:8]
+
+    def _forward_last_hidden(self, x: Tensor, persona_idx: Tensor) -> Tensor:
+        """复用 state model 内部 CfC cell 计算最后时刻 hidden（给 intent head）。"""
+        sm = self._state_model
+        if sm is None:
+            raise RuntimeError("state model is not loaded")
+
+        features = sm.input_projection(x.float())
+        persona_ids = persona_idx.to(device=features.device, dtype=torch.long)
+        tau_bias = sm.personalization.get_tau_bias(persona_ids).to(features.device, features.dtype)
+        gamma, beta = sm.personalization.get_film_params(persona_ids)
+        gamma = gamma.to(features.device, features.dtype)
+        beta = beta.to(features.device, features.dtype)
+        timespans = sm._timespans_from_tau(tau_bias)
+
+        batch, steps, _ = features.shape
+        hidden = torch.zeros(batch, sm.hidden_dim, device=features.device, dtype=features.dtype)
+        for step in range(steps):
+            hidden, _ = sm.backbone.rnn_cell(features[:, step], hidden, timespans)
+            hidden = sm._apply_film(hidden, gamma, beta)
+        return hidden
 
     def reset(self) -> None:
         """清空滑窗（如 daemon session 切换）"""
@@ -189,6 +242,18 @@ class RealtimeLNNInferencer:
             entropy = -sum(p * math.log2(max(p, 1e-12)) for p in probs)
             margin = sp[0] - sp[1]
             top_idx = int(last.argmax())
+            intent_probs: list[float] | None = None
+            intent_pred: str | None = None
+            intent_confidence: float | None = None
+            if self._intent_head is not None:
+                with torch.no_grad():
+                    last_hidden = self._forward_last_hidden(x, pid)
+                    intent_logits = self._intent_head(last_hidden)
+                    intent_tensor = torch.softmax(intent_logits[0], dim=-1)
+                intent_probs = intent_tensor.tolist()
+                intent_idx = int(intent_tensor.argmax().item())
+                intent_pred = INTENT_LABELS[intent_idx]
+                intent_confidence = float(intent_tensor[intent_idx].item())
             self._fail_count = 0  # 成功重置
             return InferenceResult(
                 lnn_status="ok",
@@ -199,6 +264,9 @@ class RealtimeLNNInferencer:
                 entropy=entropy,
                 ckpt_sha8=self._ckpt_sha8,
                 signal_path_used=self._signal_path,
+                intent_probs=intent_probs,
+                intent_pred=intent_pred,
+                intent_confidence=intent_confidence,
             )
         except Exception as exc:
             self._record_fail()
@@ -232,6 +300,8 @@ class RealtimeLNNInferencer:
         return {
             "enabled": self._enabled,
             "ckpt_sha8": self._ckpt_sha8,
+            "intent_head_enabled": self._intent_head is not None,
+            "intent_head_ckpt_sha8": self._intent_head_ckpt_sha8,
             "persona_idx": self._persona_idx,
             "signal_path": self._signal_path,
             "history_len": len(self._history),

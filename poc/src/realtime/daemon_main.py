@@ -42,6 +42,7 @@ from .feedback.persistence import (
     get_trigger_types,
     get_user_triggered_metrics,
 )
+from .intent_feedback_server import IntentFeedbackServer, IntentFeedbackServerConfig
 from .pyfeat_mp_pool import PyfeatMpPool
 from .signal_pipeline import SignalPipelineMpDispatcher, SignalPipelineMpRouter, SignalPipelinePool, SignalPipelineWorker
 from .storage_manager import StorageManager
@@ -102,6 +103,9 @@ class DaemonApp:
             )
         self._router_threads: list[threading.Thread] = []
         self._http_server: ThreadingHTTPServer | None = None
+        self._intent_feedback_server = IntentFeedbackServer(
+            IntentFeedbackServerConfig(host="127.0.0.1", port=9877)
+        )
         self._feedback_engine = self._build_feedback_engine()
         # M0 W2 P0-1 V0.3: user_triggered 状态
         self._secret_token: str | None = self._load_secret_token()
@@ -130,6 +134,10 @@ class DaemonApp:
         for thread in self._router_threads:
             thread.start()
         self._start_http_server()
+        try:
+            self._intent_feedback_server.start()
+        except Exception as exc:  # noqa: BLE001
+            logging.warning("intent feedback server start failed: %s", exc)
 
     def stop(self) -> None:
         if self._stop_event.is_set():
@@ -140,6 +148,10 @@ class DaemonApp:
             self._http_server.shutdown()
             self._http_server.server_close()
             self._http_server = None
+        try:
+            self._intent_feedback_server.stop()
+        except Exception as exc:  # noqa: BLE001
+            logging.warning("intent feedback server stop failed: %s", exc)
         self._capture.join(timeout=5.0)
         if self._mp_dispatcher is not None:
             self._mp_dispatcher.join(timeout=5.0)

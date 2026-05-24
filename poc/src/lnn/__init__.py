@@ -8,3 +8,17 @@
 - ``viz.py``      (gemini):   plot_loss_curve + plot_tsne_personalization
 - ``train.py``    (cc 主线): 端到端入口，集成上述模块
 """
+
+from poc.src.lnn.intent_head import (
+    INTENT_LABELS,
+    INTENT_TO_INDEX,
+    IntentClassifierHead,
+    cost_sensitive_cross_entropy,
+)
+
+__all__ = [
+    "INTENT_LABELS",
+    "INTENT_TO_INDEX",
+    "IntentClassifierHead",
+    "cost_sensitive_cross_entropy",
+]
