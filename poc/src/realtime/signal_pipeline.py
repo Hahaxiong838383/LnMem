@@ -12,6 +12,7 @@ from collections.abc import Mapping
 import logging
 import queue
 import threading
+import time
 from typing import Any
 
 from .capture_worker import CapturedFrame
@@ -30,8 +31,13 @@ class SignalPipelineWorker(threading.Thread):
         stop_event: threading.Event,
         device_name: str,
         lnn_inferencer: Any | None = None,  # M0 W3 Phase 4.2: optional realtime LNN forward
+        # ADR-028 v0.1 (5/23 cc): 2 worker py-feat pool 支持
+        name: str = "lnmem-signal",
+        shared_caliper: Any | None = None,  # 多 worker 共享同一 AUCaliper（per-user 校准状态不能分裂）
+        shared_caliper_lock: threading.Lock | None = None,  # 配合 shared_caliper 防并发 mutation
+        shared_lnn_lock: threading.Lock | None = None,  # 配合 shared lnn_inferencer 防 hidden state 错位
     ) -> None:
-        super().__init__(name="lnmem-signal", daemon=True)
+        super().__init__(name=name, daemon=True)
         self._config = config
         self._input_queue = input_queue
         self._output_queue = output_queue
@@ -40,9 +46,12 @@ class SignalPipelineWorker(threading.Thread):
         self._frames_processed = 0
         self._last_frame_ts: str | None = None
         self._au_extractor: Any | None = None
-        self._caliper: Any | None = None
+        # caliper: shared 模式（worker pool） 或 own 模式（单 worker 向后兼容）
+        self._caliper: Any | None = shared_caliper
+        self._caliper_lock = shared_caliper_lock  # None 表示单 worker 无需 lock
         self._vlm_annotator: Any | None = None
         self._lnn_inferencer = lnn_inferencer  # M0 W3 Phase 4.2
+        self._lnn_lock = shared_lnn_lock  # None 表示无 lock（单 worker 或 lnn_inferencer 内部线程安全）
 
     def run(self) -> None:
         while not self._stop_event.is_set() or not self._input_queue.empty():
@@ -83,9 +92,16 @@ class SignalPipelineWorker(threading.Thread):
                 result["raw_au"] = _round_map(raw_au)
                 result["head_pose"] = {k: round(v, 3) for k, v in pose.items()}
                 caliper = self._ensure_caliper()
-                calibrated = caliper.step(raw_au)
+                # ADR-028 v0.1: shared caliper 必须加锁（per-user baseline EMA mutation 不可并发）
+                if self._caliper_lock is not None:
+                    with self._caliper_lock:
+                        calibrated = caliper.step(raw_au)
+                        expression = caliper.to_lnn_expression(calibrated)
+                else:
+                    calibrated = caliper.step(raw_au)
+                    expression = caliper.to_lnn_expression(calibrated)
                 result["calibrated_au"] = _round_map(calibrated)
-                result["expression"] = _round_map(caliper.to_lnn_expression(calibrated))
+                result["expression"] = _round_map(expression)
 
         # VLM 标注：每 _VLM_INTERVAL_FRAMES 帧触发一次（面朝检测到时才标注）
         if (
@@ -98,9 +114,14 @@ class SignalPipelineWorker(threading.Thread):
 
         # M0 W3 Phase 4.2: 实时 LNN forward（F-06 fail-soft，独立 try/except）
         # 失败仅清空 lnn 字段，不影响基础信号出队（codex F-06 修复）
+        # ADR-028 v0.1: shared lnn_inferencer 必须加锁（LNN hidden state 有 history，不能并发更新）
         if self._lnn_inferencer is not None and result["face_detected"]:
             try:
-                infer_result = self._lnn_inferencer.infer(result)
+                if self._lnn_lock is not None:
+                    with self._lnn_lock:
+                        infer_result = self._lnn_inferencer.infer(result)
+                else:
+                    infer_result = self._lnn_inferencer.infer(result)
                 result["lnn"] = {
                     "status": infer_result.lnn_status,
                     "predicted_state": infer_result.predicted_state,
@@ -192,4 +213,100 @@ def _offer(target: "queue.Queue[dict[str, Any]]", item: dict[str, Any]) -> None:
         target.put_nowait(item)
 
 
-__all__ = ["SignalPipelineWorker"]
+class SignalPipelinePool:
+    """ADR-028 v0.1 (5/23 cc 写框架 + codex 评审兜底): N worker py-feat 并行池.
+
+    设计要点：
+    - **共享 caliper**：per-user EMA baseline 状态不能分裂，必须 shared + lock 保护
+    - **共享 lnn_inferencer**：LNN hidden state 有 history，并发推理会错位 → lock 保护
+    - **独立 AUExtractor**：py-feat 模型加载后是 read-only 推理；独立加载避免并发风险，
+      代价是 N × ~2GB RAM（M5 Air 16GB 完全够 2 worker = 4GB）
+    - **input/output queue 共享**：queue.Queue 线程安全，N worker 同时 get/put OK
+    - **out-of-order 风险**：worker 处理速度不一致 → output 可能不按 frame_id 顺序
+      验收方案：jsonl 写入端按 frame_id sort buffer（已在 storage_manager 处理；如未处理需补）
+
+    单 worker 向后兼容：DaemonApp 检查 pyfeat_workers，==1 时仍用 SignalPipelineWorker 直挂.
+    """
+
+    def __init__(
+        self,
+        n_workers: int,
+        config: PipelineConfig,
+        input_queue: "queue.Queue[CapturedFrame]",
+        output_queue: "queue.Queue[dict[str, Any]]",
+        stop_event: threading.Event,
+        device_name: str,
+        lnn_inferencer: Any | None = None,
+    ) -> None:
+        if n_workers < 1:
+            raise ValueError(f"n_workers must be >= 1, got {n_workers}")
+        if n_workers > 8:
+            raise ValueError(f"n_workers must be <= 8 (M5 Air cores), got {n_workers}")
+        self._n_workers = n_workers
+        self._shared_caliper_lock = threading.Lock() if n_workers > 1 else None
+        self._shared_lnn_lock = threading.Lock() if (n_workers > 1 and lnn_inferencer is not None) else None
+        # 共享 caliper：N workers 同一 AUCaliper 实例（per-user baseline 状态一致性）
+        # 延迟创建（避免 import 副作用）；worker 首次访问时 _ensure_caliper 触发
+        self._shared_caliper_holder: list[Any] = [None]  # mutable container
+        self._shared_caliper_init_lock = threading.Lock()
+
+        def _ensure_shared_caliper() -> Any:
+            with self._shared_caliper_init_lock:
+                if self._shared_caliper_holder[0] is None:
+                    from poc.src.vision.feature_calibrator import AUCaliper
+                    self._shared_caliper_holder[0] = AUCaliper()
+                return self._shared_caliper_holder[0]
+
+        # 预创建共享 caliper（保证所有 worker 拿到同一个）
+        _ensure_shared_caliper()
+        shared_caliper = self._shared_caliper_holder[0]
+
+        self._workers: list[SignalPipelineWorker] = [
+            SignalPipelineWorker(
+                config=config,
+                input_queue=input_queue,
+                output_queue=output_queue,
+                stop_event=stop_event,
+                device_name=device_name,
+                lnn_inferencer=lnn_inferencer,
+                name=f"lnmem-signal-{i}",
+                shared_caliper=shared_caliper,
+                shared_caliper_lock=self._shared_caliper_lock,
+                shared_lnn_lock=self._shared_lnn_lock,
+            )
+            for i in range(n_workers)
+        ]
+
+    def start(self) -> None:
+        for w in self._workers:
+            w.start()
+
+    def join(self, timeout: float | None = None) -> None:
+        if timeout is None:
+            for w in self._workers:
+                w.join()
+            return
+        # total timeout budget: keep API semantics aligned with threading.Thread.join
+        deadline = time.monotonic() + timeout
+        for w in self._workers:
+            remain = max(0.0, deadline - time.monotonic())
+            w.join(remain)
+
+    def is_alive(self) -> bool:
+        return any(w.is_alive() for w in self._workers)
+
+    @property
+    def frames_processed(self) -> int:
+        return sum(w._frames_processed for w in self._workers)
+
+    @property
+    def last_frame_ts(self) -> str | None:
+        candidates = [w._last_frame_ts for w in self._workers if w._last_frame_ts]
+        return max(candidates) if candidates else None
+
+    @property
+    def n_workers(self) -> int:
+        return self._n_workers
+
+
+__all__ = ["SignalPipelineWorker", "SignalPipelinePool"]

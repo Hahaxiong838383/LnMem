@@ -42,7 +42,7 @@ from .feedback.persistence import (
     get_trigger_types,
     get_user_triggered_metrics,
 )
-from .signal_pipeline import SignalPipelineWorker
+from .signal_pipeline import SignalPipelinePool, SignalPipelineWorker
 from .storage_manager import StorageManager
 
 # 合法的 user_response.true_state 枚举（与 STATE_LABELS 严格对齐）
@@ -71,14 +71,26 @@ class DaemonApp:
         self._capture = CaptureWorker(self._config.capture, self._capture_out, self._stop_event, self._session_id)
         # M0 W3 Phase 4.2 (2026-05-16 ADR-005/008): 实时 LNN inferencer（fail-soft）
         self._lnn_inferencer = self._build_lnn_inferencer()
-        self._pipeline = SignalPipelineWorker(
-            self._config.pipeline,
-            self._pipeline_in,
-            self._pipeline_out,
-            self._stop_event,
-            self._config.capture.device_name,
-            lnn_inferencer=self._lnn_inferencer,
-        )
+        # ADR-028 v0.1 (5/23 cc): pyfeat_workers > 1 用 SignalPipelinePool（共享 caliper + lock）
+        if self._config.pipeline.pyfeat_workers > 1:
+            self._pipeline = SignalPipelinePool(
+                n_workers=self._config.pipeline.pyfeat_workers,
+                config=self._config.pipeline,
+                input_queue=self._pipeline_in,
+                output_queue=self._pipeline_out,
+                stop_event=self._stop_event,
+                device_name=self._config.capture.device_name,
+                lnn_inferencer=self._lnn_inferencer,
+            )
+        else:
+            self._pipeline = SignalPipelineWorker(
+                self._config.pipeline,
+                self._pipeline_in,
+                self._pipeline_out,
+                self._stop_event,
+                self._config.capture.device_name,
+                lnn_inferencer=self._lnn_inferencer,
+            )
         self._router_threads: list[threading.Thread] = []
         self._http_server: ThreadingHTTPServer | None = None
         self._feedback_engine = self._build_feedback_engine()
@@ -145,11 +157,15 @@ class DaemonApp:
                 lnn_health = self._lnn_inferencer.health_dict()
             except Exception:
                 lnn_health = {"enabled": False, "error": "health_dict_failed"}
+        frames_processed = getattr(self._pipeline, "frames_processed", getattr(self._pipeline, "_frames_processed", 0))
+        last_frame_ts = getattr(self._pipeline, "last_frame_ts", None)
+        if last_frame_ts is None:
+            last_frame_ts = getattr(self._pipeline, "_last_frame_ts", None)
         return {
             "status": "ok",
             "uptime_s": round(time.monotonic() - self._started_at, 3),
-            "frames_processed": self._pipeline._frames_processed,
-            "last_frame_ts": self._pipeline._last_frame_ts or self._capture.last_frame_ts,
+            "frames_processed": frames_processed,
+            "last_frame_ts": last_frame_ts or self._capture.last_frame_ts,
             "feedback": feedback,
             "lnn": lnn_health,
         }

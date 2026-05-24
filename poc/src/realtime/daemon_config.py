@@ -41,7 +41,7 @@ DEFAULT_CONFIG: dict[str, dict[str, Any]] = {
 _BYTES_PER_FRAME = {"low": 25_000, "medium": 40_000, "high": 70_000}
 MAX_CPU_PCT = 30
 MAX_RAM_MB = 2_048
-MAX_DISK_BYTES_PER_DAY = 5 * 1024 * 1024 * 1024
+MAX_DISK_BYTES_PER_DAY = 20 * 1024 * 1024 * 1024  # ADR-028 v0.1: 30fps × 2h retention ≈ 8.6GB, 20GB 留余量（M5 Air 1TB SSD 完全够）
 HTTP_HOST = "127.0.0.1"
 HTTP_PORT = 9876
 
@@ -68,6 +68,9 @@ class PipelineConfig:
     enable_pyfeat: bool
     enable_mediapipe: bool
     enable_vad: bool
+    # ADR-028 v0.1 (5/23 cc): py-feat 多 worker 并行池，提升 1Hz → 2Hz+ 实时吞吐
+    # 默认 1（向后兼容），daemon.toml [pipeline] pyfeat_workers = 2 启用
+    pyfeat_workers: int = 1
 
 
 @dataclass(frozen=True)
@@ -88,11 +91,14 @@ class DaemonConfig:
     config_path: Path
 
     def estimate_daily_video_bytes(self) -> int:
+        # ADR-028 v0.1 cc 修补：按 retention_hours 比例算（不是全天），与实际磁盘占用对账
+        # 旧公式按 24h 算导致 30fps 必超 budget，但 retention=2h 实际只占 2h 数据
         base = _BYTES_PER_FRAME[self.storage.compress_quality]
         pixels = self.capture.resolution[0] * self.capture.resolution[1]
         scale = pixels / float(1280 * 720)
-        frames_per_day = self.capture.target_fps * 24 * 60 * 60
-        return int(base * scale * frames_per_day)
+        retention_hours = max(0, self.storage.raw_video_retention_hours)
+        frames_in_retention = self.capture.target_fps * retention_hours * 60 * 60
+        return int(base * scale * frames_in_retention)
 
 
 def default_config_path() -> Path:
@@ -155,6 +161,7 @@ def load_config(
             enable_pyfeat=bool(merged["pipeline"]["enable_pyfeat"]),
             enable_mediapipe=bool(merged["pipeline"]["enable_mediapipe"]),
             enable_vad=bool(merged["pipeline"]["enable_vad"]),
+            pyfeat_workers=int(merged["pipeline"].get("pyfeat_workers", 1)),
         ),
         feedback=FeedbackConfig(
             query_min_per_hour=int(merged["feedback"]["query_min_per_hour"]),
@@ -176,8 +183,13 @@ def preflight_check(config: DaemonConfig) -> dict[str, Any]:
         raise ValueError("capture.resolution must be positive")
     if config.capture.target_fps <= 0:
         raise ValueError("capture.target_fps must be > 0")
-    if config.capture.target_fps > 5.0:
-        raise ValueError("capture.target_fps must stay <= 5.0 in V0.1")
+    # ADR-028 v0.1 实时意图预测：5/23 钦定 30Hz 上限 60Hz（py-feat + LNN online + M5 算力）
+    # 旧 5.0 上限是 V0.1 spike 期保护，与 ADR-028 v0.1 不一致
+    if config.capture.target_fps > 60.0:
+        raise ValueError("capture.target_fps must stay <= 60.0 (ADR-028 v0.1)")
+    # ADR-028 v0.1 (5/23 cc): py-feat 多 worker 池上下限
+    if config.pipeline.pyfeat_workers < 1 or config.pipeline.pyfeat_workers > 8:
+        raise ValueError("pipeline.pyfeat_workers must be in [1, 8] (M5 Air 8 cores)")
     if config.storage.compress_quality not in _BYTES_PER_FRAME:
         raise ValueError("storage.compress_quality must be high/medium/low")
     if config.storage.raw_video_retention_hours <= 0:
