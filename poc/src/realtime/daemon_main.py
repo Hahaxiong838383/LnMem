@@ -42,7 +42,8 @@ from .feedback.persistence import (
     get_trigger_types,
     get_user_triggered_metrics,
 )
-from .signal_pipeline import SignalPipelinePool, SignalPipelineWorker
+from .pyfeat_mp_pool import PyfeatMpPool
+from .signal_pipeline import SignalPipelineMpDispatcher, SignalPipelineMpRouter, SignalPipelinePool, SignalPipelineWorker
 from .storage_manager import StorageManager
 
 # 合法的 user_response.true_state 枚举（与 STATE_LABELS 严格对齐）
@@ -69,14 +70,22 @@ class DaemonApp:
         self._pipeline_out: "queue.Queue[dict[str, Any]]" = queue.Queue(maxsize=64)
         self._storage = StorageManager(self._config.storage, self._stop_event)
         self._capture = CaptureWorker(self._config.capture, self._capture_out, self._stop_event, self._session_id)
+        self._mp_pool: PyfeatMpPool | None = None
+        self._mp_dispatcher: SignalPipelineMpDispatcher | None = None
+        self._mp_router: SignalPipelineMpRouter | None = None
+        self._pipeline: SignalPipelineWorker | SignalPipelinePool | None = None
         # M0 W3 Phase 4.2 (2026-05-16 ADR-005/008): 实时 LNN inferencer（fail-soft）
         self._lnn_inferencer = self._build_lnn_inferencer()
-        # ADR-028 v0.1 (5/23 cc): pyfeat_workers > 1 用 SignalPipelinePool（共享 caliper + lock）
+        # ADR-028 v0.1 方案 B（5/23 cc）：pyfeat_workers > 1 用 multiprocessing 真并行
         if self._config.pipeline.pyfeat_workers > 1:
-            self._pipeline = SignalPipelinePool(
-                n_workers=self._config.pipeline.pyfeat_workers,
-                config=self._config.pipeline,
+            self._mp_pool = PyfeatMpPool(self._config.pipeline.pyfeat_workers)
+            self._mp_dispatcher = SignalPipelineMpDispatcher(
+                mp_pool=self._mp_pool,
                 input_queue=self._pipeline_in,
+                stop_event=self._stop_event,
+            )
+            self._mp_router = SignalPipelineMpRouter(
+                mp_pool=self._mp_pool,
                 output_queue=self._pipeline_out,
                 stop_event=self._stop_event,
                 device_name=self._config.capture.device_name,
@@ -108,7 +117,12 @@ class DaemonApp:
         logging.info("starting realtime daemon: %s", json.dumps(self._preflight, ensure_ascii=False))
         self._storage.start()
         self._capture.start()
-        self._pipeline.start()
+        if self._mp_pool is not None and self._mp_dispatcher is not None and self._mp_router is not None:
+            self._mp_pool.start()
+            self._mp_dispatcher.start()
+            self._mp_router.start()
+        elif self._pipeline is not None:
+            self._pipeline.start()
         self._router_threads = [
             threading.Thread(target=self._frame_router_loop, name="lnmem-frame-router", daemon=True),
             threading.Thread(target=self._signal_router_loop, name="lnmem-signal-router", daemon=True),
@@ -127,7 +141,14 @@ class DaemonApp:
             self._http_server.server_close()
             self._http_server = None
         self._capture.join(timeout=5.0)
-        self._pipeline.join(timeout=10.0)
+        if self._mp_dispatcher is not None:
+            self._mp_dispatcher.join(timeout=5.0)
+        if self._mp_pool is not None:
+            self._mp_pool.stop(timeout=10.0)
+        if self._mp_router is not None:
+            self._mp_router.join(timeout=5.0)
+        elif self._pipeline is not None:
+            self._pipeline.join(timeout=10.0)
         for thread in self._router_threads:
             thread.join(timeout=5.0)
         # FB-01: 等弹窗线程落盘完成（在线 prompt 可能还在等老板回复）
@@ -157,10 +178,15 @@ class DaemonApp:
                 lnn_health = self._lnn_inferencer.health_dict()
             except Exception:
                 lnn_health = {"enabled": False, "error": "health_dict_failed"}
-        frames_processed = getattr(self._pipeline, "frames_processed", getattr(self._pipeline, "_frames_processed", 0))
-        last_frame_ts = getattr(self._pipeline, "last_frame_ts", None)
-        if last_frame_ts is None:
-            last_frame_ts = getattr(self._pipeline, "_last_frame_ts", None)
+        if self._mp_router is not None:
+            frames_processed = self._mp_router.frames_processed
+            last_frame_ts = self._mp_router.last_frame_ts
+        else:
+            pipeline = self._pipeline
+            frames_processed = getattr(pipeline, "frames_processed", getattr(pipeline, "_frames_processed", 0))
+            last_frame_ts = getattr(pipeline, "last_frame_ts", None)
+            if last_frame_ts is None:
+                last_frame_ts = getattr(pipeline, "_last_frame_ts", None)
         return {
             "status": "ok",
             "uptime_s": round(time.monotonic() - self._started_at, 3),
@@ -238,6 +264,8 @@ class DaemonApp:
 
     def latest_frame_id(self) -> int:
         """daemon 最近一帧 frame_id（0 表示未推理过任何帧）。"""
+        if self._mp_router is not None:
+            return self._mp_router.frames_processed
         return getattr(self._pipeline, "_frames_processed", 0)
 
     def latest_pred_state(self) -> str | None:

@@ -17,6 +17,7 @@ from typing import Any
 
 from .capture_worker import CapturedFrame
 from .daemon_config import PipelineConfig
+from .pyfeat_mp_pool import PyfeatMpPool
 
 
 class SignalPipelineWorker(threading.Thread):
@@ -213,6 +214,143 @@ def _offer(target: "queue.Queue[dict[str, Any]]", item: dict[str, Any]) -> None:
         target.put_nowait(item)
 
 
+class SignalPipelineMpDispatcher(threading.Thread):
+    """Dispatch captured frames from thread queue to multiprocessing input queue."""
+
+    def __init__(
+        self,
+        mp_pool: PyfeatMpPool,
+        input_queue: "queue.Queue[CapturedFrame]",
+        stop_event: threading.Event,
+    ) -> None:
+        super().__init__(name="lnmem-mp-dispatcher", daemon=True)
+        self._mp_pool = mp_pool
+        self._input_queue = input_queue
+        self._stop_event = stop_event
+        self._frames_dispatched = 0
+
+    def run(self) -> None:
+        while not self._stop_event.is_set() or not self._input_queue.empty():
+            try:
+                captured = self._input_queue.get(timeout=0.2)
+            except queue.Empty:
+                continue
+            submitted = self._mp_pool.submit(captured, block=True, timeout=0.2)
+            if submitted:
+                self._frames_dispatched += 1
+            else:
+                logging.warning(
+                    "mp dispatcher drop frame_id=%s (input queue full)", captured.frame_id
+                )
+
+    @property
+    def frames_dispatched(self) -> int:
+        return self._frames_dispatched
+
+
+class SignalPipelineMpRouter(threading.Thread):
+    """Main-process router: consume mp results, run caliper/LNN, then push output queue."""
+
+    def __init__(
+        self,
+        mp_pool: PyfeatMpPool,
+        output_queue: "queue.Queue[dict[str, Any]]",
+        stop_event: threading.Event,
+        device_name: str,
+        lnn_inferencer: Any | None = None,
+    ) -> None:
+        super().__init__(name="lnmem-mp-router", daemon=True)
+        self._mp_pool = mp_pool
+        self._output_queue = output_queue
+        self._stop_event = stop_event
+        self._device_name = device_name
+        self._lnn_inferencer = lnn_inferencer
+        self._caliper: Any | None = None
+        self._frames_processed = 0
+        self._last_frame_ts: str | None = None
+
+    def run(self) -> None:
+        while not self._stop_event.is_set() or self._mp_pool.is_alive():
+            result = self._mp_pool.get_result(timeout=0.2)
+            if result is None:
+                continue
+            try:
+                processed = self._post_process(result)
+                _offer(self._output_queue, processed)
+                self._frames_processed += 1
+                self._last_frame_ts = processed["ts"]
+            except Exception:
+                logging.exception("mp router post_process failed")
+
+    def _post_process(self, res: dict[str, Any]) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            "ts": res["ts"],
+            "device": self._device_name,
+            "frame_id": res["frame_id"],
+            "raw_video_offset_ms": res["raw_video_offset_ms"],
+            "face_detected": False,
+            "raw_au": {},
+            "calibrated_au": {},
+            "expression": {},
+            "head_pose": {"yaw_deg": 0.0, "pitch_deg": 0.0, "roll_deg": 0.0},
+            "session_id": res["session_id"],
+        }
+
+        raw_au = res.get("raw_au") or {}
+        pose = res.get("head_pose") or {}
+        if raw_au and _has_finite_value(raw_au):
+            au_sum = sum(
+                abs(float(value))
+                for value in raw_au.values()
+                if isinstance(value, (int, float))
+            )
+            if au_sum > 0.001:
+                out["face_detected"] = True
+                out["raw_au"] = _round_map(raw_au)
+                if pose:
+                    out["head_pose"] = {
+                        key: round(float(value), 3)
+                        for key, value in pose.items()
+                    }
+                caliper = self._ensure_caliper()
+                calibrated = caliper.step(raw_au)
+                out["calibrated_au"] = _round_map(calibrated)
+                out["expression"] = _round_map(caliper.to_lnn_expression(calibrated))
+
+        if self._lnn_inferencer is not None and out["face_detected"]:
+            try:
+                infer_result = self._lnn_inferencer.infer(out)
+                out["lnn"] = {
+                    "status": infer_result.lnn_status,
+                    "predicted_state": infer_result.predicted_state,
+                    "top_prob": infer_result.top_prob,
+                    "margin": infer_result.margin,
+                    "entropy": infer_result.entropy,
+                    "ckpt_sha8": infer_result.ckpt_sha8,
+                    "signal_path": infer_result.signal_path_used,
+                    "error": infer_result.error,
+                }
+            except Exception:
+                logging.exception("lnn_inferencer.infer failed")
+                out["lnn"] = {"status": "error", "error": "exception_in_router"}
+        return out
+
+    def _ensure_caliper(self) -> Any:
+        if self._caliper is None:
+            from poc.src.vision.feature_calibrator import AUCaliper
+
+            self._caliper = AUCaliper()
+        return self._caliper
+
+    @property
+    def frames_processed(self) -> int:
+        return self._frames_processed
+
+    @property
+    def last_frame_ts(self) -> str | None:
+        return self._last_frame_ts
+
+
 class SignalPipelinePool:
     """ADR-028 v0.1 (5/23 cc 写框架 + codex 评审兜底): N worker py-feat 并行池.
 
@@ -309,4 +447,9 @@ class SignalPipelinePool:
         return self._n_workers
 
 
-__all__ = ["SignalPipelineWorker", "SignalPipelinePool"]
+__all__ = [
+    "SignalPipelineMpDispatcher",
+    "SignalPipelineMpRouter",
+    "SignalPipelinePool",
+    "SignalPipelineWorker",
+]

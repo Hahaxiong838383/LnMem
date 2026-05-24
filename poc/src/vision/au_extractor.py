@@ -6,6 +6,7 @@ LNN-FIRST: py-feat Detector 是唯一面部信号来源，包含 AU / 情绪 / �
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 import warnings
@@ -55,9 +56,10 @@ class AUExtractor:
     LNN-FIRST 原则：禁止引入其他面部分析库作为备用路径。
     """
 
-    def __init__(self, au_model: str = "xgb", tmp_dir: str = "/tmp/lnmem_pyfeat") -> None:
+    def __init__(self, au_model: str = "xgb", tmp_dir: str | None = None) -> None:
         self._au_model = au_model
-        self._tmp_dir = Path(tmp_dir)
+        resolved_tmp_dir = tmp_dir or f"/tmp/lnmem_pyfeat_{os.getpid()}"
+        self._tmp_dir = Path(resolved_tmp_dir)
         self._tmp_dir.mkdir(parents=True, exist_ok=True)
         self._detector: Any | None = None
         self._frame_counter = 0
