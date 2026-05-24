@@ -84,6 +84,8 @@ def test_run_inference_smoke_end_to_end():
             "gate_4_shuffle_ratio",
             "gate_5_trivial_recon_check",
             "gate_6_rare_au_verdict",
+            "actual_dt",
+            "total_physical_horizon_s",
         }
         assert set(gates.keys()) == expected_keys
         assert gates["gate_1_tau_std"].startswith("N/A")

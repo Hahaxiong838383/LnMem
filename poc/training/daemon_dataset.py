@@ -136,6 +136,7 @@ class DaemonAUDataset(Dataset):
             "event_tensor": torch.from_numpy(event_tensor),
             "labels_va": torch.from_numpy(labels_va),
             "start_frame": 0,
+            "fps": 1.0,
         }
 
 

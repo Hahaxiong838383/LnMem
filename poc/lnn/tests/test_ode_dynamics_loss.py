@@ -43,7 +43,7 @@ def test_ode_dynamics_loss_smoke_forward():
     persona_idx = torch.zeros(4, dtype=torch.long)
     backbone, fusion = _build_real_backbone_stack()
     decoder = Decoder(hidden_dim=64, input_dim=52, num_layers=1)
-    loss_mod = OdeDynamicsLoss(OdeDynamicsLossConfig(), decoder=decoder)
+    loss_mod = OdeDynamicsLoss(OdeDynamicsLossConfig(use_dt_aware=False), decoder=decoder)
 
     out = loss_mod(
         x=x,
@@ -65,7 +65,7 @@ def test_l_world_model_nonzero():
     x = torch.randn(4, 30, 52)
     persona_idx = torch.zeros(4, dtype=torch.long)
     backbone, fusion = _build_real_backbone_stack()
-    loss_mod = OdeDynamicsLoss(OdeDynamicsLossConfig())
+    loss_mod = OdeDynamicsLoss(OdeDynamicsLossConfig(use_dt_aware=False))
 
     out = loss_mod(
         x=x,
@@ -83,7 +83,7 @@ def test_l_world_model_grad_reaches_backbone():
     x = torch.randn(3, 30, 52)
     persona_idx = torch.zeros(3, dtype=torch.long)
     backbone, fusion = _build_real_backbone_stack()
-    loss_mod = OdeDynamicsLoss(OdeDynamicsLossConfig())
+    loss_mod = OdeDynamicsLoss(OdeDynamicsLossConfig(use_dt_aware=False))
 
     out = loss_mod(
         x=x,
@@ -105,7 +105,7 @@ def test_decoder_grad_reaches_decoder_weight():
     persona_idx = torch.zeros(3, dtype=torch.long)
     backbone, fusion = _build_real_backbone_stack()
     decoder = Decoder(hidden_dim=64, input_dim=52, num_layers=1)
-    loss_mod = OdeDynamicsLoss(OdeDynamicsLossConfig(), decoder=decoder)
+    loss_mod = OdeDynamicsLoss(OdeDynamicsLossConfig(use_dt_aware=False), decoder=decoder)
 
     out = loss_mod(
         x=x,
@@ -123,7 +123,7 @@ def test_decoder_grad_reaches_decoder_weight():
 def test_rollout_autoregressive_no_future_teacher_forcing():
     """Rollout must depend on prior hidden, not future ground-truth x."""
     torch.manual_seed(4)
-    cfg = OdeDynamicsLossConfig(prefix_ratio=0.5, rollout_horizon=5)
+    cfg = OdeDynamicsLossConfig(prefix_ratio=0.5, rollout_horizon=5, use_dt_aware=False)
     decoder = Decoder(hidden_dim=4, input_dim=4, num_layers=1)
     with torch.no_grad():
         decoder.net.weight.copy_(torch.eye(4))
@@ -156,7 +156,7 @@ def test_rollout_autoregressive_no_future_teacher_forcing():
 def test_shuffle_raises_world_model_loss():
     """Shuffle rollout targets should significantly increase world-model loss."""
     torch.manual_seed(5)
-    cfg = OdeDynamicsLossConfig(prefix_ratio=0.5, rollout_horizon=10, input_stride=1)
+    cfg = OdeDynamicsLossConfig(prefix_ratio=0.5, rollout_horizon=10, input_stride=1, use_dt_aware=False)
     decoder = Decoder(hidden_dim=4, input_dim=4, num_layers=1)
     with torch.no_grad():
         decoder.net.weight.copy_(torch.eye(4))

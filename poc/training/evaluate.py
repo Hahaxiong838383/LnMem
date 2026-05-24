@@ -219,6 +219,7 @@ def run_evaluation(
     sample_per_video: int = 5,
     include_shuffle_test: bool = True,    # 硬门 #2 默认开启
     spike_phase: bool = True,             # 硬门 #4: spike 阶段 M1-V N/A
+    fps: float | None = None,
 ) -> dict:
     """跑完整 γ-3 evaluation: M1 + M1-V + M5 + collapse + Shuffle Test.
 
@@ -235,6 +236,10 @@ def run_evaluation(
         world_losses_by_vid: dict[str, list[float]] = {}
         world_losses_all: list[float] = []
         world_losses_shuffled: list[float] = []
+        actual_dts: list[float] = []
+        horizons_s: list[float] = []
+        rollout_lens: list[int] = []
+        prefix_lens: list[int] = []
         prefix_hidden_rows: list[np.ndarray] = []
         world_pred_rollouts: list[torch.Tensor] = []
         world_target_rollouts: list[torch.Tensor] = []
@@ -256,6 +261,11 @@ def run_evaluation(
                 windows = split_to_windows(sample, seq_len=trainer.cfg.seq_len, stride=trainer.cfg.seq_len)
                 for w_idx, w in enumerate(windows[:sample_per_video]):
                     et = w["event_tensor"].unsqueeze(0).to(trainer.device)
+                    window_fps = float(
+                        fps
+                        if fps is not None
+                        else w.get("fps", sample.get("fps", 30.0))
+                    )
                     out = trainer.ode_loss(
                         x=et,
                         backbone_step_fn=trainer.backbone_step,
@@ -263,7 +273,14 @@ def run_evaluation(
                         init_hidden_fn=lambda b, dev: [
                             cell.init_hidden(b, dev) for cell in trainer.backbone.cells
                         ],
+                        fps=window_fps,
                     )
+                    if "actual_dt" in out:
+                        actual_dts.append(float(out["actual_dt"]))
+                    if "total_physical_horizon_s" in out:
+                        horizons_s.append(float(out["total_physical_horizon_s"]))
+                    rollout_lens.append(int(out["rollout_len"]))
+                    prefix_lens.append(int(out["prefix_len"]))
                     world_loss = float(out["L_world_model"].item())
                     vid = str(w["video_id"])
                     world_losses_by_vid.setdefault(vid, []).append(world_loss)
@@ -273,7 +290,10 @@ def run_evaluation(
                     # M1 (cc 第 11 轮整改): 加 trivial baseline 对比，暴露均值/persistence 重构捷径
                     pf_len = int(out["prefix_len"])
                     rl_len = int(out["rollout_len"])
-                    et_strided = et[:, ::input_stride, :] if input_stride > 1 else et
+                    stride_used = input_stride
+                    if "actual_dt" in out:
+                        stride_used = max(1, round(window_fps * float(out["actual_dt"])))
+                    et_strided = et[:, ::stride_used, :] if stride_used > 1 else et
                     x_rollout_target_t = et_strided[:, pf_len : pf_len + rl_len, :]
                     x_prefix_t = et_strided[:, :pf_len, :]
                     x_pred_rollout_t = out["x_pred_rollout"]
@@ -298,6 +318,7 @@ def run_evaluation(
                             init_hidden_fn=lambda b, dev: [
                                 cell.init_hidden(b, dev) for cell in trainer.backbone.cells
                             ],
+                            fps=window_fps,
                         )
                         world_losses_shuffled.append(float(out_shuf["L_world_model"].item()))
 
@@ -323,6 +344,14 @@ def run_evaluation(
             "L_world_model_all": float(np.mean(world_losses_all)) if world_losses_all else float("nan"),
             "effective_dim": effective_dim,
         }
+        if actual_dts:
+            result["actual_dt"] = float(np.mean(actual_dts))
+        if horizons_s:
+            result["total_physical_horizon_s"] = float(np.mean(horizons_s))
+        if rollout_lens:
+            result["rollout_len"] = int(round(float(np.mean(rollout_lens))))
+        if prefix_lens:
+            result["prefix_len"] = int(round(float(np.mean(prefix_lens))))
         # M1 整改：暴露 trivial 重构对比指标
         if naive_baseline_losses:
             naive_mean = float(np.mean(naive_baseline_losses))
@@ -356,6 +385,10 @@ def run_evaluation(
             result["L_world_model_shuffled"] = shuffled_mean
             result["shuffle_increase_ratio"] = (shuffled_mean - base_mean) / max(abs(base_mean), 1e-9)
             result["shuffle_test_pass"] = shuffled_mean >= base_mean * 1.5
+        result["gates_summary"] = {
+            "actual_dt": float(result.get("actual_dt", float("nan"))),
+            "total_physical_horizon_s": float(result.get("total_physical_horizon_s", float("nan"))),
+        }
         return result
 
     hidden_full = []

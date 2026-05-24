@@ -124,6 +124,8 @@ def run_inference(
     out_path: Path,
     sample_per_video: int = 5,
     seq_len: int = 30,
+    fps: float | None = None,
+    dt_target: float | None = None,
 ) -> dict[str, Any]:
     """Run ckpt + daemon cache evaluation and write result JSON. / 串联评估并落盘。"""
     t0 = time.time()
@@ -131,6 +133,13 @@ def run_inference(
     trainer = load_v30_checkpoint(ckpt_path=ckpt_path, device="cpu")
     trainer.dataset = dataset
     trainer.cfg = dataclasses.replace(trainer.cfg, seq_len=seq_len, use_ode_loss=True)
+    if dt_target is not None:
+        trainer.ode_loss.cfg = dataclasses.replace(
+            trainer.ode_loss.cfg,
+            use_dt_aware=True,
+            dt_target=float(dt_target),
+        )
+    infer_fps = float(fps if fps is not None else dataset[0].get("fps", 1.0))
 
     eval_result = run_evaluation(
         trainer=trainer,
@@ -138,6 +147,7 @@ def run_inference(
         sample_per_video=sample_per_video,
         include_shuffle_test=True,
         spike_phase=True,
+        fps=infer_fps,
     )
 
     input_effective_dim = float(measure_input_effective_dim(dataset))
@@ -152,6 +162,8 @@ def run_inference(
         "gate_4_shuffle_ratio": float(eval_result.get("shuffle_increase_ratio", float("nan"))),
         "gate_5_trivial_recon_check": bool(eval_result.get("trivial_recon_check_pass", False)),
         "gate_6_rare_au_verdict": str(eval_result.get("rare_au_verdict", "N/A")),
+        "actual_dt": float(eval_result.get("actual_dt", float("nan"))),
+        "total_physical_horizon_s": float(eval_result.get("total_physical_horizon_s", float("nan"))),
     }
 
     out = {
@@ -160,6 +172,8 @@ def run_inference(
         "n_sessions": int(n_sessions),
         "total_frames": int(total_frames),
         "eval_result": eval_result,
+        "fps": float(infer_fps),
+        "dt_target": float(trainer.ode_loss.cfg.dt_target),
         "elapsed_s": round(time.time() - t0, 3),
         "gates_summary": gates_summary,
     }
@@ -178,6 +192,8 @@ def main() -> None:
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--sample-per-video", type=int, default=5)
     parser.add_argument("--seq-len", type=int, default=30)
+    parser.add_argument("--fps", type=float, default=None)
+    parser.add_argument("--dt-target", type=float, default=None)
     args = parser.parse_args()
 
     result = run_inference(
@@ -186,6 +202,8 @@ def main() -> None:
         out_path=args.out,
         sample_per_video=args.sample_per_video,
         seq_len=args.seq_len,
+        fps=args.fps,
+        dt_target=args.dt_target,
     )
     print(json.dumps(_jsonable(result["gates_summary"]), ensure_ascii=False, indent=2))
 

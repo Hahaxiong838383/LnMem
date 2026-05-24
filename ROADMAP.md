@@ -99,23 +99,27 @@
 |---|---|---|---|
 | **P0** | gemini 第 14 轮 sign-off + ROADMAP/memory 沉淀 | 完成中 | ✅ |
 | **P0** | **罕见 AU 重建监控加入 evaluate.py**（gemini 14 N=124 警告 → ADR-025） | 1h | ✅ 5/22 21:45 完成 |
-| **P0** | β-self-test 川哥本人 webcam + 10 句 | 1-2h | ⏳ |
-| **P1** | 5/24 daemon 长跑后台启动（Air） | 0.5h | ⏳ |
-| **P1** | 优化 long training（200ep work → 500/1000ep 是否还能涨）| 1h | ⏳ |
-| **P2** | 5/27 **Phase γ Step 1 启动**（Studio M2 Max + 124 视频 / 4 天） | 启动 0.5h + 守 | ⏳ |
+| **P0** | ~~β-self-test 川哥本人 webcam + 10 句~~ → daemon 14 天 378k 帧已收割 | — | ✅ 5/22 22:15 替代完成 |
+| **P0** | **TODO-1 dt-aware ODE 实施 + 200ep 验证**（ADR-027）| 2 人日 | ✅ 5/23 凌晨完成 |
+| **P0** | **TODO-2 Phase 2 multi-fps curriculum**（spec V0.2 + gemini 5 finding 整改 ready）| 3 人日 | ⏳ **待川哥拍 launch** |
+| **P0** | **τ clamp 加入防长训失控**（ADR-027 §5.6）| 0.5 人日 | ⏳ |
+| **P1** | 5/24 daemon 长跑后台启动 | — | ✅ 已在跑 14 天 |
+| **P2** | 5/27 **Phase γ Step 1 启动**（推迟，需 TODO-2 验收过 6 道门）| 4 天 | ⏳ 推迟 |
 
-### 5/27 启动 6 道门（ADR-024 5 门 + ADR-025/026 rare_au_verdict 门）
+### 5/27 启动 7 道门 V3（ADR-024 + ADR-025/026 + ADR-027 dt-aware/cross-dist）
 
-| # | 门 | 来源 |
-|---|---|---|
-| 1 | τ.std > 0.5（多时间尺度分化） | ADR-024 |
-| 2 | vs_persistence < 0.7 | ADR-024 |
-| 3 | effective_dim / input_effective_dim ≥ 0.8 | ADR-024 |
-| 4 | Shuffle ratio ≥ 1.5 | ADR-024 |
-| 5 | rare_au_verdict ∈ {green, yellow}（red 必须先排查长尾原因） | **ADR-025 新增 / ADR-026 更新** |
+| # | 门 | 来源 | 当前 dt-aware 200ep 实测 |
+|---|---|---|---|
+| 1 | τ.std > 0.5 **且 τ.max < 100s（防爆炸 ADR-027）** | ADR-024 + 027 | ❌ τ.max=3.5e9（200ep 失控）|
+| 2 | vs_persistence < 0.7 | ADR-024 | ✅ VEATIC 0.54 / ❌ daemon 17.65 |
+| 3 | effective_dim / input ≥ 0.8 | ADR-024 | ⚠️ VEATIC 0.71 |
+| 4 | Shuffle ratio ≥ 1.5 | ADR-024 | ⚠️ VEATIC 0.51 / ❌ daemon 0.057 |
+| 5 | rare_au_verdict ∈ {green, yellow} | ADR-025/026 | n/a (daemon 整体崩盘) |
+| 6 | **cross-distribution shuffle ratio ≥ 0.5（daemon 1Hz 必测）** | **ADR-027 新增** | ❌ 0.057 |
+| 7 | **Variance-Aware shuffle 防伪**（std(pred) ≥ 0.1*std(target)） | **ADR-027 Phase 2** | 未实施 |
 
-启动前必须先在 v3.0 ckpt 跑 rare AU baseline，按数据调阈值（mycc 教训：阈值必须先有数据 baseline）。
-备注：V0.3 D' fixed=(AU07, AU10) 跨数据集共识；N=124 启动前需 ADR-026 §N=124-校准 重跑一次 fixed_bottom auto-select。
+**Phase 1 (dt-aware) 实测**：τ 分布从 [0.991, 1.009] 解放到 [0.96, 34]（30ep）= LNN-FIRST §1.2 多时间尺度第一次实现 ✅；
+但 200ep τ 失控爆炸到 3.5e9（死神经元）；daemon 跨分布仍崩 → 必须 Phase 2 multi-fps curriculum 才能突破。
 
 ### 11 轮 6 次 gemini 自我弹劾 + 5 大经验教训
 

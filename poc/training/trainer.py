@@ -278,6 +278,12 @@ class TinyTrainer:
             metric_terms: dict[str, float] = {}
             if self.cfg.use_ode_loss:
                 x = torch.stack([w["event_tensor"] for w in sampled_windows]).to(self.device)
+                batch_fps_set = {float(w.get("fps", 30.0)) for w in sampled_windows}
+                if len(batch_fps_set) != 1:
+                    raise ValueError(
+                        f"mixed fps in one batch is not supported in phase-1: {sorted(batch_fps_set)}"
+                    )
+                batch_fps = next(iter(batch_fps_set))
                 batch_size = x.size(0)
                 persona_idx = torch.zeros(batch_size, dtype=torch.long, device=self.device)
                 ode_out = self.ode_loss(
@@ -287,6 +293,7 @@ class TinyTrainer:
                     init_hidden_fn=lambda b, dev: [
                         cell.init_hidden(b, dev) for cell in self.backbone.cells
                     ],
+                    fps=batch_fps,
                 )
                 loss = ode_out["loss"]
                 h_a = ode_out["h_seq_prefix"][:, -1, :]
@@ -296,6 +303,7 @@ class TinyTrainer:
                     "L_recon_prefix": float(ode_out["L_recon_prefix"].item()),
                     "prefix_len": float(ode_out["prefix_len"]),
                     "rollout_len": float(ode_out["rollout_len"]),
+                    "actual_dt": float(ode_out.get("actual_dt", 1.0)),
                 }
             else:
                 pairs = self._build_contrastive_pairs(sampled_windows)

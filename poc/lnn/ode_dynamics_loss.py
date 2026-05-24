@@ -29,7 +29,12 @@ class OdeDynamicsLossConfig:
     # M5 撤回（gemini 第 11 轮指出: detach 断绝 encoder 梯度，毁灭性毒药）
     detach_prefix_grad: bool = False
     # 第 11 轮 gemini 钦定核心解：时间重采样 stride=3（6Hz→2Hz）拉大相邻帧差异破除准静态死局
+    # DEPRECATED: v2.2 起建议用 dt_target + fps 推导 stride；保留仅用于 backward compat。
     input_stride: int = 3
+    # v2.2 dt-aware rollout（TODO-1）
+    dt_target: float = 0.1
+    fps_default: float = 30.0
+    use_dt_aware: bool = True
 
 
 class Decoder(nn.Module):
@@ -70,16 +75,37 @@ class OdeDynamicsLoss(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        backbone_step_fn: Callable[[torch.Tensor, list[torch.Tensor], torch.Tensor], list[torch.Tensor]],
+        backbone_step_fn: Callable[..., list[torch.Tensor]],
         persona_idx: torch.Tensor,
         init_hidden_fn: Callable[[int, torch.device], list[torch.Tensor]],
-    ) -> dict[str, torch.Tensor | int]:
+        fps: float | None = None,
+    ) -> dict[str, torch.Tensor | int | float]:
         """Compute v2 loss. / 计算 v2 loss。"""
         if x.dim() != 3:
             raise ValueError(f"x must be (B, T, D), got {tuple(x.shape)}")
-        # 第 11 轮 gemini 钦定：input_stride 时间重采样破准静态死局
-        if self.cfg.input_stride > 1:
-            x = x[:, :: self.cfg.input_stride, :]
+        actual_dt: float | None = None
+        if self.cfg.use_dt_aware:
+            fps_value = float(self.cfg.fps_default if fps is None else fps)
+            if fps_value <= 0.0:
+                raise ValueError(f"fps must be > 0, got {fps_value}")
+            # F2: 采样定理约束，实际步长不得小于 1/fps。
+            raw_dt = float(self.cfg.dt_target)
+            actual_dt = max(raw_dt, 1.0 / fps_value)
+            stride = max(1, round(fps_value * actual_dt))
+            actual_dt = float(stride / fps_value)
+            if actual_dt > self.cfg.dt_target * 1.5:
+                print(
+                    "[dt-aware] WARNING: "
+                    f"actual_dt={actual_dt:.3f} >> dt_target={self.cfg.dt_target:.3f}, "
+                    f"fps={fps_value} 采样率不足",
+                    flush=True,
+                )
+            if stride > 1:
+                x = x[:, ::stride, :]
+        else:
+            # backward compat: 旧行为完全保留，仍用 input_stride，且不向 backbone 传 dt。
+            if self.cfg.input_stride > 1:
+                x = x[:, :: self.cfg.input_stride, :]
         batch_size, total_steps, _ = x.shape
         if total_steps < 2:
             raise ValueError("total_steps must be >= 2 for prefix + rollout")
@@ -97,7 +123,10 @@ class OdeDynamicsLoss(nn.Module):
         h_seq_prefix: list[torch.Tensor] = []
         x_recon_prefix: list[torch.Tensor] = []
         for t in range(prefix_len):
-            h_states = backbone_step_fn(x[:, t, :], h_states, persona_idx)
+            if self.cfg.use_dt_aware:
+                h_states = backbone_step_fn(x[:, t, :], h_states, persona_idx, dt=float(actual_dt))
+            else:
+                h_states = backbone_step_fn(x[:, t, :], h_states, persona_idx)
             h_last = h_states[-1]
             h_seq_prefix.append(h_last)
             x_recon_prefix.append(self.decoder(h_last))
@@ -117,7 +146,10 @@ class OdeDynamicsLoss(nn.Module):
             # v2 hard rule: rollout input must be decoder(h_pred), never ground-truth x.
             x_pred_t = self.decoder(h_pred_states[-1])
             x_pred_rollout.append(x_pred_t)
-            h_pred_states = backbone_step_fn(x_pred_t, h_pred_states, persona_idx)
+            if self.cfg.use_dt_aware:
+                h_pred_states = backbone_step_fn(x_pred_t, h_pred_states, persona_idx, dt=float(actual_dt))
+            else:
+                h_pred_states = backbone_step_fn(x_pred_t, h_pred_states, persona_idx)
 
         x_pred_rollout_tensor = torch.stack(x_pred_rollout, dim=1)
         x_rollout_target = x[:, prefix_len : prefix_len + rollout_len, :]
@@ -138,7 +170,7 @@ class OdeDynamicsLoss(nn.Module):
             + self.cfg.w_motion * l_motion
         )
 
-        return {
+        out: dict[str, torch.Tensor | int | float] = {
             "loss": loss,
             "L_world_model": l_world_model,
             "L_recon_prefix": l_recon_prefix,
@@ -148,3 +180,7 @@ class OdeDynamicsLoss(nn.Module):
             "x_pred_rollout": x_pred_rollout_tensor,
             "h_seq_prefix": h_seq_prefix_tensor,
         }
+        if self.cfg.use_dt_aware and actual_dt is not None:
+            out["actual_dt"] = float(actual_dt)
+            out["total_physical_horizon_s"] = float(rollout_len * actual_dt)
+        return out

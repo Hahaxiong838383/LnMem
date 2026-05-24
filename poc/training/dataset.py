@@ -149,6 +149,7 @@ class VEATICDataset(Dataset):
             "event_tensor": torch.from_numpy(event_tensor),  # (T, 52)
             "labels_va": torch.from_numpy(labels_va),         # (T, 2)
             "n_frames": T,
+            "fps": 30.0,
         }
 
 
@@ -177,5 +178,6 @@ def split_to_windows(
             "event_tensor": et[start:start + seq_len],
             "labels_va": labels[start:start + seq_len],
             "start_frame": start,
+            "fps": float(sample.get("fps", 30.0)),
         })
     return windows

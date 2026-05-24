@@ -92,7 +92,7 @@ def test_prefix_rollout_split_boundary_n6_k24_t30():
         # 第 11 轮整改：显式禁用 input_stride（默认 stride=3 会让 30→10 帧，prefix=2/rollout=8）
         import dataclasses as _dc
         from poc.lnn.ode_dynamics_loss import OdeDynamicsLoss as _ODL
-        new_cfg = _dc.replace(trainer.ode_loss.cfg, input_stride=1)
+        new_cfg = _dc.replace(trainer.ode_loss.cfg, input_stride=1, use_dt_aware=False)
         trainer.ode_loss = _ODL(cfg=new_cfg, decoder=trainer.decoder)
         windows = split_to_windows(dataset[0], seq_len=30, stride=10)
         x = torch.stack([windows[0]["event_tensor"], windows[1]["event_tensor"]]).to(trainer.device)
