@@ -90,12 +90,17 @@ fi
 
 # 端口检查（响应 codex F4: TOCTOU 竞态非原子，仅友好提示，应用层 bind 兜底）
 # 若需更强保护，可用 flock 覆盖检查+exec 窗口；当前 PoC 阶段不必要
+# cc 修补 (5/23 22:35): set -u + lsof race 偶发 EXISTING_PID unbound
+# 用 :-"" 兜底防 zsh/bash 5 套 set -u 严格模式炸
+EXISTING_PID=""
 if lsof -i :9876 -t >/dev/null 2>&1; then
-    EXISTING_PID=$(lsof -i :9876 -t | head -1)
-    echo -e "${YELLOW}⚠️  端口 9876 已被占用（PID $EXISTING_PID）${NC}"
-    echo "   如确认要重启："
-    echo "     kill -TERM $EXISTING_PID; sleep 3; $0"
-    exit 4
+    EXISTING_PID=$(lsof -i :9876 -t 2>/dev/null | head -1 || true)
+    if [ -n "${EXISTING_PID:-}" ]; then
+        echo -e "${YELLOW}WARN: 端口 9876 已被占用 PID=${EXISTING_PID}${NC}"
+        echo "   如确认要重启："
+        echo "     kill -TERM ${EXISTING_PID}; sleep 3; $0"
+        exit 4
+    fi
 fi
 
 # secret_token 检查（响应 codex F1: 缺失时进入 DEGRADED 模式或硬 fail）

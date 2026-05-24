@@ -1,6 +1,8 @@
 # LnMem · 以 LNN 为心脏的伴侣型 AI 记忆系统
 
 > 一个能「陪你数年」的 AI 伙伴 · 居家+车载持续运行 · 用万能语法编码事件 · 用液态神经网络（LNN）作永远在线心智核心。
+>
+> **🔥 5/23 v0.1 战略转折**：LNN 角色重定义为 **online 实时意图预测**（不再是 AU 序列预测），见 [ADR-028](docs/decisions/028-lnn-role-redefine-online-intent.md) 川哥钦定签字。
 
 ---
 
@@ -8,13 +10,50 @@
 
 | 想要了解 | 读这个 |
 |---|---|
+| 🔥 **v0.1 最新方向（最重要）** | [`docs/decisions/028-lnn-role-redefine-online-intent.md`](docs/decisions/028-lnn-role-redefine-online-intent.md) |
+| 🔥 **今日复盘 + 踩坑大全** | [`docs/reports/2026-05-23-v0.1-direction-shift-complete.md`](docs/reports/2026-05-23-v0.1-direction-shift-complete.md) |
 | **项目目标 + LNN-FIRST 原则** | [`docs/onboarding-ai.md`](docs/onboarding-ai.md)（30 秒）|
-| **项目状态 + TODO** | [`docs/project-status.md`](docs/project-status.md)（3 分钟全局）|
+| **项目状态 + TODO** | [`ROADMAP.md`](ROADMAP.md)（5 分钟全局）|
 | **技术全栈架构** | [`docs/architecture-overview.md`](docs/architecture-overview.md)（5 分钟懂栈）|
 | **产品定义（投资人友好）** | [`docs/product-definition.md`](docs/product-definition.md) §0-§1 |
-| **路线图 M0-M12** | [`ROADMAP.md`](ROADMAP.md) + [`roadmap/milestones.md`](roadmap/milestones.md) |
-| **22 个决策记录 ADR** | [`docs/decisions/`](docs/decisions/) |
+| **路线图 M0-M12** | [`roadmap/milestones.md`](roadmap/milestones.md) |
+| **28 个决策记录 ADR** | [`docs/decisions/`](docs/decisions/) |
 | **AI 协作纪律** | [`CLAUDE.md`](CLAUDE.md)（cc）/ [`AGENTS.md`](AGENTS.md)（codex）/ [`GEMINI.md`](GEMINI.md)（gemini）|
+
+---
+
+## 📍 当前阶段（2026-05-23 凌晨）
+
+**🚀 v0.1 实时意图预测 · Sprint 1 完成 · Sprint 2 启动 · M0 6/10 收口在跑**
+
+### 5/22-23 单晚 16 commits Team 模式连续 11 小时
+
+| 类别 | 数字 |
+|---|---|
+| commits | **16+**（c96a12f → d80137d）|
+| ADR | **4 新**（025/026/027/028）|
+| 测试 | **113/113 全过零回归** |
+| gemini 对抗审 | **7 轮 / 30+ finding 全采纳** |
+| Team 模式 | cc 主线 + codex × 5 + gemini × 7 + 川哥钦定 3 次签字 |
+
+### 5/23 v0.1 战略转折关键事实
+
+1. **三方战略复盘**（cc + codex + gemini 独立思考）→ "LNN 应降级为子模块"
+2. **川哥点睛纠偏**："14 天记忆界面 ChatGPT 也能做，我要前十几秒到几分钟意图预测"
+3. **真相**：cc 5/22-23 全程在 spec 字面任务上验证 LNN，没追产品意图
+4. **ADR-028**：LNN 角色从"AU rollout 心智核心"→"online intent estimator"（不 override LNN-FIRST P-1，只是 #2 内涵更新）
+
+### v0.1 6/10 demo 目标
+
+- LNN 30Hz 多模态 → 三分类意图（正/负/无反馈）
+- AI 主动推断 → UI 弹出 → 川哥 [确认/纠正] → τ-bias 漂移
+- "7 天准确率 35% → 65%+"
+
+完整路径见 [ADR-028](docs/decisions/028-lnn-role-redefine-online-intent.md)。
+
+---
+
+## 📍 历史阶段（2026-05-21 23:30 - 2026-05-22）
 
 ---
 
