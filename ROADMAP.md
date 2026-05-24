@@ -119,7 +119,49 @@
 | 7 | **Variance-Aware shuffle 防伪**（std(pred) ≥ 0.1*std(target)） | **ADR-027 Phase 2** | 未实施 |
 
 **Phase 1 (dt-aware) 实测**：τ 分布从 [0.991, 1.009] 解放到 [0.96, 34]（30ep）= LNN-FIRST §1.2 多时间尺度第一次实现 ✅；
-但 200ep τ 失控爆炸到 3.5e9（死神经元）；daemon 跨分布仍崩 → 必须 Phase 2 multi-fps curriculum 才能突破。
+但 200ep τ 失控爆炸到 3.5e9（死神经元）；daemon 跨分布仍崩。
+
+---
+
+## 🔥 5/23 凌晨方向重定义（川哥钦定 + ADR-028 签字）
+
+**LnMem v0.1 = 实时意图预测助手**（不再 AU 序列预测）：
+- LNN 实时观察 30Hz 多模态信号 → 预测三分类意图（正反馈/负反馈/无反馈）
+- AI 主动推断 → UI 弹出 → 川哥 [确认/纠正] → 增量 supervised → per-user τ-bias 漂移
+- "陪你越久越懂你" = 7 天后准确率 35% → 65%+
+
+**5/22-23 经验**：4 个训练方案在 daemon shuffle ≈ 0 → 三方战略复盘 → 川哥点睛"我要的是意图预测不是 AU rollout"
+
+### 5/24+ Sprint 路径（ADR-028 钦定）
+
+| Sprint | 时间 | 主任务 | 状态 |
+|--------|------|--------|------|
+| **Sprint 0** | 5/24 一天 | ADR-028 + ROADMAP + 冻结旧训练 | ⏳ in progress |
+| **Sprint 1** | 5/25-5/31 | 30Hz daemon + 实时 inference server + UI v0 观察期 | ⏳ |
+| **Sprint 2** | 6/1-6/7 | 意图三分类头 + 主动弹窗 + 反馈闭环 | ⏳ |
+| **Sprint 3** | 6/8-6/10 | M0 收口 demo + 24h 学习曲线 | ⏳ |
+
+### 已冻结的 5/22-23 主线（基础设施沉淀，未来可能复用）
+
+| 路径 | 状态 |
+|------|------|
+| ode_loss rollout 训练 / multi-fps curriculum / invariance loss | 🗑️ 冻结但代码留 |
+| shuffle_ratio 主目标 | 🗑️ 降级为内部诊断 |
+| **dt-aware ODE / τ 解放 / daemon adapter / per-user τ-bias 数学** | ✅ **100% 复用 v0.1** |
+| ADR-025/026/027（rare AU / dt-aware / 跨分布）结论 | ✅ 保留 |
+
+### 5/27 不启动 N=124 / 6/10 M0 收口验收
+
+| # | 项 | 6/10 目标 |
+|---|---|---|
+| 1 | 万能语法 20 槽 | ⏳ M1（v0.1 简化）|
+| **2** | **多时间尺度 LNN 心智核心** | ✅ **online intent estimator 真正落地** |
+| 3 | CLS 离线 consolidation | ⏳ M1 |
+| **4** | **per-user 个性化栈** | ✅ **第一次端到端 work** |
+| 5 | 居家+车载双场景 | ⏳ M2 |
+| **6** | **用户可见可治理界面** | ✅ **实时意图 UI + 反馈按钮** |
+
+完整设计：[`docs/decisions/028-lnn-role-redefine-online-intent.md`](docs/decisions/028-lnn-role-redefine-online-intent.md)
 
 ### 11 轮 6 次 gemini 自我弹劾 + 5 大经验教训
 

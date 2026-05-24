@@ -94,6 +94,8 @@ def test_daemon_dataset_shapes_and_eval_compat(tmp_path: Path) -> None:
     assert len(ds) == 2
     assert sample["event_tensor"].shape == (T, 52)
     assert sample["labels_va"].shape == (T, 2)
+    assert sample["head_pose"].shape == (T, 3)
+    assert sample["screen"].shape == (T, 3)
     assert sample["start_frame"] == 0
 
     freq = compute_au_activation_frequency(ds)

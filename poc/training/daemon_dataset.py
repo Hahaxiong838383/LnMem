@@ -4,7 +4,6 @@
 """
 from __future__ import annotations
 
-import argparse
 import hashlib
 import json
 from collections import defaultdict
@@ -18,11 +17,9 @@ from torch.utils.data import Dataset
 from .dataset import build_event_tensor
 from .extract_au import PYFEAT_AU_COLUMNS
 
-
 def _iter_signal_paths(signal_files: Iterable[str | Path]) -> list[Path]:
     """Resolve sorted JSONL paths. 英文一句话 + 中文说明：标准化输入文件列表。"""
     return sorted(Path(p).expanduser() for p in signal_files)
-
 
 def _session_short_id(session_id: str, used: set[str], prefix_len: int = 12) -> str:
     """Build stable short id. 英文一句话 + 中文说明：优先前缀，冲突时附加哈希后缀。"""
@@ -35,17 +32,28 @@ def _session_short_id(session_id: str, used: set[str], prefix_len: int = 12) -> 
     return key
 
 
+def _safe_float(value: object, default: float = 0.0) -> float:
+    """Convert to float safely. 英文一句话 + 中文说明：解析失败时返回默认值。"""
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return default
+    return out if np.isfinite(out) else default
+
+
 def build_daemon_au_cache(
     signal_files: Iterable[str | Path],
     out_path: str | Path,
     use_calibrated: bool = True,
+    include_head_pose: bool = True,
+    include_screen: bool = True,
 ) -> dict[str, np.ndarray]:
     """Convert daemon JSONL files into VEATIC-style AU cache.
 
     返回 `au_<session_short>` -> (T, 20) float32，列序严格按 `PYFEAT_AU_COLUMNS`。
     """
     source_key = "calibrated_au" if use_calibrated else "raw_au"
-    by_session: dict[str, list[tuple[int, np.ndarray]]] = defaultdict(list)
+    by_session: dict[str, list[tuple[int, np.ndarray, np.ndarray, np.ndarray]]] = defaultdict(list)
     paths = _iter_signal_paths(signal_files)
 
     for path in paths:
@@ -67,28 +75,58 @@ def build_daemon_au_cache(
                 # cc 整改：NaN/inf 过滤（codex 原版漏，导致 SVD 不收敛）
                 if not np.isfinite(au_vec).all():
                     continue
+                pose = row.get("head_pose") if include_head_pose else None
+                if isinstance(pose, dict):
+                    head_pose = np.array(
+                        [
+                            _safe_float(pose.get("yaw_deg")),
+                            _safe_float(pose.get("pitch_deg")),
+                            _safe_float(pose.get("roll_deg")),
+                        ],
+                        dtype=np.float32,
+                    )
+                else:
+                    head_pose = np.zeros((3,), dtype=np.float32)
+                activity = row.get("screen_activity") if include_screen else None
+                if isinstance(activity, dict):
+                    app = str(activity.get("active_app") or "").strip()
+                    screen_vec = np.array(
+                        [
+                            1.0 if app else 0.0,
+                            _safe_float(activity.get("key_rate_per_s")),
+                            _safe_float(activity.get("mouse_rate_per_s")),
+                        ],
+                        dtype=np.float32,
+                    )
+                else:
+                    screen_vec = np.zeros((3,), dtype=np.float32)
                 session_id = str(row.get("session_id") or "")
                 if not session_id:
                     continue
                 frame_id = int(row.get("frame_id", 0))
-                by_session[session_id].append((frame_id, au_vec))
+                by_session[session_id].append((frame_id, au_vec, head_pose, screen_vec))
 
     cache: dict[str, np.ndarray] = {}
     frame_cache: dict[str, np.ndarray] = {}
+    headpose_cache: dict[str, np.ndarray] = {}
+    screen_cache: dict[str, np.ndarray] = {}
     used_short: set[str] = set()
     for session_id, frames in sorted(by_session.items()):
         frames.sort(key=lambda x: x[0])
         frame_ids = np.array([it[0] for it in frames], dtype=np.int64)
         au_arr = np.stack([it[1] for it in frames], axis=0).astype(np.float32)
+        head_arr = np.stack([it[2] for it in frames], axis=0).astype(np.float32)
+        screen_arr = np.stack([it[3] for it in frames], axis=0).astype(np.float32)
         short = _session_short_id(session_id, used_short)
         cache[f"au_{short}"] = au_arr
         frame_cache[f"frame_{short}"] = frame_ids
+        headpose_cache[f"headpose_{short}"] = head_arr
+        screen_cache[f"screen_{short}"] = screen_arr
 
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(out, **cache, **frame_cache)
+    np.savez_compressed(out, **cache, **frame_cache, **headpose_cache, **screen_cache)
     return cache
-
 
 class DaemonAUDataset(Dataset):
     """VEATIC-compatible dataset over daemon AU cache.
@@ -100,6 +138,8 @@ class DaemonAUDataset(Dataset):
         data = np.load(au_cache_path)
         self.au_cache = {k[3:]: data[k] for k in data.files if k.startswith("au_")}
         self.frame_cache = {k[6:]: data[k] for k in data.files if k.startswith("frame_")}
+        self.headpose_cache = {k[9:]: data[k] for k in data.files if k.startswith("headpose_")}
+        self.screen_cache = {k[7:]: data[k] for k in data.files if k.startswith("screen_")}
         self.video_ids = sorted(self.au_cache.keys())
         self._validate()
 
@@ -110,6 +150,14 @@ class DaemonAUDataset(Dataset):
             if vid in self.frame_cache:
                 if self.frame_cache[vid].ndim != 1 or self.frame_cache[vid].shape[0] != au.shape[0]:
                     raise ValueError(f"video {vid} frame ids not aligned with AU rows")
+            if vid in self.headpose_cache and (
+                self.headpose_cache[vid].shape != (au.shape[0], 3) or self.headpose_cache[vid].dtype != np.float32
+            ):
+                raise ValueError(f"video {vid} head pose shape invalid: {self.headpose_cache[vid].shape}")
+            if vid in self.screen_cache and (
+                self.screen_cache[vid].shape != (au.shape[0], 3) or self.screen_cache[vid].dtype != np.float32
+            ):
+                raise ValueError(f"video {vid} screen shape invalid: {self.screen_cache[vid].shape}")
 
     def __len__(self) -> int:
         return len(self.video_ids)
@@ -119,6 +167,16 @@ class DaemonAUDataset(Dataset):
         au = self.au_cache[vid].copy().astype(np.float32)
         T = au.shape[0]
         frame_ids = self.frame_cache.get(vid)
+        head_pose = self.headpose_cache.get(vid)
+        if head_pose is None:
+            head_pose = np.zeros((T, 3), dtype=np.float32)
+        else:
+            head_pose = head_pose.copy().astype(np.float32)
+        screen = self.screen_cache.get(vid)
+        if screen is None:
+            screen = np.zeros((T, 3), dtype=np.float32)
+        else:
+            screen = screen.copy().astype(np.float32)
         if frame_ids is None:
             frame_ids = np.arange(T, dtype=np.float32)
         else:
@@ -135,45 +193,8 @@ class DaemonAUDataset(Dataset):
             "video_id": vid,
             "event_tensor": torch.from_numpy(event_tensor),
             "labels_va": torch.from_numpy(labels_va),
+            "head_pose": torch.from_numpy(head_pose),
+            "screen": torch.from_numpy(screen),
             "start_frame": 0,
             "fps": 1.0,
         }
-
-
-def _collect_signal_files(signal_dir: str | Path) -> list[Path]:
-    """Collect daemon files. 英文一句话 + 中文说明：匹配 signals_*.jsonl 并排序。"""
-    return sorted(Path(signal_dir).expanduser().glob("signals_*.jsonl"))
-
-
-def _summarize_cache(cache: dict[str, np.ndarray]) -> tuple[int, int, dict[str, int]]:
-    """Build cache stats. 英文一句话 + 中文说明：生成会话数/总帧数/逐会话帧数。"""
-    per_session = {k[3:]: int(v.shape[0]) for k, v in sorted(cache.items())}
-    total_frames = int(sum(per_session.values()))
-    return len(per_session), total_frames, per_session
-
-
-def main() -> None:
-    """CLI entrypoint. 英文一句话 + 中文说明：构建 daemon AU cache 并打印统计。"""
-    p = argparse.ArgumentParser()
-    p.add_argument("--signal-dir", default="~/.lnmem/data")
-    p.add_argument("--out", required=True)
-    p.add_argument("--use-raw", action="store_true", help="Use raw_au instead of calibrated_au")
-    args = p.parse_args()
-
-    signal_files = _collect_signal_files(args.signal_dir)
-    if not signal_files:
-        raise FileNotFoundError(f"No signals_*.jsonl found under {args.signal_dir}")
-
-    use_calibrated = not args.use_raw
-    cache = build_daemon_au_cache(signal_files, args.out, use_calibrated=use_calibrated)
-    n_sessions, total_frames, per_session = _summarize_cache(cache)
-    print(f"saved: {args.out}")
-    print(f"n_sessions={n_sessions}")
-    print(f"total_frames={total_frames}")
-    print("per_session_frames=")
-    for sid, cnt in per_session.items():
-        print(f"  {sid}: {cnt}")
-
-
-if __name__ == "__main__":
-    main()
