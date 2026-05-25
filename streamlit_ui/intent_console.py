@@ -32,20 +32,32 @@ from typing import Optional
 
 import requests
 import streamlit as st
-import websocket  # websocket-client
-
 
 # ---- 配置 ----
-WS_URL = "ws://127.0.0.1:9876"
+# 5/25 cc fix: daemon 9876 实际是 HTTP（不是 WebSocket），改用 polling /signals/recent
+DAEMON_HTTP = "http://127.0.0.1:9876"
+SIGNALS_URL = f"{DAEMON_HTTP}/signals/recent?limit=1"
+HEALTH_URL = f"{DAEMON_HTTP}/health"
 FEEDBACK_URL = "http://127.0.0.1:9877/intent_feedback"
 FEEDBACK_WINDOW_SEC = 120  # gemini finding 2-2：反馈有效窗口 ≤ 2min
 SILENT_CONFIDENCE_THRESHOLD = 0.8  # gemini finding 3-1：静默模式
 HISTORY_MAX = 200  # 历史推断保留 200 条
 
 INTENT_LABELS = {
+    # ADR-028 3 类意图（intent_head 训完后才会出现）
     "positive": ("🟢 正反馈", "#10b981"),
     "negative": ("🔴 负反馈", "#ef4444"),
     "none": ("⚪ 无反馈", "#9ca3af"),
+    # phase2 backbone 8 类情绪 fallback（intent_head 没训时显示这个，让用户能给反馈）
+    "emotional_positive": ("😊 情绪-正向", "#10b981"),
+    "emotional_negative": ("😟 情绪-负向", "#ef4444"),
+    "emotional_neutral": ("😐 情绪-中性", "#9ca3af"),
+    "high_arousal": ("⚡ 高唤醒", "#f59e0b"),
+    "low_arousal": ("💤 低唤醒", "#3b82f6"),
+    "engagement": ("👀 专注参与", "#06b6d4"),
+    "disengagement": ("👋 走神", "#9333ea"),
+    "transition": ("🔄 过渡", "#ec4899"),
+    # 状态
     "warmup": ("🟡 暖机中", "#fbbf24"),
     "error": ("❌ 异常", "#7c3aed"),
 }
@@ -68,10 +80,11 @@ def init_state():
         st.session_state.ui_session = str(uuid.uuid4())
     if "history" not in st.session_state:
         st.session_state.history = deque(maxlen=HISTORY_MAX)
-    if "ws" not in st.session_state:
-        st.session_state.ws = None
+    if "last_frame_id" not in st.session_state:
+        st.session_state.last_frame_id = None
     if "silent_mode" not in st.session_state:
-        st.session_state.silent_mode = True
+        # 5/25: intent_head 没训之前 intent_pred 全 None，静默会过滤所有 → 强制 OFF
+        st.session_state.silent_mode = False
     if "pending_feedback" not in st.session_state:
         # 待反馈的推断队列（uuid → Inference）
         st.session_state.pending_feedback = {}
@@ -81,33 +94,58 @@ def init_state():
         }
 
 
-# ---- WebSocket 接入（简化版：每次 refresh 拿最新一条） ----
+# ---- HTTP polling daemon /signals/recent ----
 def fetch_latest_inference() -> Optional[Inference]:
-    """从 ws 拿最新一条推断。注意：Streamlit 单线程模型这里是阻塞 1s 取一条。
-    生产可改成 async 或 background thread + queue。"""
+    """HTTP GET daemon /signals/recent?limit=1，解析 lnn 字段返回推断。
+
+    daemon schema (2026-05-25 实测):
+      {"ts": "...", "frame_id": N, "face_detected": bool,
+       "lnn": {"status": "ok|warmup|error",
+               "predicted_state": "emotional_negative",   # 8 类情绪 (phase2 backbone 训过)
+               "intent_pred": null,                       # 3 类意图 (head 没训之前 None)
+               "intent_confidence": null,
+               "intent_probs": null,
+               "margin": 0.98, "entropy": 0.09}}
+    """
     try:
-        if st.session_state.ws is None:
-            ws = websocket.create_connection(WS_URL, timeout=2)
-            st.session_state.ws = ws
-        ws = st.session_state.ws
-        ws.settimeout(1.0)
-        msg = ws.recv()
-        data = json.loads(msg)
-        # 兼容 codex Sprint 2-B 输出 schema
-        if "intent_pred" not in data:
+        r = requests.get(SIGNALS_URL, timeout=2)
+        r.raise_for_status()
+        data = r.json()
+        if not isinstance(data, list) or not data:
             return None
+        rec = data[0]
+        # 同帧去重（同 frame_id 不重复入队）
+        fid = rec.get("frame_id")
+        if fid is not None and fid == st.session_state.last_frame_id:
+            return None
+        st.session_state.last_frame_id = fid
+
+        lnn = rec.get("lnn") or {}
+        # 兼容：intent_pred 可能 None（head 没训），fallback 用 predicted_state 让用户能反馈
+        intent_pred = lnn.get("intent_pred") or lnn.get("predicted_state") or "warmup"
+        intent_confidence = lnn.get("intent_confidence")
+        if intent_confidence is None:
+            # 用 margin 当兜底 confidence（phase2 backbone 输出）
+            intent_confidence = lnn.get("margin") or 0.0
+
+        # ts 转 ns
+        from datetime import datetime
+        try:
+            ts_dt = datetime.fromisoformat(rec["ts"].replace("Z", "+00:00"))
+            ts_ns = int(ts_dt.timestamp() * 1e9)
+        except Exception:
+            ts_ns = int(time.time() * 1e9)
+
         return Inference(
-            ts_ns=data.get("ts_ns", int(time.time() * 1e9)),
-            intent_pred=data["intent_pred"],
-            intent_confidence=data.get("intent_confidence", 0.0),
-            intent_probs=data.get("intent_probs", {}),
-            margin=data.get("margin", 0.0),
-            entropy=data.get("entropy", 0.0),
+            ts_ns=ts_ns,
+            intent_pred=intent_pred,
+            intent_confidence=float(intent_confidence) if intent_confidence is not None else 0.0,
+            intent_probs=lnn.get("intent_probs") or {},
+            margin=float(lnn.get("margin") or 0.0),
+            entropy=float(lnn.get("entropy") or 0.0),
             received_at=time.time(),
         )
-    except Exception as e:
-        # 静默忽略（连接抖动）
-        st.session_state.ws = None
+    except Exception:
         return None
 
 
@@ -169,8 +207,9 @@ def main():
     with ctrl2:
         auto_refresh = st.toggle("自动刷新 (1s)", value=True)
     with ctrl3:
-        if st.button("🔌 重连 ws"):
-            st.session_state.ws = None
+        if st.button("🔄 重置历史"):
+            st.session_state.history.clear()
+            st.session_state.last_frame_id = None
             st.rerun()
 
     # ---- 拉取最新推断 ----
@@ -209,7 +248,7 @@ def main():
                 probs_str = " · ".join([f"{k}: {v:.2f}" for k, v in current.intent_probs.items()])
                 st.caption(f"probs: {probs_str}")
         else:
-            st.info("等待 ws 数据…（确认 daemon + inference server 已启动）")
+            st.info(f"等待 daemon 数据… 检查 `curl {SIGNALS_URL}` 是否有 lnn 字段")
 
     with right:
         st.subheader("✋ 待反馈队列")
