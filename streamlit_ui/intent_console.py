@@ -151,12 +151,18 @@ def fetch_latest_inference() -> Optional[Inference]:
 
 # ---- 反馈提交 ----
 def submit_feedback(inf: Inference, corrected: str, note: str = "") -> bool:
+    # 5/25 cc fix: daemon endpoint 限 predicted ∈ {positive,negative,none}
+    # intent_head 没训之前 fallback 显示 phase2 8 类（如 transitioning），不能直接传
+    valid_3class = {"positive", "negative", "none"}
+    predicted = inf.intent_pred if inf.intent_pred in valid_3class else "none"
+    # 真实 phase2 state 放 note，便于训练时回溯
+    note_full = f"{note}|phase2_state={inf.intent_pred}|conf={inf.intent_confidence:.2f}" if note else f"phase2_state={inf.intent_pred}|conf={inf.intent_confidence:.2f}"
     payload = {
         "ts_ns": inf.ts_ns,
-        "predicted": inf.intent_pred,
+        "predicted": predicted,
         "corrected": corrected,
         "ui_session": st.session_state.ui_session,
-        "note": note,
+        "note": note_full,
     }
     try:
         r = requests.post(FEEDBACK_URL, json=payload, timeout=3)

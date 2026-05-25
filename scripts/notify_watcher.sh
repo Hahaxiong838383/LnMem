@@ -72,11 +72,14 @@ trigger_dialog() {
     esac
 
     # POST 反馈
+    # 5/25 cc fix: daemon endpoint 限 predicted ∈ {positive,negative,none}（ADR-028 3 类）
+    # 但 intent_head 没训之前 daemon 输出的是 phase2 8 类（transitioning/focused/...）
+    # 解决：predicted 统一填 "none"（占位），真实 8 类 state 放 note 字段
     local resp
     resp=$(curl -s -X POST "$FEEDBACK_URL" \
         -H "Content-Type: application/json" \
-        -d "{\"ts_ns\":${ts_ns},\"predicted\":\"${state}\",\"corrected\":\"${corrected}\",\"ui_session\":\"${UI_SESSION}\",\"note\":\"notify_watcher\"}" 2>&1)
-    log "feedback POST: $corrected → $resp"
+        -d "{\"ts_ns\":${ts_ns},\"predicted\":\"none\",\"corrected\":\"${corrected}\",\"ui_session\":\"${UI_SESSION}\",\"note\":\"notify_watcher|phase2_state=${state}|conf=${margin}\"}" 2>&1)
+    log "feedback POST: $corrected (phase2_state=$state) → $resp"
 
     # 成功通知
     osascript -e "display notification \"已记录: ${corrected}\" with title \"LnMem 反馈\" sound name \"Tink\"" 2>/dev/null
