@@ -136,11 +136,23 @@ def fetch_latest_inference() -> Optional[Inference]:
         except Exception:
             ts_ns = int(time.time() * 1e9)
 
+        # daemon 返回 intent_probs 可能是 list (intent_head 启用后) 或 dict (旧路径)
+        # 统一规整为 dict {positive, negative, none}（与 poc/src/lnn/intent_head.py INTENT_LABELS 对齐）
+        raw_probs = lnn.get("intent_probs")
+        if isinstance(raw_probs, list) and len(raw_probs) == 3:
+            probs_dict = {"positive": float(raw_probs[0]),
+                          "negative": float(raw_probs[1]),
+                          "none": float(raw_probs[2])}
+        elif isinstance(raw_probs, dict):
+            probs_dict = {k: float(v) for k, v in raw_probs.items()}
+        else:
+            probs_dict = {}
+
         return Inference(
             ts_ns=ts_ns,
             intent_pred=intent_pred,
             intent_confidence=float(intent_confidence) if intent_confidence is not None else 0.0,
-            intent_probs=lnn.get("intent_probs") or {},
+            intent_probs=probs_dict,
             margin=float(lnn.get("margin") or 0.0),
             entropy=float(lnn.get("entropy") or 0.0),
             received_at=time.time(),

@@ -63,6 +63,11 @@
         <string>/Users/fu-121</string>
         <key>LNMEM_REPO</key>
         <string>/Users/fu-121/lnmem-poc</string>
+        <!-- 8h 调度配套阈值（川哥 5/25 12:18 钦定，覆盖 24h 默认 30/20） -->
+        <key>LNMEM_FEEDBACK_MIN_INCREMENT</key>
+        <string>10</string>
+        <key>LNMEM_MIN_HOURS_BETWEEN_TRAINS</key>
+        <string>6</string>
     </dict>
 </dict>
 </plist>
