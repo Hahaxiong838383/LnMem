@@ -292,37 +292,47 @@ def render_studio_panel():
 
         # 训练进展
         st.markdown("**🎯 训练进展**")
+        st.caption(
+            "💡 Studio 每 8 小时（00:00/08:00/16:00）尝试训练一次，需要同时满足两个门："
+            "**时间门**（距上次训练 ≥ 6 小时）+ **增量门**（积累了 ≥ 10 条新反馈）。"
+        )
         cursor = s.get("CURSOR", "")
         if cursor and ":" in cursor:
             cnt, ts = cursor.split(":")
             from datetime import datetime
             try:
                 ago_h = (datetime.now().timestamp() - int(ts)) / 3600
-                st.text(f"上次训练: {ago_h:.1f}h 前 (cursor={cnt})")
+                st.text(f"⏱ 上次成功训练: {ago_h:.1f} 小时前")
+                st.caption(f"（那次训练用了你截至当时的 {cnt} 条反馈）")
             except:
                 st.text(f"cursor: {cursor}")
             # 计算下次能训的时间
             try:
                 next_train_h = max(0, 6 - ago_h)  # 时间门 6h
                 if next_train_h > 0:
-                    st.text(f"时间门: {next_train_h:.1f}h 后解锁")
+                    st.text(f"🔒 时间门：{next_train_h:.1f} 小时后解锁")
                 else:
-                    st.text(f"时间门: ✅ 已解锁")
+                    st.text(f"🔓 时间门：✅ 已解锁")
             except: pass
         else:
-            st.text("还没训过")
+            st.text("还没训过（等首次反馈累积）")
 
         # 增量门进度
         try:
             new_feedback = int(feedback_count) - int(cursor.split(":")[0]) if cursor and ":" in cursor else int(feedback_count)
-            st.text(f"增量反馈: {new_feedback} / 10 {'✅' if new_feedback >= 10 else '⏳'}")
+            st.text(f"📈 增量门：新增反馈 {new_feedback} / 10 {'✅ 已满足' if new_feedback >= 10 else '⏳ 待累积'}")
         except: pass
 
-        # ckpt
-        st.markdown("**📦 ckpt**")
-        st.text(f"latest: {s.get('LATEST_LINK', '?')}")
-        st.text(f"生成: {s.get('LATEST_TS', '?')}")
-        st.text(f"总数: {s.get('CKPT_COUNT', '0')} 个")
+        # ckpt = checkpoint = 训练完的模型权重快照
+        st.markdown("**📦 ckpt（模型权重快照文件）**")
+        st.caption(
+            "💡 ckpt = checkpoint，每次 Studio 训练完会保存一个 `.pt` 文件，"
+            "存这次学到的 LNN 参数。Air daemon 会自动拉最新 ckpt 加载，"
+            "你的反馈就转化成了 LNN 的'记忆'。"
+        )
+        st.text(f"最新文件: {s.get('LATEST_LINK', '?')}")
+        st.text(f"生成时间: {s.get('LATEST_TS', '?')}")
+        st.text(f"历史总数: {s.get('CKPT_COUNT', '0')} 个")
 
         # 最近 log
         log_tail = s.get("LOG_TAIL", "")
@@ -408,7 +418,15 @@ def main():
             )
             if current.intent_probs:
                 probs_str = " · ".join([f"{k}: {v:.2f}" for k, v in current.intent_probs.items()])
-                st.caption(f"probs: {probs_str}")
+                st.caption(f"三类概率分布: {probs_str}")
+            with st.expander("ℹ️ 这些数字什么意思？"):
+                st.markdown("""
+- **置信度 (confidence)**：模型对本次判断的确定程度，越接近 1.0 越确定
+- **margin**：top-1 概率减 top-2 概率的差值，越大说明 8 类表情判断越"果断"（≥0.6 强 / 0.3-0.6 中 / <0.3 模糊）
+- **entropy（熵）**：分布的混乱度，0=完全确定一类，越大说明模型越纠结（>0.6 触发主动求反馈 B）
+- **三类概率分布**：positive / negative / none 的预测概率，三个数加起来 = 1.0
+- **intent_pred**：模型最终猜的意图（取概率最大的那个）
+                """)
         else:
             st.info(f"等待 daemon 数据… 检查 `curl {SIGNALS_URL}` 是否有 lnn 字段")
 
