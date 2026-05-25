@@ -505,7 +505,15 @@ class DaemonApp:
             state_path=rate_state,
         )
         dnd = DNDConfig(apps=fb.dnd_apps)
-        cfg = EngineConfig(rate=rate, dnd=dnd, enable_prompt=True)
+        # 5/25 cc: ADR-028 后 notify_watcher.sh 接管弹窗，旧 ProactiveQueryEngine 静默化。
+        # query_max_per_hour ≤ 1 或 env LNMEM_DISABLE_OLD_FEEDBACK=1 → 禁用 prompt
+        # （engine 保留 observe/stats 接口 work，只是不再 osascript 弹窗）
+        _disable_old = os.environ.get("LNMEM_DISABLE_OLD_FEEDBACK", "1") == "1" or fb.query_max_per_hour <= 1
+        cfg = EngineConfig(rate=rate, dnd=dnd, enable_prompt=not _disable_old)
+        if _disable_old:
+            logging.getLogger(__name__).info(
+                "old ProactiveQueryEngine prompt DISABLED (ADR-028 后由 notify_watcher.sh 接管)"
+            )
         # FB-03: 把 daemon.toml 的 query_confidence_threshold 接到 trigger
         # ADR-005 F-08 fix: daemon 启动时根据 signal_path 显式传 brow 阈值 + signal_path 实例属性
         # TODO-1 (ADR-010): raw 路径下默认启用 Schmitt + EMA，显式传 brow_thr_high/low + α
