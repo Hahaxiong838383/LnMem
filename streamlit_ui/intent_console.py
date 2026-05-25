@@ -72,6 +72,8 @@ class Inference:
     margin: float
     entropy: float
     received_at: float  # local time.time()
+    phase2_state: str = "unknown"  # 8 类情绪 top-1 (emotional_negative / focused / ...)
+    top_prob: float = 0.0          # phase2 top-1 概率
 
 
 # ---- session state 初始化 ----
@@ -156,6 +158,8 @@ def fetch_latest_inference() -> Optional[Inference]:
             margin=float(lnn.get("margin") or 0.0),
             entropy=float(lnn.get("entropy") or 0.0),
             received_at=time.time(),
+            phase2_state=str(lnn.get("predicted_state") or "unknown"),
+            top_prob=float(lnn.get("top_prob") or 0.0),
         )
     except Exception:
         return None
@@ -341,6 +345,159 @@ def render_studio_panel():
                 st.code(log_tail, language="text")
 
 
+def render_evolution_panel(history):
+    """历史表情 + 意图演化曲线 + 简单外推预测"""
+    if len(history) < 10:
+        st.info(f"演化曲线需要 ≥10 帧数据（当前 {len(history)}）")
+        return
+
+    import pandas as pd
+    import altair as alt
+    from datetime import datetime, timedelta
+
+    # ---- 1. 意图概率演化 (3 类 stacked area + 10s 外推) ----
+    rows = []
+    for h in history:
+        ts = datetime.fromtimestamp(h.ts_ns / 1e9)
+        for cls in ("positive", "negative", "none"):
+            rows.append({
+                "ts": ts,
+                "意图类别": {"positive": "🟢 正反馈", "negative": "🔴 负反馈", "none": "⚪ 中性"}[cls],
+                "概率": h.intent_probs.get(cls, 0.0),
+                "是否预测": False,
+            })
+
+    # 外推 10s：用最近 10 帧的 mean
+    recent = list(history)[-10:]
+    mean_probs = {
+        cls: sum(h.intent_probs.get(cls, 0.0) for h in recent) / len(recent)
+        for cls in ("positive", "negative", "none")
+    }
+    last_ts = datetime.fromtimestamp(history[-1].ts_ns / 1e9)
+    for i in range(1, 11):  # 10 个未来帧
+        future_ts = last_ts + timedelta(seconds=i)
+        for cls in ("positive", "negative", "none"):
+            rows.append({
+                "ts": future_ts,
+                "意图类别": {"positive": "🟢 正反馈", "negative": "🔴 负反馈", "none": "⚪ 中性"}[cls],
+                "概率": mean_probs[cls],
+                "是否预测": True,
+            })
+
+    df_intent = pd.DataFrame(rows)
+    intent_chart = (
+        alt.Chart(df_intent)
+        .mark_area(opacity=0.7)
+        .encode(
+            x=alt.X("ts:T", title="时间（右侧虚线区为 10s 外推预测）"),
+            y=alt.Y("概率:Q", stack="normalize", title="意图概率分布"),
+            color=alt.Color(
+                "意图类别:N",
+                scale=alt.Scale(
+                    domain=["🟢 正反馈", "🔴 负反馈", "⚪ 中性"],
+                    range=["#10b981", "#ef4444", "#9ca3af"],
+                ),
+                legend=alt.Legend(orient="top"),
+            ),
+            opacity=alt.condition(alt.datum["是否预测"], alt.value(0.35), alt.value(0.85)),
+            tooltip=["ts:T", "意图类别:N", alt.Tooltip("概率:Q", format=".3f"), "是否预测:N"],
+        )
+        .properties(height=200, title="🎯 意图概率演化 + 10s 外推（半透明 = 预测）")
+    )
+    st.altair_chart(intent_chart, use_container_width=True)
+
+    # ---- 2. 表情状态时间线 (8 类色块 + 5s 外推) ----
+    state_color = {
+        "emotional_positive": "#10b981",
+        "emotional_negative": "#ef4444",
+        "neutral": "#9ca3af",
+        "focused": "#3b82f6",
+        "distracted": "#f59e0b",
+        "fatigued": "#a78bfa",
+        "low_energy": "#6b7280",
+        "transitioning": "#ec4899",
+        "unknown": "#000000",
+    }
+    state_zh = {
+        "emotional_positive": "😊 情绪-正向",
+        "emotional_negative": "😟 情绪-负向",
+        "neutral": "😐 中立",
+        "focused": "🎯 专注",
+        "distracted": "🌀 分心",
+        "fatigued": "😴 疲惫",
+        "low_energy": "🪫 低能量",
+        "transitioning": "🔄 过渡中",
+        "unknown": "❓ 未知",
+    }
+
+    state_rows = []
+    for i, h in enumerate(history):
+        ts = datetime.fromtimestamp(h.ts_ns / 1e9)
+        next_ts = (datetime.fromtimestamp(history[i+1].ts_ns / 1e9)
+                   if i + 1 < len(history) else ts + timedelta(seconds=1))
+        state_rows.append({
+            "ts_start": ts,
+            "ts_end": next_ts,
+            "状态": state_zh.get(h.phase2_state, h.phase2_state),
+            "原始": h.phase2_state,
+            "置信度": h.top_prob,
+            "是否预测": False,
+        })
+
+    # 外推：用最近 5 帧中频率最高的 state 当未来 5s 预测
+    from collections import Counter
+    recent_5 = [h.phase2_state for h in list(history)[-5:]]
+    pred_state = Counter(recent_5).most_common(1)[0][0] if recent_5 else "unknown"
+    pred_state_zh = state_zh.get(pred_state, pred_state)
+    last_ts_dt = datetime.fromtimestamp(history[-1].ts_ns / 1e9)
+    state_rows.append({
+        "ts_start": last_ts_dt,
+        "ts_end": last_ts_dt + timedelta(seconds=5),
+        "状态": pred_state_zh,
+        "原始": pred_state,
+        "置信度": 0.0,
+        "是否预测": True,
+    })
+
+    df_state = pd.DataFrame(state_rows)
+    state_chart = (
+        alt.Chart(df_state)
+        .mark_rect()
+        .encode(
+            x=alt.X("ts_start:T", title="时间"),
+            x2="ts_end:T",
+            color=alt.Color(
+                "状态:N",
+                scale=alt.Scale(
+                    domain=list(state_zh.values()),
+                    range=[state_color[k] for k in state_zh.keys()],
+                ),
+                legend=alt.Legend(orient="top", columns=4),
+            ),
+            opacity=alt.condition(alt.datum["是否预测"], alt.value(0.35), alt.value(0.9)),
+            tooltip=["ts_start:T", "状态:N", alt.Tooltip("置信度:Q", format=".3f"), "是否预测:N"],
+        )
+        .properties(height=80, title="😊 表情状态时间线 + 5s 外推（半透明 = 预测）")
+    )
+    st.altair_chart(state_chart, use_container_width=True)
+
+    # 说明
+    with st.expander("ℹ️ 预测是怎么算的？"):
+        st.markdown("""
+**当前算法（v0 简单外推）**：
+
+- **意图 10s 外推**：取最近 10 帧的 `intent_probs` 平均值，假设接下来 10 秒分布延续
+- **表情 5s 外推**：取最近 5 帧出现最频繁的 phase2 state，假设短期内不切换
+
+**局限**：
+- 不会预测"状态突变"（比如你突然从专注变成疲惫）
+- 不利用 LNN 内部 hidden state 的 ODE 演化能力（那才是真预测）
+
+**未来 (Phase 3，M0 demo 后)**：用 LTC ODE 真预测 —— 当前 hidden state h(t) 通过微分方程
+向前积分得到 h(t+Δt)，再过 intent_head 算未来概率。这样能预测状态切换的时机。
+        """)
+
+
 def main():
     st.set_page_config(page_title="LnMem Intent Console", layout="wide", page_icon="🧠")
     init_state()
@@ -515,6 +672,11 @@ def main():
         st.caption(f"意图分布: {dict(dist)}")
     else:
         st.caption(f"已积累 {len(st.session_state.history)} 条，攒到 5 条再画图")
+
+    # ---- 状态演化时间线 + 外推预测 ----
+    st.markdown("---")
+    st.subheader("🔮 状态演化 + 预测")
+    render_evolution_panel(list(st.session_state.history))
 
     # ---- auto refresh ----
     if auto_refresh:
