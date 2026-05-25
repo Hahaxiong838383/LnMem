@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>LnMem · LNN 心脏架构图解</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a2028;
+    --border: #2a3340;
+    --text: #e6e8eb;
+    --dim: #8a92a0;
+    --accent: #4ec9b0;
+    --warn: #d7ba7d;
+    --link: #569cd6;
+    --code-bg: #161b22;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "SF Pro Text", system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.7; font-size: 16px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 48px 32px 96px; }
+
+  /* Header */
+  header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #0f5946 100%);
+    padding: 56px 32px 48px;
+    text-align: center; margin-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0 0 12px; font-size: 38px; letter-spacing: -0.5px; }
+  header .sub { color: rgba(255,255,255,0.85); font-size: 16px; max-width: 720px; margin: 0 auto; }
+  header .meta { color: rgba(255,255,255,0.55); font-size: 13px; margin-top: 16px; }
+
+  h2 {
+    font-size: 26px; margin: 56px 0 16px; padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent); color: var(--accent);
+  }
+  h3 { font-size: 19px; margin: 32px 0 12px; color: var(--text); }
+  h4 { font-size: 16px; margin: 20px 0 8px; color: var(--warn); }
+
+  p { margin: 12px 0; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 6px 0; }
+  strong { color: var(--accent); font-weight: 600; }
+  code {
+    background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
+    font-family: "SF Mono", "JetBrains Mono", Menlo, monospace; font-size: 14px;
+    color: var(--warn);
+  }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .mermaid-wrap {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 24px;
+    margin: 20px 0; overflow-x: auto;
+  }
+  .caption {
+    text-align: center; color: var(--dim); font-size: 13px;
+    margin: -8px 0 24px;
+  }
+
+  /* Table */
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 20px 0; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden; font-size: 14.5px;
+  }
+  th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: #232c38; color: var(--accent); font-weight: 600; font-size: 13px; letter-spacing: 0.3px; }
+  tr:last-child td { border-bottom: none; }
+  td.dim { color: var(--dim); font-size: 13px; }
+  td code { background: rgba(78,201,176,0.08); }
+
+  /* Callouts */
+  .callout {
+    background: var(--panel); border-left: 4px solid var(--accent);
+    padding: 16px 20px; margin: 20px 0; border-radius: 0 6px 6px 0;
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.dim { border-left-color: var(--dim); background: #161b22; }
+  .callout h4 { margin-top: 0; }
+
+  /* TOC */
+  .toc {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 20px 28px; border-radius: 8px; margin-bottom: 40px;
+  }
+  .toc h3 { margin: 0 0 12px; color: var(--accent); font-size: 14px; text-transform: uppercase; letter-spacing: 1.5px; }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin: 4px 0; }
+
+  /* Quote */
+  blockquote {
+    margin: 16px 0; padding: 12px 20px;
+    border-left: 3px solid var(--warn); background: var(--code-bg);
+    color: var(--dim); font-style: italic;
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 80px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--dim); font-size: 13px; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧠 LnMem · LNN 心脏架构图解</h1>
+  <div class="sub">用液态神经网络（Liquid Neural Network）作为「永远在线心智核心」的伴侣型 AI 记忆系统</div>
+  <div class="meta">v0.1 Sprint 2 真闭环 · 2026-05-25 · Hahaxiong838383/LnMem</div>
+</header>
+
+<div class="wrap">
+
+<div class="toc">
+  <h3>目录</h3>
+  <ol>
+    <li><a href="#sec1">一句话理解 LnMem 与 LNN</a></li>
+    <li><a href="#sec2">项目架构总览（导图）</a></li>
+    <li><a href="#sec3">LNN 在系统中的核心作用</a></li>
+    <li><a href="#sec4">作用逻辑：从摄像头到弹窗的完整链路</a></li>
+    <li><a href="#sec5">LNN 内部：LTC 微分方程是什么</a></li>
+    <li><a href="#sec6">产生的价值：4 个无可替代</a></li>
+    <li><a href="#sec7">与传统记忆系统的差异（ChatGPT/RAG/Mem0）</a></li>
+    <li><a href="#sec8">与传统深度学习的差异（RNN/LSTM/Transformer）</a></li>
+    <li><a href="#sec9">小结</a></li>
+  </ol>
+</div>
+
+<!-- ============== Section 1 ============== -->
+<h2 id="sec1">1. 一句话理解 LnMem 与 LNN</h2>
+
+<p><strong>LnMem</strong> = Liquid neural <strong>Mem</strong>ory，要做「能陪你数年、越用越懂你」的 AI 伙伴。</p>
+
+<p>它和市面 AI 不一样的地方就一句：<strong>不是用文本存历史让大模型现读，而是让 LNN 像神经元一样持续演化，把"你是谁"沉淀到几 KB 的物理参数里</strong>。</p>
+
+<div class="callout">
+<h4>📌 类比：ChatGPT vs LnMem</h4>
+<ul>
+<li><strong>ChatGPT</strong>：每次对话翻笔记本回顾你说过的话（RAG/向量检索）。<br>关掉聊天 → 它"忘"了你，下次重新翻。</li>
+<li><strong>LnMem</strong>：内部有个微型神经"心脏"，每秒接收你的表情/姿态/语音，它的<strong>每个神经元的时间常数（τ）都在持续被你影响</strong>。<br>3 天后这个心脏的参数已经长得"像你专属"，不需要翻历史就能预判。</li>
+</ul>
+</div>
+
+<!-- ============== Section 2 ============== -->
+<h2 id="sec2">2. 项目架构总览（导图）</h2>
+
+<div class="mermaid-wrap">
+<div class="mermaid">
+flowchart TB
+    subgraph SENS["🎥 感知层（每秒 1 帧）"]
+        CAM[摄像头 1080p]
+        PYFEAT[py-feat 提取<br/>20 AU 单位<br/>+ 头部姿态]
+        CAM --> PYFEAT
+    end
+
+    subgraph LNN_CORE["🧠 LNN 心脏（永远在线）"]
+        PHASE2[phase2 backbone<br/>LTC 微分方程<br/>60 维隐状态]
+        INTENT[intent_head<br/>3 层 MLP<br/>三分类]
+        TAU[τ-bias 个性化层<br/>每用户 3KB<br/>在线漂移]
+
+        PHASE2 -->|hidden state 64d| INTENT
+        TAU -.调制.-> PHASE2
+        TAU -.调制.-> INTENT
+    end
+
+    subgraph FEEDBACK["💡 主动学习闭环"]
+        WATCHER[notify_watcher v2<br/>6 触发器 active learning]
+        DIALOG[macOS 弹窗<br/>正/负/无 + 理由]
+        STORE[(intent_feedback<br/>jsonl)]
+    end
+
+    subgraph TRAIN["⚙️ 离线训练（每 8h）"]
+        SYNC[Air → Studio<br/>rsync 数据]
+        TRAINER[Studio M2 Max<br/>训练 intent_head]
+        CKPT[新 ckpt + symlink]
+        PULL[Air pull ckpt]
+        RELOAD[daemon 60s<br/>软重启 1s 过渡]
+    end
+
+    PYFEAT -->|每帧 AU 向量| PHASE2
+    INTENT -->|三类概率| WATCHER
+    WATCHER -->|LNN 不确定时| DIALOG
+    DIALOG -->|用户选择| STORE
+    STORE -->|每小时| SYNC
+    SYNC --> TRAINER
+    TRAINER --> CKPT
+    CKPT --> PULL
+    PULL --> RELOAD
+    RELOAD -.热加载.-> INTENT
+
+    classDef sense fill:#1e3a5f,stroke:#4ec9b0,color:#fff
+    classDef core fill:#0f5946,stroke:#4ec9b0,color:#fff,stroke-width:2px
+    classDef fb fill:#4a3a1e,stroke:#d7ba7d,color:#fff
+    classDef tr fill:#3a1e4a,stroke:#c586c0,color:#fff
+
+    class SENS,CAM,PYFEAT sense
+    class LNN_CORE,PHASE2,INTENT,TAU core
+    class FEEDBACK,WATCHER,DIALOG,STORE fb
+    class TRAIN,SYNC,TRAINER,CKPT,PULL,RELOAD tr
+</div>
+</div>
+<div class="caption">图 1 · LnMem 整体架构：四个子系统（感知 / LNN 心脏 / 主动学习 / 离线训练）</div>
+
+<h3>四个子系统职责</h3>
+<table>
+<tr><th>子系统</th><th>负责什么</th><th>关键技术</th></tr>
+<tr><td>🎥 <strong>感知层</strong></td><td>把"你坐在那里"翻译成数字信号</td><td>py-feat 0.6.2（20 个 AU + 头部姿态 3DoF）</td></tr>
+<tr><td>🧠 <strong>LNN 心脏</strong></td><td>持续"理解"你现在的状态和意图</td><td>LTC/CfC 微分方程 + intent_head MLP + τ-bias 漂移</td></tr>
+<tr><td>💡 <strong>主动学习</strong></td><td>LNN 困惑时弹窗求你帮一把</td><td>6 触发器 active learning + 诚实文案</td></tr>
+<tr><td>⚙️ <strong>离线训练</strong></td><td>把你的反馈消化进新 ckpt</td><td>Studio M2 Max + 8h 调度 + 60s 自动热加载</td></tr>
+</table>
+
+<!-- ============== Section 3 ============== -->
+<h2 id="sec3">3. LNN 在系统中的核心作用</h2>
+
+<p>LNN 在 LnMem 里干 <strong>三件事</strong>，对应三个网络层级：</p>
+
+<table>
+<tr><th>层级</th><th>叫什么</th><th>负责</th><th>输入</th><th>输出</th></tr>
+<tr>
+  <td>1</td>
+  <td><strong>phase2 backbone</strong></td>
+  <td>把瞬时 AU 翻译成有时间记忆的 64 维状态</td>
+  <td>每帧 20 维 AU</td>
+  <td>8 类表情 state + 64 维 hidden state</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><strong>intent_head</strong></td>
+  <td>从隐状态判断你想表达什么</td>
+  <td>最近 10s 的 hidden state 窗口</td>
+  <td>三类意图概率（正/负/无）</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><strong>τ-bias 个性化层</strong></td>
+  <td>把"你这个人"编码到时间常数里</td>
+  <td>累积的反馈</td>
+  <td>每用户独立的 3KB τ 偏置向量</td>
+</tr>
+</table>
+
+<div class="callout warn">
+<h4>⚠️ 注意：v0.1 LNN 角色重定义（ADR-028）</h4>
+<p>LNN 不再是 "24h AU 序列预测器"（那个目标太大、太远），而是 <strong>"实时三分类意图估计 + 用户反馈闭环"</strong>。</p>
+<p>原因：川哥真正想要的是 <strong>"前十几秒到几分钟的意图预判"</strong>，不是"明天你会不会笑"。<br>详见 <code>docs/decisions/028-lnn-role-redefine-online-intent.md</code>。</p>
+</div>
+
+<!-- ============== Section 4 ============== -->
+<h2 id="sec4">4. 作用逻辑：从摄像头到弹窗的完整链路</h2>
+
+<div class="mermaid-wrap">
+<div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant CAM as 摄像头
+    participant PF as py-feat
+    participant LNN as LNN 心脏
+    participant DM as daemon HTTP
+    participant W as notify_watcher v2
+    participant U as 川哥
+    participant S as Studio M2 Max
+
+    Note over CAM,PF: 每秒 1.07 帧（py-feat CPU bound）
+    CAM->>PF: 1080p 帧
+    PF->>LNN: 20 AU + 头部姿态
+    LNN->>LNN: phase2 backbone 演化<br/>hidden state 64d
+    LNN->>LNN: intent_head 三类预测
+    LNN->>DM: signals/recent
+
+    loop 每 3 秒 poll
+        W->>DM: GET /signals/recent
+        DM-->>W: lnn 块（probs/margin/entropy）
+        alt 6 触发器命中
+            W->>U: osascript 弹窗<br/>带理由 + 字段值
+            U-->>W: 点击 → 正/负/无
+            W->>DM: POST /intent_feedback
+            DM->>DM: 写 jsonl
+        else 全部不命中
+            W->>W: 静默 sleep
+        end
+    end
+
+    Note over DM,S: 每 1 小时
+    DM->>S: rsync intent_feedback jsonl
+    Note over S: 8h 调度触发（00/08/16）
+    S->>S: 双门检查<br/>增量 ≥10 且距上次 ≥6h
+    S->>S: 训练 intent_head（5-15min）
+    S->>S: atomic symlink → latest.pt
+
+    Note over LNN,S: 每 10 分钟
+    LNN->>S: pull ckpt
+    Note over LNN: ckpt watcher 60s 周期
+    LNN->>LNN: 检测 sha8 变化
+    LNN->>LNN: 软重启（1s 线性过渡）
+    Note over LNN: 之后 intent_pred 更准
+</div>
+</div>
+<div class="caption">图 2 · 端到端时序：感知 → LNN 推断 → 主动学习 → 离线训练 → 自动热加载</div>
+
+<h3>关键设计点</h3>
+<ul>
+<li><strong>不重启服务</strong>：训完新 ckpt 后 daemon 60s 内自动检测 symlink target 变化 → 调 <code>inferencer._load_intent_head_ckpt()</code> 1s 线性过渡 → 推理不中断</li>
+<li><strong>主动学习不打扰</strong>：watcher v2 用 6 触发器优先级单选（不是 OR），只在 LNN 真不确定时问，弹窗写明白"为什么这次问你"</li>
+<li><strong>反馈数据驱动训练</strong>：cursor-based 双门（自上次训练后增量 ≥10 + 距上次 ≥6h），防止反复训同一批</li>
+</ul>
+
+<!-- ============== Section 5 ============== -->
+<h2 id="sec5">5. LNN 内部：LTC 微分方程是什么</h2>
+
+<p>传统 RNN 每步是离散的：<code>h(t+1) = f(h(t), x(t))</code>。<br>
+LNN（液态神经网络）的每个神经元是<strong>连续时间的常微分方程</strong>：</p>
+
+<div class="callout dim">
+<pre style="margin:0;color:#e6e8eb;font-size:14px;">
+dh(t)/dt = -[1/τ(t,x,h)] · h(t) + f(t,x,h) · A
+</pre>
+<p style="margin-top:12px;font-size:14px;">关键：<strong>时间常数 τ 不是常数，是 (t, x, h) 的函数</strong>——每个神经元都能动态决定"我对这个输入要慢慢消化还是快速反应"。</p>
+</div>
+
+<div class="mermaid-wrap">
+<div class="mermaid">
+flowchart LR
+    X[输入 AU 向量<br/>每帧 20 维]
+
+    subgraph LTC["LTC 神经元（单个）"]
+        TAU{时间常数<br/>τ = softplus<br/>w·x + b_τ<br/>+ bias_per_user}
+        ODE[ODE solver<br/>半隐式欧拉]
+        H((h 状态))
+    end
+
+    X --> TAU
+    X --> ODE
+    TAU --> ODE
+    ODE --> H
+    H -.前一刻.-> ODE
+
+    H --> OUT[64 维 hidden state]
+    OUT --> MLP[intent_head MLP]
+    MLP --> PROB[三类 softmax<br/>positive/negative/none]
+
+    classDef in fill:#1e3a5f,stroke:#569cd6,color:#fff
+    classDef ltc fill:#0f5946,stroke:#4ec9b0,color:#fff,stroke-width:2px
+    classDef out fill:#4a3a1e,stroke:#d7ba7d,color:#fff
+    class X in
+    class TAU,ODE,H ltc
+    class OUT,MLP,PROB out
+</div>
+</div>
+<div class="caption">图 3 · LTC 神经元内部：τ 可学 + ODE 求解 + per-user bias 决定个性化速度</div>
+
+<h3>3 个非平凡设计</h3>
+
+<h4>① τ 可学 + 用户 bias</h4>
+<p><code>τ = softplus(W·x + b_τ + bias_user)</code>，其中 <code>bias_user</code> 是每个用户独立的小向量（几 KB）。</p>
+<ul>
+<li>川哥的 bias 让 τ 偏大 → LNN 对川哥的"皱眉"反应慢一点（因为他经常深思）</li>
+<li>另一个用户 bias 不同 → LNN 对皱眉立刻判断为"负面"</li>
+</ul>
+
+<h4>② dt-aware 时间步</h4>
+<p>训练时 daemon 30Hz，部署后 1.07Hz——LNN 把<strong>实际帧间隔传给 ODE solver</strong>，演化速度自适应不同帧率。传统 RNN 跨 fps 部署就废。</p>
+
+<h4>③ 在线漂移而不是 retrain</h4>
+<p>新反馈来了，不动 backbone，只更新 <code>bias_user</code>（3KB）。CPU 几毫秒搞定。<br>
+对比 LoRA 微调（几 MB + 几分钟）—— LNN τ-bias 漂移可以做<strong>真正的"用户级实时学习"</strong>。</p>
+
+<!-- ============== Section 6 ============== -->
+<h2 id="sec6">6. 产生的价值：4 个无可替代</h2>
+
+<table>
+<tr><th>价值</th><th>具体表现</th><th>对比替代方案</th></tr>
+<tr>
+  <td><strong>① 超轻量个性化</strong></td>
+  <td>每用户 3KB 的 τ-bias 就能编码"这个人"</td>
+  <td>LoRA 几 MB / 全模型微调几 GB</td>
+</tr>
+<tr>
+  <td><strong>② 真在线学习</strong></td>
+  <td>反馈 → 30ms 内更新 bias，下次预测就变</td>
+  <td>RAG 检索靠"翻历史"不是真学到 / 传统模型需 retrain</td>
+</tr>
+<tr>
+  <td><strong>③ 时间感知</strong></td>
+  <td>同一模型支持 1Hz 或 30Hz，dt-aware ODE 自动适配</td>
+  <td>固定步长 RNN 跨 fps 必崩</td>
+</tr>
+<tr>
+  <td><strong>④ 物理可解释</strong></td>
+  <td>τ 大 = 慢神经元 / τ 小 = 快神经元，bias 漂移有物理意义</td>
+  <td>Transformer attention 权重难解释</td>
+</tr>
+</table>
+
+<div class="callout">
+<h4>💡 一个具体场景</h4>
+<p>川哥习惯思考时会皱眉 30 秒。</p>
+<ul>
+<li><strong>传统系统</strong>：每次都问"你不开心吗？"骚扰</li>
+<li><strong>LnMem</strong>：3 天后川哥的 τ-bias 调高了 "皱眉→负面" 通路的时间常数，30 秒短皱眉不再触发误报；但持续 2 分钟皱眉 + 头部下垂 → 真触发关怀</li>
+</ul>
+</div>
+
+<!-- ============== Section 7 ============== -->
+<h2 id="sec7">7. 与传统记忆系统的差异（ChatGPT / RAG / Mem0）</h2>
+
+<div class="mermaid-wrap">
+<div class="mermaid">
+flowchart TB
+    subgraph TRAD["传统记忆系统（ChatGPT Memory / RAG / Mem0）"]
+        T_USER[用户输入] --> T_LLM[大语言模型]
+        T_LLM -->|查询| T_VEC[(向量数据库<br/>文本嵌入)]
+        T_VEC -->|top-K 文本片段| T_LLM
+        T_LLM --> T_OUT[文本回复]
+    end
+
+    subgraph LNMEM["LnMem 范式"]
+        L_USER[摄像头 + 反馈] --> L_LNN[LNN 心脏<br/>持续演化]
+        L_LNN -->|τ-bias 漂移| L_PARAM[(物理参数<br/>3KB/用户)]
+        L_PARAM -.反向调制.-> L_LNN
+        L_LNN --> L_PRED[实时意图预测]
+    end
+
+    classDef trad fill:#2a3340,stroke:#8a92a0,color:#fff
+    classDef lnmem fill:#0f5946,stroke:#4ec9b0,color:#fff
+    class TRAD,T_USER,T_LLM,T_VEC,T_OUT trad
+    class LNMEM,L_USER,L_LNN,L_PARAM,L_PRED lnmem
+</div>
+</div>
+<div class="caption">图 4 · 传统记忆 = 文本存储 + 检索；LnMem = 物理状态 + 演化</div>
+
+<table>
+<tr><th>维度</th><th>传统记忆系统</th><th>LnMem</th></tr>
+<tr><td>记忆形式</td><td>文本 / 向量嵌入</td><td>神经元 τ 偏置（物理参数）</td></tr>
+<tr><td>更新方式</td><td>追加文本到数据库</td><td>ODE 求解器实时演化</td></tr>
+<tr><td>检索方式</td><td>cosine similarity top-K</td><td>不检索，状态直接演化</td></tr>
+<tr><td>个性化代价</td><td>每用户 MB-GB 历史</td><td>每用户 3KB τ-bias</td></tr>
+<tr><td>"忘记" 控制</td><td>难 —— 数据库永久存</td><td>τ 大小直接控制遗忘速度（物理意义）</td></tr>
+<tr><td>实时性</td><td>受 LLM 推理延迟（秒级）</td><td>ODE 一步几毫秒</td></tr>
+<tr><td>底层范式</td><td>"语言 + 检索"</td><td>"感知 + 物理动力学"</td></tr>
+</table>
+
+<div class="callout warn">
+<h4>🎯 关键判断（川哥钦定 P-1 LNN-FIRST 最高准则）</h4>
+<blockquote>"凡涉及时间 / 演化 / 记忆 / 个性化，第一性原理必须是 LTC/CfC 微分方程。"</blockquote>
+<p>这是 LnMem 与所有同类系统的根本分界——<strong>"记忆是物理状态的连续演化"</strong>，不是"文本的离散存储"。</p>
+</div>
+
+<!-- ============== Section 8 ============== -->
+<h2 id="sec8">8. 与传统深度学习的差异（RNN / LSTM / Transformer）</h2>
+
+<table>
+<tr>
+  <th>对比维度</th>
+  <th>RNN / LSTM</th>
+  <th>Transformer</th>
+  <th>LNN（LTC/CfC）</th>
+</tr>
+<tr>
+  <td>时间建模</td>
+  <td>离散步长固定</td>
+  <td>位置编码近似</td>
+  <td><strong>连续 ODE 自适应步长</strong></td>
+</tr>
+<tr>
+  <td>时间常数 τ</td>
+  <td>无 / 隐含在参数</td>
+  <td>无</td>
+  <td><strong>每神经元独立 + 可学 + 可个性化</strong></td>
+</tr>
+<tr>
+  <td>跨 fps 部署</td>
+  <td>必须 retrain</td>
+  <td>需重新设位置编码</td>
+  <td><strong>dt-aware 直接换 fps</strong></td>
+</tr>
+<tr>
+  <td>个性化机制</td>
+  <td>fine-tune 全模型</td>
+  <td>LoRA（几 MB）</td>
+  <td><strong>τ-bias（3KB）</strong></td>
+</tr>
+<tr>
+  <td>在线学习</td>
+  <td>难 —— catastrophic forgetting</td>
+  <td>难 —— 计算密集</td>
+  <td><strong>τ-bias 漂移可控不爆</strong></td>
+</tr>
+<tr>
+  <td>推理成本</td>
+  <td>O(T·H²)</td>
+  <td>O(T²·D)</td>
+  <td>O(T·H²) 但 H 很小</td>
+</tr>
+<tr>
+  <td>可解释性</td>
+  <td>低</td>
+  <td>低（attention 难读）</td>
+  <td><strong>高 —— τ 直接对应"反应速度"</strong></td>
+</tr>
+<tr>
+  <td>适合场景</td>
+  <td>序列分类 / 翻译</td>
+  <td>NLP / 大规模生成</td>
+  <td><strong>实时多模态感知 + 个性化</strong></td>
+</tr>
+</table>
+
+<div class="callout">
+<h4>📌 LNN 不是要取代 Transformer</h4>
+<p>Transformer 在<strong>大规模知识 + 文本生成</strong>上无可替代。LNN 的优势在<strong>持续实时感知 + 极轻量个性化 + 时间动力学</strong>这种 Transformer 不擅长的场景。</p>
+<p>LnMem 实际上是<strong>组合架构</strong>：</p>
+<ul>
+<li>LNN 做<strong>实时心脏</strong>（毫秒级感知 + 个性化）</li>
+<li>LLM（Gemini / DeepSeek）做<strong>事件总结 / 自然语言交互</strong>（按需调用，不实时）</li>
+</ul>
+</div>
+
+<!-- ============== Section 9 ============== -->
+<h2 id="sec9">9. 小结</h2>
+
+<table>
+<tr><th>问题</th><th>LnMem 的答案</th></tr>
+<tr><td>项目想做什么</td><td>能陪你数年的 AI 伙伴，越用越懂你</td></tr>
+<tr><td>LNN 的角色</td><td>永远在线的"心脏"——实时感知 + 个性化 + 学习</td></tr>
+<tr><td>LNN 怎么学</td><td>active learning：困惑时弹窗求反馈 → 8h 训新 ckpt → daemon 60s 自动 reload</td></tr>
+<tr><td>LNN 怎么"懂你"</td><td>τ-bias 每用户 3KB，物理参数级别记住你</td></tr>
+<tr><td>和 ChatGPT Memory 差在哪</td><td>"物理状态演化" vs "文本检索"——根本范式不同</td></tr>
+<tr><td>和 Transformer 差在哪</td><td>连续时间动力学 + dt-aware + 真正可在线学习</td></tr>
+<tr><td>实证状态</td><td>v0.1 Sprint 2 真闭环已跑通（5/25），M0 demo 5/28-6/3 准备中</td></tr>
+</table>
+
+<div class="callout dim">
+<h4>📚 想深入</h4>
+<ul>
+<li>战略转折：<a href="decisions/028-lnn-role-redefine-online-intent.md"><code>docs/decisions/028</code></a> — LNN 重定义为 online intent estimator</li>
+<li>训练调度：<a href="decisions/030-train-schedule-24h-vs-8h.md"><code>docs/decisions/030</code></a> — Studio 8h 训练决策</li>
+<li>主动学习：<a href="decisions/031-active-learning-feedback-trigger.md"><code>docs/decisions/031</code></a> — 6 触发器范式 + 文案诚实性</li>
+<li>整体路线：<a href="../ROADMAP.md"><code>ROADMAP.md</code></a> — M0 demo + 后续 milestones</li>
+<li>AI 同事 30 秒入门：<a href="onboarding-ai.md"><code>docs/onboarding-ai.md</code></a></li>
+</ul>
+</div>
+
+<footer>
+  本文档由 cc（Claude）于 2026-05-25 整理 · 基于 v0.1 Sprint 2 真闭环实证<br>
+  仓库 <a href="https://github.com/Hahaxiong838383/LnMem">Hahaxiong838383/LnMem</a> · 分支 <code>poc/lnn-validation</code>
+</footer>
+
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      darkMode: true,
+      background: '#1a2028',
+      primaryColor: '#0f5946',
+      primaryTextColor: '#e6e8eb',
+      primaryBorderColor: '#4ec9b0',
+      lineColor: '#8a92a0',
+      secondaryColor: '#1e3a5f',
+      tertiaryColor: '#4a3a1e',
+      fontSize: '15px'
+    },
+    sequence: { useMaxWidth: true, wrap: true, mirrorActors: false },
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+  });
+</script>
+</body>
+</html>
