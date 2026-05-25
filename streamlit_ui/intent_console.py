@@ -190,9 +190,149 @@ def submit_feedback(inf: Inference, corrected: str, note: str = "") -> bool:
 
 
 # ---- 主 UI ----
+# ---- Studio 远程状态（智能 SSH 路径） ----
+@st.cache_data(ttl=60, show_spinner=False)
+def detect_studio_alias() -> tuple[str, float, str]:
+    """探测可达 Studio SSH alias：优先 ibro（局域网雷电网桥），fallback pub（公网）。
+
+    Returns: (alias, latency_s, status_msg) — alias 为 "" 表示都不通
+    """
+    import subprocess, time as _time
+    for alias, label in [("studio-ibro", "🏠 局域网"), ("studio-pub", "🌐 公网")]:
+        start = _time.time()
+        try:
+            r = subprocess.run(
+                ["ssh", "-o", "ConnectTimeout=3", "-o", "BatchMode=yes",
+                 "-o", "StrictHostKeyChecking=no", alias, "echo PONG"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if r.returncode == 0 and "PONG" in r.stdout:
+                return alias, _time.time() - start, label
+        except Exception:
+            pass
+    return "", 0.0, "❌ 都不通"
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def fetch_studio_status(alias: str) -> dict:
+    """ssh 拉 Studio 远端实时状态。失败返 {}"""
+    if not alias:
+        return {}
+    import subprocess
+    cmd = """
+DATA_BYTES=$(du -sb ~/lnmem-daemon-sync/ 2>/dev/null | awk '{print $1}')
+FEEDBACK_COUNT=$(cat ~/lnmem-daemon-sync/intent_feedback/*.jsonl 2>/dev/null | wc -l | tr -d ' ')
+CURSOR=$(cat ~/lnmem-train/.last_trained_feedback_count 2>/dev/null)
+LATEST_LINK=$(readlink ~/lnmem-train/ckpt/intent_head_latest.pt 2>/dev/null)
+LATEST_TS=$(stat -f '%Sm' -t '%Y-%m-%d %H:%M:%S' ~/lnmem-train/ckpt/$LATEST_LINK 2>/dev/null)
+CKPT_COUNT=$(ls ~/lnmem-train/ckpt/intent_head_*.pt 2>/dev/null | wc -l | tr -d ' ')
+TODAY=$(date +%Y-%m-%d)
+LOG_TAIL=$(tail -10 ~/lnmem-train/logs/train/nightly-${TODAY}.log 2>/dev/null | tail -10)
+printf 'DATA_BYTES=%s\\nFEEDBACK_COUNT=%s\\nCURSOR=%s\\nLATEST_LINK=%s\\nLATEST_TS=%s\\nCKPT_COUNT=%s\\n--LOG_TAIL--\\n%s' \\
+    "$DATA_BYTES" "$FEEDBACK_COUNT" "$CURSOR" "$LATEST_LINK" "$LATEST_TS" "$CKPT_COUNT" "$LOG_TAIL"
+"""
+    try:
+        r = subprocess.run(
+            ["ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
+             "-o", "StrictHostKeyChecking=no", alias, cmd],
+            capture_output=True, text=True, timeout=10,
+        )
+        if r.returncode != 0:
+            return {"error": r.stderr[:200]}
+    except Exception as e:
+        return {"error": str(e)[:200]}
+
+    out = r.stdout
+    result = {}
+    if "--LOG_TAIL--" in out:
+        head, _, tail = out.partition("--LOG_TAIL--")
+        for line in head.strip().split("\n"):
+            if "=" in line:
+                k, v = line.split("=", 1)
+                result[k] = v.strip()
+        result["LOG_TAIL"] = tail.strip()
+    return result
+
+
+def render_studio_panel():
+    """Streamlit sidebar 面板：Studio 远程状态"""
+    with st.sidebar:
+        st.markdown("### 📡 Studio 远程状态")
+        alias, latency, label = detect_studio_alias()
+        if not alias:
+            st.error(f"❌ Studio 都不通\n\n试: `ssh studio-pub` / `ssh studio-ibro`")
+            if st.button("🔄 重试探测"):
+                st.cache_data.clear()
+                st.rerun()
+            return
+
+        st.success(f"{label} `{alias}` ({latency*1000:.0f}ms)")
+        if st.button("🔄 刷新 Studio 状态", help="清缓存重拉"):
+            st.cache_data.clear()
+            st.rerun()
+
+        s = fetch_studio_status(alias)
+        if "error" in s:
+            st.warning(f"拉取失败: {s['error']}")
+            return
+        if not s:
+            st.caption("无数据")
+            return
+
+        # 数据准备
+        st.markdown("**📊 数据准备**")
+        data_mb = int(s.get("DATA_BYTES", "0") or 0) / 1024 / 1024
+        feedback_count = s.get("FEEDBACK_COUNT", "?")
+        st.text(f"daemon-sync: {data_mb:.0f} MB")
+        st.text(f"intent_feedback: {feedback_count} 条")
+
+        # 训练进展
+        st.markdown("**🎯 训练进展**")
+        cursor = s.get("CURSOR", "")
+        if cursor and ":" in cursor:
+            cnt, ts = cursor.split(":")
+            from datetime import datetime
+            try:
+                ago_h = (datetime.now().timestamp() - int(ts)) / 3600
+                st.text(f"上次训练: {ago_h:.1f}h 前 (cursor={cnt})")
+            except:
+                st.text(f"cursor: {cursor}")
+            # 计算下次能训的时间
+            try:
+                next_train_h = max(0, 6 - ago_h)  # 时间门 6h
+                if next_train_h > 0:
+                    st.text(f"时间门: {next_train_h:.1f}h 后解锁")
+                else:
+                    st.text(f"时间门: ✅ 已解锁")
+            except: pass
+        else:
+            st.text("还没训过")
+
+        # 增量门进度
+        try:
+            new_feedback = int(feedback_count) - int(cursor.split(":")[0]) if cursor and ":" in cursor else int(feedback_count)
+            st.text(f"增量反馈: {new_feedback} / 10 {'✅' if new_feedback >= 10 else '⏳'}")
+        except: pass
+
+        # ckpt
+        st.markdown("**📦 ckpt**")
+        st.text(f"latest: {s.get('LATEST_LINK', '?')}")
+        st.text(f"生成: {s.get('LATEST_TS', '?')}")
+        st.text(f"总数: {s.get('CKPT_COUNT', '0')} 个")
+
+        # 最近 log
+        log_tail = s.get("LOG_TAIL", "")
+        if log_tail:
+            with st.expander("📜 最近训练 log"):
+                st.code(log_tail, language="text")
+
+
 def main():
     st.set_page_config(page_title="LnMem Intent Console", layout="wide", page_icon="🧠")
     init_state()
+
+    # 侧边栏：Studio 远程状态（智能 SSH 路径）
+    render_studio_panel()
 
     st.markdown("""
     <style>
