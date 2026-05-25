@@ -126,6 +126,7 @@ class SignalPipelineWorker(threading.Thread):
                 result["lnn"] = {
                     "status": infer_result.lnn_status,
                     "predicted_state": infer_result.predicted_state,
+                    "state_probs": infer_result.state_probs,  # 5/25 cc: 暴露完整 8 类概率给 UI stacked area
                     "top_prob": infer_result.top_prob,
                     "margin": infer_result.margin,
                     "entropy": infer_result.entropy,
@@ -326,6 +327,7 @@ class SignalPipelineMpRouter(threading.Thread):
                 out["lnn"] = {
                     "status": infer_result.lnn_status,
                     "predicted_state": infer_result.predicted_state,
+                    "state_probs": infer_result.state_probs,  # 5/25 cc: 8 类完整概率
                     "top_prob": infer_result.top_prob,
                     "margin": infer_result.margin,
                     "entropy": infer_result.entropy,

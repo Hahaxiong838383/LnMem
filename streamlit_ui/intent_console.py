@@ -74,6 +74,7 @@ class Inference:
     received_at: float  # local time.time()
     phase2_state: str = "unknown"  # 8 类情绪 top-1 (emotional_negative / focused / ...)
     top_prob: float = 0.0          # phase2 top-1 概率
+    state_probs: list = None       # 完整 8 类概率（与 STATE_LABELS 顺序一致）
 
 
 # ---- session state 初始化 ----
@@ -160,6 +161,7 @@ def fetch_latest_inference() -> Optional[Inference]:
             received_at=time.time(),
             phase2_state=str(lnn.get("predicted_state") or "unknown"),
             top_prob=float(lnn.get("top_prob") or 0.0),
+            state_probs=lnn.get("state_probs") or None,
         )
     except Exception:
         return None
@@ -528,8 +530,95 @@ def render_evolution_panel(history):
             "置信度": 0.0, "是否预测": True,
         })
 
-    def _render_group_chart(group_name, group_emoji, height=200):
-        """折线图：y=top_prob 置信度，颜色按 state 区分（mark_line by color 自动分段）"""
+    # STATE_LABELS 必须与 daemon 端 lnn_inferencer 一致（来自 expression_dynamics.py）
+    STATE_LABELS_ORDER = (
+        "low_energy", "focused", "distracted", "fatigued",
+        "emotional_positive", "emotional_negative", "neutral", "transitioning",
+    )
+
+    def _render_group_chart(group_name, group_emoji, height=240):
+        """Stacked area 概率图：每个 state 一条色带，y=该 state 概率，总和=1.0"""
+        group_states = [s for s in STATE_LABELS_ORDER if state_meta.get(s, {}).get("group") == group_name]
+        if not group_states:
+            return
+
+        # 历史段：从 h.state_probs 取该 group 内每个 state 的概率
+        rows = []
+        for h in history:
+            if not h.state_probs or len(h.state_probs) != 8:
+                # 旧数据没 state_probs → 用 top-1 fake：top_prob 给 top state，其余等分剩余
+                top_state = h.phase2_state
+                remaining = (1.0 - h.top_prob) / max(1, len(STATE_LABELS_ORDER) - 1)
+                state_probs_dict = {
+                    s: (h.top_prob if s == top_state else remaining)
+                    for s in STATE_LABELS_ORDER
+                }
+            else:
+                state_probs_dict = dict(zip(STATE_LABELS_ORDER, h.state_probs))
+
+            ts = datetime.fromtimestamp(h.ts_ns / 1e9)
+            for s in group_states:
+                meta = state_meta[s]
+                rows.append({
+                    "ts": ts,
+                    "状态": meta["label"],
+                    "valence": meta["valence"],
+                    "概率": state_probs_dict.get(s, 0.0),
+                    "是否预测": False,
+                })
+
+        # 预测段：从 ltc_preds[i].state_probs 取
+        if use_ltc:
+            for i, p in enumerate(ltc_preds[:10], 1):
+                sp = p.get("state_probs")
+                if not sp or len(sp) != 8:
+                    continue
+                state_probs_dict = dict(zip(STATE_LABELS_ORDER, sp))
+                future_ts = last_ts_dt + timedelta(seconds=i)
+                for s in group_states:
+                    meta = state_meta[s]
+                    rows.append({
+                        "ts": future_ts,
+                        "状态": meta["label"],
+                        "valence": meta["valence"],
+                        "概率": state_probs_dict.get(s, 0.0),
+                        "是否预测": True,
+                    })
+
+        if not rows:
+            st.caption(f"{group_emoji} {group_name}: 本批历史无此类记录")
+            return
+
+        df = pd.DataFrame(rows)
+        group_labels = [state_meta[s]["label"] for s in group_states]
+        group_colors = [state_meta[s]["color"] for s in group_states]
+
+        chart = (
+            alt.Chart(df)
+            .mark_area(opacity=0.75)
+            .encode(
+                x=alt.X("ts:T", title=None),
+                # 该组内归一化（让组内 3-5 类概率重新加起来=1，方便看相对占比）
+                y=alt.Y("概率:Q", stack="normalize",
+                        title=f"{group_name}组内概率占比 (总=100%)"),
+                color=alt.Color(
+                    "状态:N",
+                    scale=alt.Scale(domain=group_labels, range=group_colors),
+                    legend=alt.Legend(orient="top", columns=len(group_labels), title=None),
+                ),
+                opacity=alt.condition(alt.datum["是否预测"], alt.value(0.4), alt.value(0.85)),
+                tooltip=["ts:T", "状态:N", "valence:N",
+                         alt.Tooltip("概率:Q", format=".3f"), "是否预测:N"],
+            )
+            .properties(
+                height=height,
+                title=f"{group_emoji} {group_name} 概率演化（堆叠面积，右侧 {'10s LTC 真预测' if use_ltc else '5s fallback'} 半透明）"
+            )
+        )
+        st.altair_chart(chart, use_container_width=True)
+        return  # 下面的旧 mark_line 代码忽略
+
+        # === 以下保留旧 mark_line 代码作为参考，永不执行 ===
         # 历史点
         history_pts = []
         for h in history:
