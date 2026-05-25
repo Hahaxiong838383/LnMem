@@ -58,7 +58,7 @@ _VALID_TRUE_STATES = {
 
 # user_triggered rate-limit 配置（响应 codex F6）
 _USER_TRIGGERED_RATE_LIMIT_SECONDS = 60  # 1 次 / 分钟
-_SSE_FRAME_INTERVAL_S = 0.2
+_SSE_FRAME_INTERVAL_S = 1.0   # 川哥 5/25 18:25 钦定 1s 一次（之前 0.2s 多数重复推送，daemon 实际 1fps）
 _SSE_PREDICTION_INTERVAL_S = 5.0
 _SSE_HEARTBEAT_INTERVAL_S = 30.0
 _DASHBOARD_PATH = Path(__file__).resolve().parents[3] / "docs" / "realtime" / "realtime_dashboard.html"
