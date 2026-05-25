@@ -47,7 +47,7 @@ INTENT_LABELS = {
     # ADR-028 3 类意图（intent_head 训完后才会出现）
     "positive": ("🟢 正反馈", "#10b981"),
     "negative": ("🔴 负反馈", "#ef4444"),
-    "none": ("⚪ 无反馈", "#9ca3af"),
+    "none": ("⚪ 中性", "#9ca3af"),
     # phase2 backbone 真实 8 类（STATE_LABELS，来自 poc/src/lnn/expression_dynamics.py）
     "emotional_positive": ("😊 情绪-正向", "#10b981"),
     "emotional_negative": ("😟 情绪-负向", "#ef4444"),
@@ -424,8 +424,10 @@ def main():
 - **置信度 (confidence)**：模型对本次判断的确定程度，越接近 1.0 越确定
 - **margin**：top-1 概率减 top-2 概率的差值，越大说明 8 类表情判断越"果断"（≥0.6 强 / 0.3-0.6 中 / <0.3 模糊）
 - **entropy（熵）**：分布的混乱度，0=完全确定一类，越大说明模型越纠结（>0.6 触发主动求反馈 B）
-- **三类概率分布**：positive / negative / none 的预测概率，三个数加起来 = 1.0
+- **三类概率分布**：positive（正反馈）/ negative（负反馈）/ none（中性）的预测概率，三个数加起来 = 1.0
 - **intent_pred**：模型最终猜的意图（取概率最大的那个）
+
+> 💡 三类含义：**正反馈 = 你认可推断方向**，**负反馈 = 你不认可**，**中性 = 不明显倾向/中间态/无法判断**
                 """)
         else:
             st.info(f"等待 daemon 数据… 检查 `curl {SIGNALS_URL}` 是否有 lnn 字段")
@@ -467,7 +469,7 @@ def main():
                                 del st.session_state.pending_feedback[ts_ns]
                                 st.rerun()
                     with bcols[3]:
-                        if st.button("→无", key=f"none_{ts_ns}", disabled=inf.intent_pred == "none"):
+                        if st.button("→中性", key=f"none_{ts_ns}", disabled=inf.intent_pred == "none"):
                             if submit_feedback(inf, "none"):
                                 del st.session_state.pending_feedback[ts_ns]
                                 st.rerun()

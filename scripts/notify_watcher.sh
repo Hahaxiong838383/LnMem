@@ -96,8 +96,8 @@ trigger_dialog() {
     local result
     result=$(osascript -e "display dialog \"${prompt}\" \
         with title \"LnMem 主动学习\" \
-        buttons {\"→ 负\", \"→ 中\", \"→ 正\"} \
-        default button \"→ 中\" \
+        buttons {\"→ 负反馈\", \"→ 中性\", \"→ 正反馈\"} \
+        default button \"→ 中性\" \
         with icon note \
         giving up after 60" 2>&1)
     local osa_exit=$?
@@ -119,7 +119,7 @@ trigger_dialog() {
     else
         case "$result" in
             *正*) corrected="positive" ;;
-            *中*) corrected="none" ;;
+            *中*) corrected="none" ;;       # "→ 中性" 按钮 → 内部 none
             *负*) corrected="negative" ;;
             *) log "unknown button: $result"; corrected="?"; ;;
         esac
@@ -304,7 +304,7 @@ if last_ckpt_change_ts > 0 and (now - last_ckpt_change_ts) < cold_window:
 
 # A. 意图不确定（持续 N 帧）
 if persist['A'] >= persist_n:
-    print(f"A|意图不确定|我对你这一刻意图判断很犹豫（pos={intent_probs[0]:.2f}/neg={intent_probs[1]:.2f}/none={intent_probs[2]:.2f}，top2 差仅 {top2_diff:.3f}）|连续 {persist['A']} 帧三类概率差 < {os.environ.get('INTENT_TOP2_DIFF_MAX', '0.10')}|你告诉我到底是 positive/negative/none，我下次同情境能学会")
+    print(f"A|意图不确定|我对你这一刻意图判断很犹豫（正反馈={intent_probs[0]:.2f} / 负反馈={intent_probs[1]:.2f} / 中性={intent_probs[2]:.2f}，top2 差仅 {top2_diff:.3f}）|连续 {persist['A']} 帧三类概率差 < {os.environ.get('INTENT_TOP2_DIFF_MAX', '0.10')}|你告诉我到底是正反馈/负反馈/中性，我下次同情境能学会")
     sys.exit(0)
 
 # B. 表情不确定（持续 N 帧）
