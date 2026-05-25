@@ -35,32 +35,40 @@ log() {
 trigger_dialog() {
     local state="$1" margin="$2" ts_ns="$3"
 
-    # AppleScript 弹窗：4 个按钮 + 状态显示
-    # 注意：display dialog 用单选，按钮 4 个上限
+    # AppleScript 弹窗：osascript display dialog 最多 3 按钮（5/25 川哥实测踩坑）
+    # 设计：[→ 负] [→ 中] [→ 正]，「跳过」靠 ESC / 60s 超时
     local prompt="LnMem 检测到状态：${state} (置信度 ${margin})
 
-这个推断准吗？给反馈让 AI 学得更快"
+这个推断准吗？给反馈让 AI 学得更快
+（不想反馈点叉关闭或等 60s 超时）"
 
-    local choice
-    choice=$(osascript -e "display dialog \"${prompt}\" \
+    local result
+    result=$(osascript -e "display dialog \"${prompt}\" \
         with title \"LnMem 反馈\" \
-        buttons {\"跳过\", \"→ 负反馈\", \"→ 无\", \"→ 正反馈\"} \
-        default button \"→ 正反馈\" \
+        buttons {\"→ 负\", \"→ 中\", \"→ 正\"} \
+        default button \"→ 正\" \
         with icon note \
-        giving up after 60" 2>/dev/null | head -1)
+        giving up after 60" 2>&1)
+    local osa_exit=$?
 
-    log "user choice: $choice"
+    log "osascript result: $result (exit=$osa_exit)"
+
+    # gave up=true 或 user canceled → 跳过
+    if echo "$result" | grep -q "gave up:true"; then
+        log "user did not respond in 60s, skip"
+        return 0
+    fi
+    if [ $osa_exit -ne 0 ] || echo "$result" | grep -q "User canceled"; then
+        log "user canceled / osascript error"
+        return 0
+    fi
 
     local corrected=""
-    case "$choice" in
-        *正反馈*) corrected="positive" ;;
-        *负反馈*) corrected="negative" ;;
-        *无*) corrected="none" ;;
-        *跳过*|"") return 0 ;;
-        *gave\ up*)
-            log "user did not respond in 60s, skip"
-            return 0
-            ;;
+    case "$result" in
+        *正*) corrected="positive" ;;
+        *中*) corrected="none" ;;
+        *负*) corrected="negative" ;;
+        *) log "unknown button choice"; return 0 ;;
     esac
 
     # POST 反馈
