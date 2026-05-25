@@ -52,7 +52,7 @@
         <key>RECENT_FEEDBACK_DEDUP_S</key>
         <string>1800</string>
         <key>DAILY_MAX</key>
-        <string>60</string>
+        <string>200</string>
 
         <!-- v2.2 P-AL.2 online cooldown adaptation 参数（川哥 5/25 13:30 钦定）-->
         <key>ADAPT_WINDOW_N</key>

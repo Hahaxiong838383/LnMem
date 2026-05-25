@@ -34,7 +34,7 @@ POLL_INTERVAL="${POLL_INTERVAL:-3}"
 GLOBAL_COOLDOWN_S="${GLOBAL_COOLDOWN_S:-300}"        # 5 分钟（之前 30s 太频繁）
 PER_REASON_COOLDOWN_S="${PER_REASON_COOLDOWN_S:-1800}"  # 30 分钟（之前 120s 同问重问）
 RECENT_FEEDBACK_DEDUP_S="${RECENT_FEEDBACK_DEDUP_S:-1800}"  # 30 分钟内反馈过的 (state, intent_pred) 不再问
-DAILY_MAX="${DAILY_MAX:-60}"                         # 日上限 60（之前 150）
+DAILY_MAX="${DAILY_MAX:-200}"                        # 日上限 200（v2.2 adapter 已自适应，主要靠 cooldown 防骚扰，DAILY_MAX 只是兜底保险）
 
 # active learning 触发阈值（codex 对抗审后定）
 INTENT_TOP2_DIFF_MAX="${INTENT_TOP2_DIFF_MAX:-0.10}"
