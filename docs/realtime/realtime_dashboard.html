@@ -14,37 +14,72 @@
         onerror="this.dataset.failed='1'"></script>
 <style>
   * { box-sizing: border-box; }
+  html, body {
+    height: 100vh; margin: 0; overflow: hidden;
+  }
   body {
-    margin: 0; padding: 16px;
+    padding: 8px 12px;
     font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
     background: #0f172a; color: #e2e8f0;
+    display: flex; flex-direction: column;
   }
   .header {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 0 8px 12px; border-bottom: 1px solid #1e293b;
+    padding: 0 4px 6px; border-bottom: 1px solid #1e293b;
+    flex: 0 0 auto;  /* 不伸缩 */
   }
-  .header h1 { margin: 0; font-size: 18px; font-weight: 600; color: #f1f5f9; }
-  .status-bar { display: flex; gap: 12px; font-size: 12px; }
+  .header h1 { margin: 0; font-size: 15px; font-weight: 600; color: #f1f5f9; }
+  .status-bar { display: flex; gap: 8px; font-size: 11px; }
   .status-pill {
-    padding: 4px 10px; border-radius: 12px; background: #1e293b;
+    padding: 3px 8px; border-radius: 10px; background: #1e293b;
   }
   .status-pill.ok { background: #064e3b; color: #6ee7b7; }
   .status-pill.warn { background: #78350f; color: #fcd34d; }
   .status-pill.err { background: #7f1d1d; color: #fca5a5; }
+
+  /* 3 图均分剩余空间，纵向 stack */
+  .charts-container {
+    flex: 1 1 auto;
+    display: flex; flex-direction: column;
+    gap: 6px;
+    margin-top: 6px;
+    min-height: 0;  /* 关键：允许 flex 子元素收缩 */
+  }
   .chart-section {
-    margin-top: 16px;
-    background: #1e293b; border-radius: 8px; padding: 12px;
+    flex: 1 1 0;  /* 3 个 section 等高均分 */
+    background: #1e293b; border-radius: 6px;
+    padding: 6px 10px;
+    display: flex; flex-direction: column;
+    min-height: 0;
   }
   .chart-section h2 {
-    margin: 0 0 8px; font-size: 14px; font-weight: 500; color: #cbd5e1;
+    margin: 0 0 2px; font-size: 12px; font-weight: 500; color: #cbd5e1;
+    flex: 0 0 auto;
   }
-  .chart-section .caption { font-size: 11px; color: #94a3b8; margin-bottom: 8px; }
-  canvas { background: #0f172a; border-radius: 4px; }
+  .chart-section .caption {
+    font-size: 10px; color: #94a3b8; margin: 0 0 4px;
+    flex: 0 0 auto;
+  }
+  .canvas-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    position: relative;
+  }
+  canvas {
+    background: #0f172a; border-radius: 4px;
+    position: absolute; top: 0; left: 0;
+    width: 100% !important; height: 100% !important;
+  }
   .footer {
-    margin-top: 16px; padding-top: 12px; border-top: 1px solid #1e293b;
-    font-size: 11px; color: #64748b; text-align: center;
+    padding: 4px 0 0; border-top: 1px solid #1e293b;
+    font-size: 10px; color: #64748b; text-align: center;
+    flex: 0 0 auto;
   }
-  .footer a { color: #94a3b8; text-decoration: none; margin: 0 8px; }
+  .footer a { color: #94a3b8; text-decoration: none; margin: 0 6px; }
+
+  /* 调试面板更紧凑 */
+  #debug-panel { display: none; }  /* 默认隐藏，出错才显示 */
+  #debug-panel.show { display: block !important; }
 </style>
 </head>
 <body>
@@ -59,35 +94,30 @@
   </div>
 </div>
 
-<!-- 调试面板：显示 JS 启动日志和错误（防 Brave Shields 静默 block CDN）-->
-<div id="debug-panel" style="background:#1e293b;border-left:3px solid #f59e0b;padding:8px 12px;margin:8px 0;font-family:monospace;font-size:11px;color:#fcd34d;">
-  <strong>🔍 调试日志</strong>（如果一直显示 "连接中"，看这里）：
-  <div id="debug-log" style="margin-top:4px;color:#e2e8f0;"></div>
+<!-- 调试面板：仅出错时显示（防 Brave Shields 静默 block CDN）-->
+<div id="debug-panel" style="background:#1e293b;border-left:3px solid #f59e0b;padding:6px 10px;margin:4px 0;font-family:monospace;font-size:10px;color:#fcd34d;">
+  <strong>🔍 调试日志</strong>：<span id="debug-log" style="color:#e2e8f0;"></span>
 </div>
 
-<div class="chart-section">
-  <h2>🎯 意图概率演化（红虚线 = 现在 / 黄色背景 = LTC 真预测）</h2>
-  <div class="caption">三类堆叠面积：正反馈 / 负反馈 / 中性，总和 100%</div>
-  <canvas id="intent-chart" height="180"></canvas>
-</div>
+<div class="charts-container">
+  <div class="chart-section">
+    <h2>🎯 意图概率（红虚线 = 现在 · 黄色 = LTC 预测）</h2>
+    <div class="canvas-wrap"><canvas id="intent-chart"></canvas></div>
+  </div>
 
-<div class="chart-section">
-  <h2>😊 情绪 概率演化</h2>
-  <div class="caption">情绪-正向 / 情绪-负向 / 中立 组内归一化</div>
-  <canvas id="emotion-chart" height="160"></canvas>
-</div>
+  <div class="chart-section">
+    <h2>😊 情绪（正向 / 负向 / 中立）</h2>
+    <div class="canvas-wrap"><canvas id="emotion-chart"></canvas></div>
+  </div>
 
-<div class="chart-section">
-  <h2>🎯 注意力 概率演化</h2>
-  <div class="caption">专注 / 分心 / 疲惫 / 低能量 / 过渡中 组内归一化</div>
-  <canvas id="attention-chart" height="160"></canvas>
+  <div class="chart-section">
+    <h2>🎯 注意力（专注 / 分心 / 疲惫 / 低能量 / 过渡）</h2>
+    <div class="canvas-wrap"><canvas id="attention-chart"></canvas></div>
+  </div>
 </div>
 
 <div class="footer">
-  实时数据 SSE: <code>/signals/stream</code> · ADR-034 · 60fps 平滑更新 · 脱离 streamlit 重画
-  <br>
-  <a href="http://localhost:8520" target="_blank">📊 Streamlit 管理面板</a> ·
-  <a href="javascript:location.reload()">🔄 刷新</a>
+  SSE 1Hz · ADR-034 · <a href="http://localhost:8520" target="_blank">📊 Streamlit</a> · <a href="javascript:location.reload()">🔄 刷新</a>
 </div>
 
 <script>
@@ -97,8 +127,12 @@ function dlog(msg, level = 'info') {
   if (!el) { console.log(msg); return; }
   const colors = { info: '#e2e8f0', ok: '#6ee7b7', warn: '#fcd34d', err: '#fca5a5' };
   const ts = new Date().toLocaleTimeString();
-  el.innerHTML += `<div style="color:${colors[level]||colors.info}">[${ts}] ${msg}</div>`;
+  el.innerHTML += `<span style="color:${colors[level]||colors.info};margin-right:8px">[${ts}] ${msg}</span>`;
   console.log(`[${level}]`, msg);
+  // 有错才显示 debug panel
+  if (level === 'err' || level === 'warn') {
+    document.getElementById('debug-panel')?.classList.add('show');
+  }
 }
 window.onerror = function(msg, src, line, col, err) {
   dlog(`❌ JS ERROR: ${msg} @ ${src}:${line}`, 'err');
