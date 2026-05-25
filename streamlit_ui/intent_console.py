@@ -437,12 +437,19 @@ def render_evolution_panel(history):
                 })
 
     df_intent = pd.DataFrame(rows)
+    # 川哥钦定：预测占右 1/3 → 历史显示最近 2× 预测时长（10s 预测 → 20s 历史 → 总 30s 窗口）
+    intent_pred_duration = 10  # LTC 预测时长
+    intent_history_window = intent_pred_duration * 2
+    intent_x_domain_start = last_ts - timedelta(seconds=intent_history_window)
+    intent_x_domain_end = last_ts + timedelta(seconds=intent_pred_duration)
+
     # 主面积图
     intent_area = (
         alt.Chart(df_intent)
         .mark_area(opacity=0.85)
         .encode(
-            x=alt.X("ts:T", title=None),
+            x=alt.X("ts:T", title=None,
+                    scale=alt.Scale(domain=[intent_x_domain_start, intent_x_domain_end], clamp=True)),
             y=alt.Y("概率:Q", stack="normalize", title="意图概率分布"),
             color=alt.Color(
                 "意图类别:N",
@@ -624,12 +631,19 @@ def render_evolution_panel(history):
         group_labels = [state_meta[s]["label"] for s in group_states]
         group_colors = [state_meta[s]["color"] for s in group_states]
 
+        # 川哥钦定：预测占右 1/3 → 历史显示最近 2× 预测时长
+        group_pred_duration = 10 if use_ltc else 5
+        group_history_window = group_pred_duration * 2
+        group_x_start = last_ts_dt - timedelta(seconds=group_history_window)
+        group_x_end = last_ts_dt + timedelta(seconds=group_pred_duration)
+
         # 主图：stacked area
         main_chart = (
             alt.Chart(df)
             .mark_area(opacity=0.85)
             .encode(
-                x=alt.X("ts:T", title=None),
+                x=alt.X("ts:T", title=None,
+                        scale=alt.Scale(domain=[group_x_start, group_x_end], clamp=True)),
                 y=alt.Y("概率:Q", stack="normalize",
                         title=f"{group_name}组内概率占比 (总=100%)"),
                 color=alt.Color(
