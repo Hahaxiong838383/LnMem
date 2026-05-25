@@ -528,43 +528,111 @@ def render_evolution_panel(history):
             "置信度": 0.0, "是否预测": True,
         })
 
-    def _render_group_chart(group_name, group_emoji, height=70):
-        rows = _build_rows(history, group_name)
-        # 把所有预测块按分组过滤
-        for pr in pred_rows:
-            # 找原始 state 看分组（pr["状态"] 是 label 不是原始）
-            for orig_state, m in state_meta.items():
-                if m["label"] == pr["状态"] and m["group"] == group_name:
-                    rows.append(pr)
-                    break
+    def _render_group_chart(group_name, group_emoji, height=200):
+        """折线图：y=top_prob 置信度，颜色按 state 区分（mark_line by color 自动分段）"""
+        # 历史点
+        history_pts = []
+        for h in history:
+            meta = state_meta.get(h.phase2_state, state_meta["unknown"])
+            if meta["group"] != group_name:
+                continue
+            history_pts.append({
+                "ts": datetime.fromtimestamp(h.ts_ns / 1e9),
+                "置信度": h.top_prob,
+                "状态": meta["label"],
+                "valence": meta["valence"],
+                "是否预测": False,
+            })
+        # 预测点（从 ltc_preds 取这个 group 的每步预测）
+        pred_pts = []
+        if use_ltc:
+            for i, p in enumerate(ltc_preds[:10], 1):
+                st_name = p.get("predicted_state", "unknown")
+                meta = state_meta.get(st_name, state_meta["unknown"])
+                if meta["group"] != group_name:
+                    continue
+                pred_pts.append({
+                    "ts": last_ts_dt + timedelta(seconds=i),
+                    "置信度": float(p.get("top_prob", 0.0)),
+                    "状态": meta["label"],
+                    "valence": meta["valence"],
+                    "是否预测": True,
+                })
+        elif pred_rows:
+            for pr in pred_rows:
+                for orig_state, m in state_meta.items():
+                    if m["label"] == pr["状态"] and m["group"] == group_name:
+                        pred_pts.append({
+                            "ts": pr["ts_start"],
+                            "置信度": pr["置信度"],
+                            "状态": pr["状态"],
+                            "valence": pr["valence"],
+                            "是否预测": True,
+                        })
+                        break
+
+        rows = history_pts + pred_pts
         if not rows:
             st.caption(f"{group_emoji} {group_name}: 本批历史无此类记录")
             return
+
         df = pd.DataFrame(rows)
-        # 该分组的 label/color subset
         group_labels = [m["label"] for m in state_meta.values() if m["group"] == group_name]
         group_colors = [m["color"] for m in state_meta.values() if m["group"] == group_name]
-        chart = (
+
+        # 历史段：实线 + 点
+        history_chart = (
             alt.Chart(df)
-            .mark_rect()
+            .transform_filter(alt.datum["是否预测"] == False)
+            .mark_line(interpolate="step-after", strokeWidth=2.5)
             .encode(
-                x=alt.X("ts_start:T", title=None),
-                x2="ts_end:T",
+                x=alt.X("ts:T", title=None),
+                y=alt.Y("置信度:Q", scale=alt.Scale(domain=[0, 1]), title="state 置信度 (0-1)"),
                 color=alt.Color(
                     "状态:N",
                     scale=alt.Scale(domain=group_labels, range=group_colors),
-                    legend=alt.Legend(orient="top", columns=len(group_labels)),
+                    legend=alt.Legend(orient="top", columns=len(group_labels), title=None),
                 ),
-                opacity=alt.condition(alt.datum["是否预测"], alt.value(0.35), alt.value(0.9)),
-                tooltip=["ts_start:T", "状态:N", "valence:N",
+                tooltip=["ts:T", "状态:N", "valence:N",
                          alt.Tooltip("置信度:Q", format=".3f"), "是否预测:N"],
             )
-            .properties(height=height, title=f"{group_emoji} {group_name} 时间线（右侧 5s {'LTC 预测' if use_ltc else 'mean fallback'}）")
         )
-        st.altair_chart(chart, use_container_width=True)
+        history_dots = (
+            alt.Chart(df)
+            .transform_filter(alt.datum["是否预测"] == False)
+            .mark_circle(size=30)
+            .encode(
+                x="ts:T", y="置信度:Q",
+                color=alt.Color("状态:N", scale=alt.Scale(domain=group_labels, range=group_colors), legend=None),
+                tooltip=["ts:T", "状态:N", alt.Tooltip("置信度:Q", format=".3f")],
+            )
+        )
+        # 预测段：虚线 + 半透明点
+        pred_chart = (
+            alt.Chart(df)
+            .transform_filter(alt.datum["是否预测"] == True)
+            .mark_line(interpolate="step-after", strokeWidth=2, strokeDash=[5, 3], opacity=0.6)
+            .encode(
+                x="ts:T", y="置信度:Q",
+                color=alt.Color("状态:N", scale=alt.Scale(domain=group_labels, range=group_colors), legend=None),
+                tooltip=["ts:T", "状态:N", alt.Tooltip("置信度:Q", format=".3f"), "是否预测:N"],
+            )
+        )
+        pred_dots = (
+            alt.Chart(df)
+            .transform_filter(alt.datum["是否预测"] == True)
+            .mark_circle(size=40, opacity=0.5)
+            .encode(x="ts:T", y="置信度:Q",
+                    color=alt.Color("状态:N", scale=alt.Scale(domain=group_labels, range=group_colors), legend=None))
+        )
+        combined = (history_chart + history_dots + pred_chart + pred_dots).properties(
+            height=height,
+            title=f"{group_emoji} {group_name} 演化（实线=历史，虚线=右侧 {'10s LTC 预测' if use_ltc else '5s mean fallback'}，颜色=state，y=top_prob）"
+        )
+        st.altair_chart(combined, use_container_width=True)
 
-    _render_group_chart("情绪", "😊", height=70)
-    _render_group_chart("注意力", "🎯", height=70)
+    _render_group_chart("情绪", "😊", height=200)
+    _render_group_chart("注意力", "🎯", height=200)
 
     # valence 图例说明
     st.caption(
