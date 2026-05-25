@@ -22,7 +22,9 @@ DATA_DIR="${LNMEM_DATA_DIR:-${HOME}/lnmem-daemon-sync}"  # Air rsync 过来的 d
 CKPT_DIR="${LNMEM_CKPT_DIR:-${HOME}/lnmem-train/ckpt}" # 训练 ckpt 输出（Studio 已有 ~/lnmem-train）
 LOG_DIR="${HOME}/lnmem-train/logs/train"
 LOCK_FILE="/tmp/lnmem_nightly_train.lock"
-FEEDBACK_MIN=50                                        # 新增反馈条数阈值
+CURSOR_FILE="${HOME}/lnmem-train/.last_trained_feedback_count"  # 上次训练成功时的 feedback 总数（codex 钦定，防反复训同批）
+FEEDBACK_MIN_INCREMENT=${LNMEM_FEEDBACK_MIN_INCREMENT:-30}      # gemini 钦定 30（3 类均分每类 ≥10），增量阈值不是绝对值
+MIN_HOURS_BETWEEN_TRAINS=${LNMEM_MIN_HOURS_BETWEEN_TRAINS:-20}  # 双门：距上次训练 ≥20h（24h 调度留 4h 缓冲）
 # 注：Air 无 SSH 别名（DHCP 动态 IP），改用 Air 主动 pull 模式
 # Studio 这里只负责把 ckpt 落到本地 + 维护 intent_head_latest.pt 符号链接
 # Air 端的 cron 跑 scripts/pull_ckpt_from_studio.sh 拉过去（每 10min）
@@ -57,24 +59,45 @@ log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
 log "===== nightly train start ====="
 log "REPO: $REPO_DIR  DATA: $DATA_DIR  CKPT: $CKPT_DIR"
 
-# ---- 1. 拉最新代码 ----
+# ---- 1. 拉最新代码（非阻塞，git 失败用 rsync 兜底） ----
 if [ "$DRY_RUN" -eq 0 ]; then
     log "git pull..."
-    (cd "$REPO_DIR" && git pull --rebase --autostash 2>&1 | tail -3) | tee -a "$LOG_FILE"
+    if (cd "$REPO_DIR" && git pull --rebase --autostash 2>&1 | tail -3) | tee -a "$LOG_FILE"; then
+        log "git pull ok"
+    else
+        log "[WARN] git pull failed（可能 .git 是 rsync 来的非真 clone），继续用本地代码"
+    fi
 fi
 
-# ---- 2. 数据健康度检查 ----
+# ---- 2. 数据健康度检查（双门：增量 + 时间间隔，gemini 钦定防灾难性遗忘） ----
 SIGNAL_COUNT=$(find "$DATA_DIR" -name 'signals_*.jsonl' -mtime -1 2>/dev/null | wc -l | tr -d ' ')
 FEEDBACK_COUNT=0
 if [ -d "$DATA_DIR/intent_feedback" ]; then
-    # 今天 + 昨天的 intent_feedback 总条数
     FEEDBACK_COUNT=$(cat "$DATA_DIR/intent_feedback/"*.jsonl 2>/dev/null | wc -l | tr -d ' ' || echo 0)
 fi
-log "data: signal_files_today=$SIGNAL_COUNT  total_feedback=$FEEDBACK_COUNT"
 
-if [ "$FORCE_TRAIN" -eq 0 ] && [ "$FEEDBACK_COUNT" -lt "$FEEDBACK_MIN" ]; then
-    log "[SKIP] 反馈不足 ($FEEDBACK_COUNT < $FEEDBACK_MIN)，跳过训练（--force 可强制）"
-    exit 0
+# 读上次训练时的 feedback 总数
+LAST_TRAINED_COUNT=0
+LAST_TRAINED_TS=0
+if [ -f "$CURSOR_FILE" ]; then
+    LAST_TRAINED_COUNT=$(awk -F: '{print $1}' "$CURSOR_FILE" 2>/dev/null || echo 0)
+    LAST_TRAINED_TS=$(awk -F: '{print $2}' "$CURSOR_FILE" 2>/dev/null || echo 0)
+fi
+INCREMENT=$((FEEDBACK_COUNT - LAST_TRAINED_COUNT))
+NOW_TS=$(date +%s)
+HOURS_SINCE_LAST=$(( (NOW_TS - LAST_TRAINED_TS) / 3600 ))
+
+log "data: signal_files_today=$SIGNAL_COUNT  total_feedback=$FEEDBACK_COUNT  last_trained=$LAST_TRAINED_COUNT  increment=$INCREMENT  hours_since_last=$HOURS_SINCE_LAST"
+
+if [ "$FORCE_TRAIN" -eq 0 ]; then
+    if [ "$INCREMENT" -lt "$FEEDBACK_MIN_INCREMENT" ]; then
+        log "[SKIP] 增量反馈不足 (新增 $INCREMENT < $FEEDBACK_MIN_INCREMENT)，跳过训练（--force 可强制）"
+        exit 0
+    fi
+    if [ "$LAST_TRAINED_TS" -gt 0 ] && [ "$HOURS_SINCE_LAST" -lt "$MIN_HOURS_BETWEEN_TRAINS" ]; then
+        log "[SKIP] 距上次训练仅 $HOURS_SINCE_LAST h (< $MIN_HOURS_BETWEEN_TRAINS h)，防过拟合（--force 可强制）"
+        exit 0
+    fi
 fi
 
 # ---- 3. 训练（调用 poc/training/train_intent_classifier.py） ----
@@ -108,11 +131,18 @@ else
     log "[DRY] 跳过训练"
 fi
 
-# ---- 4. 维护 latest symlink（Air 端 pull 看这个） ----
+# ---- 4. 维护 latest symlink（Air 端 pull 看这个；tmp+mv 原子，codex 钦定） ----
 if [ "$DRY_RUN" -eq 0 ] && [ -f "$OUT_CKPT" ]; then
-    ln -sf "$(basename $OUT_CKPT)" "${CKPT_DIR}/intent_head_latest.pt"
-    log "[OK] latest symlink → $(basename $OUT_CKPT)"
+    LATEST_LINK="${CKPT_DIR}/intent_head_latest.pt"
+    TMP_LINK="${LATEST_LINK}.tmp.$$"
+    ln -sf "$(basename $OUT_CKPT)" "$TMP_LINK"
+    mv -f "$TMP_LINK" "$LATEST_LINK"
+    log "[OK] latest symlink → $(basename $OUT_CKPT) (atomic via tmp+mv)"
     log "    Air 端 cron 跑 pull_ckpt_from_studio.sh 自动拉过去"
+
+    # 训练成功后更新 cursor（防下一次重复训）
+    echo "${FEEDBACK_COUNT}:${NOW_TS}" > "$CURSOR_FILE"
+    log "[OK] cursor 更新 → feedback_count=${FEEDBACK_COUNT} ts=${NOW_TS}"
 fi
 
 # ---- 5. ckpt 清理（保留近 7 个） ----

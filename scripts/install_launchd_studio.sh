@@ -26,10 +26,21 @@ if [ "$UNINSTALL" -eq 1 ]; then
     exit 0
 fi
 
-launchctl unload "$dst" 2>/dev/null || true
+if [ -f "$dst" ]; then
+    if ! launchctl unload "$dst" 2>/tmp/launchctl_unload_err_$$.log; then
+        echo "[WARN] launchctl unload failed for $LABEL (existing plist):"
+        cat /tmp/launchctl_unload_err_$$.log
+        echo "       继续装载，但请人工核查是否有残留"
+    fi
+    rm -f /tmp/launchctl_unload_err_$$.log
+fi
 cp "$src" "$dst"
-launchctl load "$dst"
-echo "[installed] $LABEL"
+if launchctl load "$dst"; then
+    echo "[installed] $LABEL"
+else
+    echo "[ERR] launchctl load failed for $LABEL"
+    exit 1
+fi
 echo ""
 echo "===== Studio 夜训已配 ====="
 launchctl list | grep "com.lnmem" || echo "(未在 launchctl list 显示，可能 unload 状态)"

@@ -36,8 +36,15 @@ for label in "${PLISTS[@]}"; do
         continue
     fi
 
-    # 先 unload（如果已存在）
-    launchctl unload "$dst" 2>/dev/null || true
+    # 先 unload（如果已存在）—— 区分 benign(不存在) vs 真错误
+    if [ -f "$dst" ]; then
+        if ! launchctl unload "$dst" 2>/tmp/launchctl_unload_err_$$.log; then
+            echo "[WARN] launchctl unload failed for $label (existing plist):"
+            cat /tmp/launchctl_unload_err_$$.log
+            echo "       继续装载，但请人工核查是否有残留"
+        fi
+        rm -f /tmp/launchctl_unload_err_$$.log
+    fi
     # 复制 plist
     cp "$src" "$dst"
     # 装载

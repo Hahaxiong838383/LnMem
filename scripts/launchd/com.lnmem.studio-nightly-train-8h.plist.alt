@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  备用 plist：每 8h 训练一次（00:00 / 08:00 / 16:00）
+  默认未启用 —— gemini-3.5-flash 对抗审认为 24h 更稳（防灾难性遗忘）
+
+  如要切换到 8h 调度（川哥决策后）：
+    cd ~/lnmem-poc
+    cp scripts/launchd/com.lnmem.studio-nightly-train-8h.plist.alt \
+       scripts/launchd/com.lnmem.studio-nightly-train.plist
+    ./scripts/install_launchd_studio.sh   # 重装 launchctl
+    # 配合调小阈值：
+    export LNMEM_FEEDBACK_MIN_INCREMENT=10
+    export LNMEM_MIN_HOURS_BETWEEN_TRAINS=6
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lnmem.studio-nightly-train</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>cd /Users/fu-121/lnmem-poc &amp;&amp; ./scripts/studio_nightly_train.sh</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>0</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>8</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>16</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+    </array>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/fu-121/lnmem-train/logs/train/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/fu-121/lnmem-train/logs/train/launchd.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/fu-121/.local/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/fu-121</string>
+        <key>LNMEM_REPO</key>
+        <string>/Users/fu-121/lnmem-poc</string>
+    </dict>
+</dict>
+</plist>

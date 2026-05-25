@@ -303,17 +303,37 @@ def main():
 
     # ---- 历史折线 ----
     st.markdown("---")
-    st.subheader("📈 近 200 条推断历史")
+    st.subheader("📈 近 200 条推断历史（纵轴 = 置信度 0~1）")
+    st.caption(
+        "**纵轴含义**：每帧 LNN 推断的 `intent_confidence`（置信度），范围 0.0-1.0。"
+        "越接近 1.0 = 模型对本帧判断越确定；越接近 0.0 = 越不确定（接近随机猜）。"
+        "经验阈值：≥0.85 高可信，0.70-0.85 中等，<0.70 弱信号（notify_watcher 弹窗也用此阈值过滤）。"
+    )
     if len(st.session_state.history) >= 5:
         import pandas as pd
+        import altair as alt
         df = pd.DataFrame([
             {"ts": datetime.fromtimestamp(h.ts_ns / 1e9),
              "confidence": h.intent_confidence,
              "intent": h.intent_pred}
             for h in st.session_state.history
         ])
-        st.line_chart(df.set_index("ts")["confidence"], height=200)
-        # 意图分布饼图
+        chart = (
+            alt.Chart(df)
+            .mark_line()
+            .encode(
+                x=alt.X("ts:T", title="时间"),
+                y=alt.Y(
+                    "confidence:Q",
+                    title="置信度 (0=不确定, 1=完全确定)",
+                    scale=alt.Scale(domain=[0, 1]),
+                ),
+                tooltip=["ts:T", "confidence:Q", "intent:N"],
+            )
+            .properties(height=200)
+        )
+        st.altair_chart(chart, use_container_width=True)
+        # 意图分布
         from collections import Counter
         dist = Counter([h.intent_pred for h in st.session_state.history])
         st.caption(f"意图分布: {dict(dist)}")

@@ -56,12 +56,16 @@ trap 'rm -f "$LOCK_FILE"' EXIT INT TERM
 mkdir -p "$LOG_DIR"
 
 # ---- 日志头 ----
+# 注：[ -n "$DRY_RUN" ] && ... 在非 dry-run 下返回 1，叠加 set -e + pipefail 会让整个 pipe 失败
+# 必须用 if 块避免短路触发退出（5/25 cc 抓到的原生 bug）
 {
     echo ""
     echo "===== sync_daemon_to_studio.sh $(date '+%Y-%m-%d %H:%M:%S') ====="
     echo "SRC: $SRC"
     echo "DST: ${DST_HOST}:${DST_PATH}"
-    [ -n "$DRY_RUN" ] && echo "MODE: DRY-RUN"
+    if [ -n "$DRY_RUN" ]; then
+        echo "MODE: DRY-RUN"
+    fi
 } | tee -a "$LOG_FILE"
 
 # ---- Studio 侧目录存在性 ----

@@ -132,5 +132,54 @@ UI 上能看到：
 
 ---
 
-**署名**：cc（Claude）| 2026-05-24 凌晨 03:?? 落盘 + 后续 commit 时间戳实时更新
-**协同**：codex (gpt-5.3-codex high) · gemini (3-flash-preview)
+---
+
+## 附录：5/25 凌晨 00:30 实际终态（cc 一晚成果）
+
+**GitHub commit**（push 完成）：
+- `578baf3` Sprint 2 一轮（codex + cc 主线 17 文件 / 1700+ 行 / 19 测试过）
+- `2e260c6` Sprint 2 retrofit（gemini H1/H2/H3/D4/U2 整改 / 16 文件 / 1236 行 / **24 测试过**）
+
+**Studio 公网部署进展**：
+- ✅ ssh studio-pub (10.9.1.159 via mini-pub:22022) 公网通
+- ✅ `~/lnmem-poc` 558MB 仓 rsync 到位
+- ✅ `~/lnmem-daemon-sync/` **14 天 daemon jsonl 659MB**（5/9-5/24）
+- ✅ `~/lnmem-train/ckpt` + `~/lnmem-train/logs/train` 建好
+- ✅ uv 0.11.16 + python 3.11.15
+- 🔄 venv torch（清华镜像后台装中，预计 3min 内通）
+- ⏳ `~/Library/LaunchAgents/com.lnmem.studio-nightly-train.plist` 待装（川哥起床后跑 `./scripts/install_launchd_studio.sh`）
+
+**川哥 5/25 早起 5 件事（已按重要性排序）**：
+
+```bash
+# 1. 拉最新代码 + 看 commit
+cd ~/mycc/2-Projects/LnMem-poc && git pull
+git log --oneline 38f7033..HEAD
+
+# 2. 重启 daemon 加载新代码（带 hidden_state_window + intent_feedback endpoint）
+launchctl unload ~/Library/LaunchAgents/com.lnmem.daemon-supervisor.plist 2>/dev/null
+sleep 2 && launchctl load ~/Library/LaunchAgents/com.lnmem.daemon-supervisor.plist
+# 或手动：./scripts/start-daemon.sh
+
+# 3. 跑 Streamlit UI 看实时推断 + 给反馈
+.venv-poc-fresh/bin/streamlit run streamlit_ui/intent_console.py --server.port 8520
+
+# 4. 装 Air LaunchAgent（让 rsync + pull ckpt 自动跑）
+./scripts/install_launchd_air.sh
+
+# 5. ssh Studio 装 LaunchAgent（让夜训 03:00 自动跑）
+ssh studio-pub "cd ~/lnmem-poc && ./scripts/install_launchd_studio.sh"
+```
+
+**关键现实告知**：
+- 现在 0 条 intent_feedback 数据，**今晚不能真训** intent classifier（数据 = 0 < 50 阈值）
+- 川哥 5/25 全天用 UI 给反馈 → 5/26 03:00 cron 自动训第一次（如果 ≥ 50 条）
+- 或川哥手动 `ssh studio-pub "~/lnmem-poc/scripts/studio_nightly_train.sh --force"` 提早训
+
+**Studio 14 天 daemon 数据用途**：
+- 不训 intent_classifier（缺标签）
+- 可训 LNN backbone（self-supervised） — **但 5/22 11 轮已证 daemon shuffle_ratio ≈ 0，这条路 ADR-028 已转向**
+- 实际价值：让 Studio 训练 pipeline 一启动就有真实序列数据「热身」，避免冷启动 race
+
+**署名**：cc（Claude）| 2026-05-25 00:30 终态落盘
+**协同**：codex (gpt-5.3-codex high · 2 轮 35M+ token) · gemini (3-flash-preview · 8 finding)

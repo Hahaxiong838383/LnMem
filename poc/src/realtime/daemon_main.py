@@ -135,6 +135,12 @@ class DaemonApp:
             threading.Thread(target=self._frame_router_loop, name="lnmem-frame-router", daemon=True),
             threading.Thread(target=self._signal_router_loop, name="lnmem-signal-router", daemon=True),
         ]
+        # ADR-029 Sprint 2 (5/25 cc)：ckpt watcher 监控 intent_head_latest.pt 变化，软重启 inferencer
+        # 配合 launchd com.lnmem.pull-ckpt-from-studio 每 10min 拉新 ckpt
+        # 60s 周期不会撞 pull 节奏（pull 600s）+ 实时性满足（最坏 60s 看到训练结果）
+        self._router_threads.append(
+            threading.Thread(target=self._ckpt_watcher_loop, name="lnmem-ckpt-watcher", daemon=True)
+        )
         for thread in self._router_threads:
             thread.start()
         self._start_http_server()
@@ -223,6 +229,45 @@ class DaemonApp:
                 continue
             self._storage.enqueue_frame(item)
             _offer(self._pipeline_in, item)
+
+    def _ckpt_watcher_loop(self) -> None:
+        """ADR-029 Sprint 2：监控 intent_head_latest.pt symlink target 变化，软重启 inferencer。
+
+        不重启整个 daemon，调用 inferencer.reload_ckpt() 走 1s 线性权重过渡（gemini H3）。
+        失败 fail-soft：日志告警，继续用旧 ckpt 推理。
+        """
+        from pathlib import Path
+        check_interval = float(os.environ.get("LNMEM_CKPT_WATCH_INTERVAL_S", "60"))
+        latest_link = Path(os.path.expanduser(
+            os.environ.get("LNMEM_INTENT_HEAD_LATEST", "~/.lnmem/ckpt/intent_head_latest.pt")
+        ))
+        last_target: str | None = None
+        logging.info("ckpt watcher: latest=%s interval=%ss", latest_link, check_interval)
+        while not self._stop_event.is_set():
+            try:
+                if latest_link.exists():
+                    # 解析 symlink target（相对路径或绝对）
+                    target = os.readlink(latest_link) if latest_link.is_symlink() else str(latest_link)
+                    if last_target is not None and target != last_target:
+                        # ckpt 更新了，软重启
+                        resolved = latest_link.resolve()
+                        if self._lnn_inferencer is not None and resolved.exists():
+                            try:
+                                # reload_ckpt 只能换主 ckpt，intent_head 单独热加载
+                                self._lnn_inferencer._load_intent_head_ckpt(resolved)
+                                logging.info(
+                                    "ckpt watcher: intent_head reloaded → %s (was %s)",
+                                    target, last_target
+                                )
+                            except Exception as exc:  # noqa: BLE001
+                                logging.warning("ckpt watcher: reload failed: %s (keep old)", exc)
+                    last_target = target
+            except Exception as exc:  # noqa: BLE001
+                logging.warning("ckpt watcher: loop error: %s", exc)
+            # 用 stop_event.wait 而非 sleep，关停时秒退
+            if self._stop_event.wait(check_interval):
+                break
+        logging.info("ckpt watcher stopped")
 
     def _signal_router_loop(self) -> None:
         while not self._stop_event.is_set() or not self._pipeline_out.empty():
