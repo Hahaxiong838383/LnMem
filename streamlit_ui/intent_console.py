@@ -48,15 +48,15 @@ INTENT_LABELS = {
     "positive": ("🟢 正反馈", "#10b981"),
     "negative": ("🔴 负反馈", "#ef4444"),
     "none": ("⚪ 无反馈", "#9ca3af"),
-    # phase2 backbone 8 类情绪 fallback（intent_head 没训时显示这个，让用户能给反馈）
+    # phase2 backbone 真实 8 类（STATE_LABELS，来自 poc/src/lnn/expression_dynamics.py）
     "emotional_positive": ("😊 情绪-正向", "#10b981"),
     "emotional_negative": ("😟 情绪-负向", "#ef4444"),
-    "emotional_neutral": ("😐 情绪-中性", "#9ca3af"),
-    "high_arousal": ("⚡ 高唤醒", "#f59e0b"),
-    "low_arousal": ("💤 低唤醒", "#3b82f6"),
-    "engagement": ("👀 专注参与", "#06b6d4"),
-    "disengagement": ("👋 走神", "#9333ea"),
-    "transition": ("🔄 过渡", "#ec4899"),
+    "neutral": ("😐 中性", "#9ca3af"),
+    "focused": ("🎯 专注", "#06b6d4"),
+    "distracted": ("🌀 走神", "#9333ea"),
+    "fatigued": ("😴 疲惫", "#6366f1"),
+    "low_energy": ("💤 低能量", "#3b82f6"),
+    "transitioning": ("🔄 过渡中", "#ec4899"),
     # 状态
     "warmup": ("🟡 暖机中", "#fbbf24"),
     "error": ("❌ 异常", "#7c3aed"),

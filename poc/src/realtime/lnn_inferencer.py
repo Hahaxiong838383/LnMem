@@ -7,6 +7,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import logging
 import math
+import os
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,7 +24,9 @@ from poc.src.lnn.online_adapter import OnlineLoRAAdapter
 from poc.src.lnn.online_contracts import OnlineAdapterConfig
 from poc.src.lnn.signals_loader import _signals_row_to_frame_dict
 
-_DEFAULT_WINDOW = 60
+# 5/25 cc: 60 帧 × 1.07fps = 56s 暖机太慢（川哥实测「做笑脸几十秒没反馈」）。
+# 改 8 帧 ≈ 8s 暖机（phase2 ckpt seq_len=8 训练，匹配）。可被 env LNMEM_INFER_WINDOW 覆盖。
+_DEFAULT_WINDOW = int(os.environ.get("LNMEM_INFER_WINDOW", "8"))
 _RECENT_BUFFER_MAXLEN = 300
 _TRANSITION_FRAMES = 30
 
