@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>LnMem 实时大屏</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0f172a; color: #e2e8f0;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 8px 12px; border-bottom: 1px solid #1e293b;
+  }
+  .header h1 { margin: 0; font-size: 18px; font-weight: 600; color: #f1f5f9; }
+  .status-bar { display: flex; gap: 12px; font-size: 12px; }
+  .status-pill {
+    padding: 4px 10px; border-radius: 12px; background: #1e293b;
+  }
+  .status-pill.ok { background: #064e3b; color: #6ee7b7; }
+  .status-pill.warn { background: #78350f; color: #fcd34d; }
+  .status-pill.err { background: #7f1d1d; color: #fca5a5; }
+  .chart-section {
+    margin-top: 16px;
+    background: #1e293b; border-radius: 8px; padding: 12px;
+  }
+  .chart-section h2 {
+    margin: 0 0 8px; font-size: 14px; font-weight: 500; color: #cbd5e1;
+  }
+  .chart-section .caption { font-size: 11px; color: #94a3b8; margin-bottom: 8px; }
+  canvas { background: #0f172a; border-radius: 4px; }
+  .footer {
+    margin-top: 16px; padding-top: 12px; border-top: 1px solid #1e293b;
+    font-size: 11px; color: #64748b; text-align: center;
+  }
+  .footer a { color: #94a3b8; text-decoration: none; margin: 0 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🧠 LnMem 实时大屏</h1>
+  <div class="status-bar">
+    <span id="conn-status" class="status-pill">⏳ 连接中...</span>
+    <span id="fps-pill" class="status-pill">0 fps</span>
+    <span id="frame-pill" class="status-pill">frame: -</span>
+    <span id="ckpt-pill" class="status-pill">ckpt: -</span>
+  </div>
+</div>
+
+<div class="chart-section">
+  <h2>🎯 意图概率演化（红虚线 = 现在 / 黄色背景 = LTC 真预测）</h2>
+  <div class="caption">三类堆叠面积：正反馈 / 负反馈 / 中性，总和 100%</div>
+  <canvas id="intent-chart" height="180"></canvas>
+</div>
+
+<div class="chart-section">
+  <h2>😊 情绪 概率演化</h2>
+  <div class="caption">情绪-正向 / 情绪-负向 / 中立 组内归一化</div>
+  <canvas id="emotion-chart" height="160"></canvas>
+</div>
+
+<div class="chart-section">
+  <h2>🎯 注意力 概率演化</h2>
+  <div class="caption">专注 / 分心 / 疲惫 / 低能量 / 过渡中 组内归一化</div>
+  <canvas id="attention-chart" height="160"></canvas>
+</div>
+
+<div class="footer">
+  实时数据 SSE: <code>/signals/stream</code> · ADR-034 · 60fps 平滑更新 · 脱离 streamlit 重画
+  <br>
+  <a href="http://localhost:8520" target="_blank">📊 Streamlit 管理面板</a> ·
+  <a href="javascript:location.reload()">🔄 刷新</a>
+</div>
+
+<script>
+// ====== 配置 ======
+const SSE_URL = '/signals/stream';
+const HISTORY_FRAMES = 60;      // 滑窗：保留最近 N 帧历史
+const PRED_FRAMES = 10;          // 显示 N 步预测
+const STATE_META = {
+  emotional_positive: { group: 'emotion', label: '😊 情绪-正向', color: '#10b981' },
+  emotional_negative: { group: 'emotion', label: '😟 情绪-负向', color: '#ef4444' },
+  neutral:            { group: 'emotion', label: '😐 中立',     color: '#9ca3af' },
+  focused:            { group: 'attention', label: '🎯 专注',   color: '#3b82f6' },
+  distracted:         { group: 'attention', label: '🌀 分心',   color: '#f59e0b' },
+  fatigued:           { group: 'attention', label: '😴 疲惫',   color: '#a78bfa' },
+  low_energy:         { group: 'attention', label: '🪫 低能量', color: '#6b7280' },
+  transitioning:      { group: 'attention', label: '🔄 过渡中', color: '#ec4899' },
+};
+const STATE_ORDER = ['low_energy','focused','distracted','fatigued',
+                     'emotional_positive','emotional_negative','neutral','transitioning'];
+const INTENT_META = {
+  positive: { label: '🟢 正反馈', color: '#10b981' },
+  negative: { label: '🔴 负反馈', color: '#ef4444' },
+  none:     { label: '⚪ 中性',   color: '#9ca3af' },
+};
+
+// ====== 数据结构 ======
+const dataBuf = {
+  history: [],      // [{ts_ns, state_probs, intent_probs}]
+  predictions: [],  // [{ts_ns, state_probs, intent_probs}] (来自 LTC)
+};
+
+// ====== Chart 工厂 ======
+function makeStackedChart(ctxId, datasets, yMax = 1.0) {
+  const ctx = document.getElementById(ctxId).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      animation: false,           // 关动画 = 平滑（每帧 update 不闪）
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { color: '#cbd5e1', font: { size: 11 } } },
+        tooltip: { mode: 'index', intersect: false },
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { displayFormats: { second: 'HH:mm:ss', minute: 'HH:mm' } },
+          ticks: { color: '#94a3b8', font: { size: 10 } },
+          grid: { color: '#1e293b' },
+        },
+        y: {
+          beginAtZero: true, max: yMax, stacked: true,
+          ticks: { color: '#94a3b8', font: { size: 10 },
+                   callback: (v) => (v*100).toFixed(0) + '%' },
+          grid: { color: '#1e293b' },
+        },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    },
+  });
+}
+
+function makeDatasets(stateNames) {
+  return stateNames.map((name) => {
+    const isIntent = name in INTENT_META;
+    const meta = isIntent ? INTENT_META[name] : STATE_META[name];
+    return {
+      label: meta.label,
+      backgroundColor: meta.color + 'cc',
+      borderColor: meta.color,
+      borderWidth: 1,
+      fill: true,
+      tension: 0.2,
+      pointRadius: 0,
+      data: [],
+    };
+  });
+}
+
+// ====== 实例化 ======
+const intentChart = makeStackedChart('intent-chart',
+  makeDatasets(['positive', 'negative', 'none']));
+
+const emotionStates = STATE_ORDER.filter(s => STATE_META[s].group === 'emotion');
+const emotionChart = makeStackedChart('emotion-chart', makeDatasets(emotionStates));
+
+const attentionStates = STATE_ORDER.filter(s => STATE_META[s].group === 'attention');
+const attentionChart = makeStackedChart('attention-chart', makeDatasets(attentionStates));
+
+// ====== 数据 → chart 渲染 ======
+function normalizeGroup(probs, indices) {
+  // probs 是 8 维，indices 是该组里 state 的位置，返回归一化后的子向量
+  const subset = indices.map(i => probs[i]);
+  const sum = subset.reduce((a, b) => a + b, 0) || 1;
+  return subset.map(v => v / sum);
+}
+
+function rebuildChart(chart, allFrames, predFrames, kind) {
+  // kind: 'intent' | 'emotion' | 'attention'
+  let stateNames, getProbs;
+  if (kind === 'intent') {
+    stateNames = ['positive', 'negative', 'none'];
+    getProbs = (frame) => frame.intent_probs || [0, 0, 0];
+  } else if (kind === 'emotion') {
+    stateNames = emotionStates;
+    const indices = emotionStates.map(s => STATE_ORDER.indexOf(s));
+    getProbs = (frame) => {
+      if (!frame.state_probs) return stateNames.map(_ => 0);
+      return normalizeGroup(frame.state_probs, indices);
+    };
+  } else {
+    stateNames = attentionStates;
+    const indices = attentionStates.map(s => STATE_ORDER.indexOf(s));
+    getProbs = (frame) => {
+      if (!frame.state_probs) return stateNames.map(_ => 0);
+      return normalizeGroup(frame.state_probs, indices);
+    };
+  }
+
+  const all = [...allFrames, ...predFrames];
+  // 重建 datasets data（追加模式：每个 dataset push 新点）
+  chart.data.datasets.forEach((ds, i) => {
+    ds.data = all.map(f => ({
+      x: new Date(f.ts_ns / 1e6),
+      y: getProbs(f)[i] || 0,
+    }));
+  });
+  chart.update('none');  // 不触发动画 = 不闪
+}
+
+function refreshAllCharts() {
+  rebuildChart(intentChart, dataBuf.history, dataBuf.predictions, 'intent');
+  rebuildChart(emotionChart, dataBuf.history, dataBuf.predictions, 'emotion');
+  rebuildChart(attentionChart, dataBuf.history, dataBuf.predictions, 'attention');
+}
+
+// ====== FPS 计数 ======
+let frameCount = 0;
+let lastFpsTime = Date.now();
+setInterval(() => {
+  const now = Date.now();
+  const fps = (frameCount * 1000 / (now - lastFpsTime)).toFixed(1);
+  document.getElementById('fps-pill').textContent = `${fps} fps`;
+  frameCount = 0;
+  lastFpsTime = now;
+}, 1000);
+
+// ====== SSE 连接 ======
+function connect() {
+  const es = new EventSource(SSE_URL);
+  const statusEl = document.getElementById('conn-status');
+
+  es.onopen = () => {
+    statusEl.className = 'status-pill ok';
+    statusEl.textContent = '✅ 已连接';
+  };
+
+  es.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'frame') {
+        const lnn = msg.lnn || {};
+        dataBuf.history.push({
+          ts_ns: msg.ts_ns,
+          state_probs: lnn.state_probs,
+          intent_probs: lnn.intent_probs,
+          predicted_state: lnn.predicted_state,
+        });
+        if (dataBuf.history.length > HISTORY_FRAMES) dataBuf.history.shift();
+
+        // 顶部 status
+        document.getElementById('frame-pill').textContent = `frame: ${msg.frame_id || '-'}`;
+        if (lnn.ckpt_sha8) {
+          document.getElementById('ckpt-pill').textContent = `ckpt: ${lnn.ckpt_sha8}`;
+        }
+        frameCount++;
+        refreshAllCharts();
+      } else if (msg.type === 'prediction') {
+        // 把 predictions 数组转成 dataBuf.predictions
+        const preds = msg.predictions || [];
+        const lastTs = dataBuf.history.length > 0
+          ? dataBuf.history[dataBuf.history.length - 1].ts_ns
+          : Date.now() * 1e6;
+        dataBuf.predictions = preds.slice(0, PRED_FRAMES).map((p, i) => ({
+          ts_ns: lastTs + (i + 1) * 1e9,  // 未来 i 秒
+          state_probs: p.state_probs,
+          intent_probs: p.intent_probs,
+          predicted_state: p.predicted_state,
+        }));
+        refreshAllCharts();
+      }
+    } catch (err) {
+      console.error('parse SSE msg failed:', err, e.data);
+    }
+  };
+
+  es.onerror = (err) => {
+    statusEl.className = 'status-pill err';
+    statusEl.textContent = '❌ 断开重连中...';
+    // EventSource 自动重连
+  };
+}
+
+connect();
+</script>
+
+</body>
+</html>

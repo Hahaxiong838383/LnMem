@@ -13,6 +13,7 @@ M0 W2 P0-1 V0.3（2026-05-11）：加 POST /trigger_mismatch 用户主动反馈�
 from __future__ import annotations
 
 from argparse import ArgumentParser
+import errno
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import logging
@@ -57,6 +58,10 @@ _VALID_TRUE_STATES = {
 
 # user_triggered rate-limit 配置（响应 codex F6）
 _USER_TRIGGERED_RATE_LIMIT_SECONDS = 60  # 1 次 / 分钟
+_SSE_FRAME_INTERVAL_S = 0.2
+_SSE_PREDICTION_INTERVAL_S = 5.0
+_SSE_HEARTBEAT_INTERVAL_S = 30.0
+_DASHBOARD_PATH = Path(__file__).resolve().parents[3] / "docs" / "realtime" / "realtime_dashboard.html"
 
 
 class DaemonApp:
@@ -220,6 +225,51 @@ class DaemonApp:
 
     def recent_signals(self, seconds: int) -> list[dict[str, Any]]:
         return self._storage.get_recent(seconds)
+
+    def latest_signal(self) -> dict[str, Any] | None:
+        recent = self.recent_signals(1)
+        if not recent:
+            recent = self.recent_signals(300)
+        return recent[-1] if recent else None
+
+    def sse_headers(self) -> dict[str, str]:
+        return {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        }
+
+    def build_sse_frame_event(self) -> dict[str, Any] | None:
+        latest = self.latest_signal()
+        if latest is None:
+            return None
+        return {
+            "type": "frame",
+            "ts_ns": time.time_ns(),
+            "lnn": latest.get("lnn", {}),
+        }
+
+    def build_sse_prediction_event(self) -> dict[str, Any]:
+        predictions = (
+            self._lnn_inferencer.predict_future(10)
+            if self._lnn_inferencer is not None
+            else [{"error": "inferencer_unavailable"}]
+        )
+        return {
+            "type": "prediction",
+            "ts_ns": time.time_ns(),
+            "predictions": predictions,
+        }
+
+    def dashboard_response(self) -> tuple[int, bytes, str]:
+        if not _DASHBOARD_PATH.exists():
+            body = json.dumps({
+                "error": "dashboard_not_found",
+                "path": str(_DASHBOARD_PATH),
+            }, ensure_ascii=False).encode("utf-8")
+            return 404, body, "application/json; charset=utf-8"
+        return 200, _DASHBOARD_PATH.read_bytes(), "text/html; charset=utf-8"
 
     def handle_predict_future(self, steps: int) -> tuple[int, dict[str, Any]]:
         """Return LTC ODE persistence future predictions for HTTP/UI consumers."""
@@ -670,6 +720,12 @@ class DaemonApp:
                     code, payload = app.handle_predict_future(steps)
                     self._write_json(code, payload)
                     return
+                if parsed.path == "/signals/stream":
+                    self._handle_signal_stream()
+                    return
+                if parsed.path == "/dashboard":
+                    self._handle_dashboard()
+                    return
                 self._write_json(404, {"error": "not_found"})
 
             def do_POST(self) -> None:  # noqa: N802
@@ -727,6 +783,58 @@ class DaemonApp:
 
             def log_message(self, _fmt: str, *_args: Any) -> None:
                 logging.info("http %s", self.path)
+
+            def _handle_signal_stream(self) -> None:
+                if os.environ.get("LNMEM_DISABLE_SSE") == "1":
+                    self._write_json(503, {"error": "sse_disabled_by_env"})
+                    return
+                self.send_response(200)
+                for key, value in app.sse_headers().items():
+                    self.send_header(key, value)
+                self.end_headers()
+                next_prediction = 0.0
+                next_heartbeat = time.monotonic() + _SSE_HEARTBEAT_INTERVAL_S
+                stop_event = getattr(app, "_stop_event", None)
+                while stop_event is None or not stop_event.is_set():
+                    now = time.monotonic()
+                    frame_event = app.build_sse_frame_event()
+                    if frame_event is not None:
+                        if not self._write_sse_data(frame_event):
+                            break
+                    if now >= next_prediction:
+                        if not self._write_sse_data(app.build_sse_prediction_event()):
+                            break
+                        next_prediction = now + _SSE_PREDICTION_INTERVAL_S
+                    if now >= next_heartbeat:
+                        if not self._write_sse_raw(b": heartbeat\n\n"):
+                            break
+                        next_heartbeat = now + _SSE_HEARTBEAT_INTERVAL_S
+                    time.sleep(_SSE_FRAME_INTERVAL_S)
+
+            def _handle_dashboard(self) -> None:
+                code, body, content_type = app.dashboard_response()
+                self.send_response(code)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def _write_sse_data(self, payload: dict[str, Any]) -> bool:
+                body = f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
+                return self._write_sse_raw(body)
+
+            def _write_sse_raw(self, body: bytes) -> bool:
+                try:
+                    self.wfile.write(body)
+                    self.wfile.flush()
+                    return True
+                except (BrokenPipeError, ConnectionResetError):
+                    return False
+                except OSError as exc:
+                    if exc.errno in (errno.EPIPE, errno.ECONNRESET):
+                        return False
+                    logging.warning("sse write failed: %s", exc)
+                    return False
 
             def _write_json(self, code: int, payload: Any) -> None:
                 body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
