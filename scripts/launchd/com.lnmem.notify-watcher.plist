@@ -53,6 +53,20 @@
         <string>1800</string>
         <key>DAILY_MAX</key>
         <string>60</string>
+
+        <!-- v2.2 P-AL.2 online cooldown adaptation 参数（川哥 5/25 13:30 钦定）-->
+        <key>ADAPT_WINDOW_N</key>
+        <string>20</string>
+        <key>ADAPT_LOW_THRESH</key>
+        <string>0.3</string>
+        <key>ADAPT_HIGH_THRESH</key>
+        <string>0.7</string>
+        <key>ADAPT_MIN_COOLDOWN</key>
+        <string>180</string>
+        <key>ADAPT_MAX_COOLDOWN</key>
+        <string>3600</string>
+        <key>ADAPT_EVERY_N</key>
+        <string>5</string>
         <key>INTENT_TOP2_DIFF_MAX</key>
         <string>0.10</string>
         <key>PHASE2_MARGIN_MIN</key>

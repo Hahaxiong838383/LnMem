@@ -48,6 +48,17 @@ FLIP_MIN_SAMPLES="${FLIP_MIN_SAMPLES:-10}"
 
 UI_SESSION="notify-watcher-v2-$(date +%s)"
 FEEDBACK_JSONL="${HOME}/.lnmem/data/intent_feedback/$(date +%Y-%m-%d).jsonl"
+QUERY_DECISIONS_JSONL="${HOME}/.lnmem/data/query_decisions/$(date +%Y-%m-%d).jsonl"  # P-AL.1
+mkdir -p "$(dirname $QUERY_DECISIONS_JSONL)"
+
+# P-AL.2 online cooldown adaptation 参数
+ADAPT_WINDOW_N="${ADAPT_WINDOW_N:-20}"       # 滑窗 20 次弹窗
+ADAPT_LOW_THRESH="${ADAPT_LOW_THRESH:-0.3}"  # avg_reward < 0.3 → cooldown × 1.5
+ADAPT_HIGH_THRESH="${ADAPT_HIGH_THRESH:-0.7}" # avg_reward > 0.7 → cooldown × 0.8
+ADAPT_MIN_COOLDOWN="${ADAPT_MIN_COOLDOWN:-180}"   # 下限 3 分钟
+ADAPT_MAX_COOLDOWN="${ADAPT_MAX_COOLDOWN:-3600}"  # 上限 1 小时
+ADAPT_EVERY_N="${ADAPT_EVERY_N:-5}"          # 每 5 次弹窗重算一次
+ADAPTED_COOLDOWN_FILE="${HOME}/.lnmem/watcher_state/adapted_cooldown"
 
 # 状态（持久化在 ~/.lnmem/watcher_state/）
 STATE_DIR="${HOME}/.lnmem/watcher_state"
@@ -81,6 +92,7 @@ trigger_dialog() {
 
 当前推断状态：${state}"
 
+    local dialog_start=$(date +%s)
     local result
     result=$(osascript -e "display dialog \"${prompt}\" \
         with title \"LnMem 主动学习\" \
@@ -89,33 +101,76 @@ trigger_dialog() {
         with icon note \
         giving up after 60" 2>&1)
     local osa_exit=$?
+    local dialog_end=$(date +%s)
+    local response_time_s=$((dialog_end - dialog_start))
 
     log "osascript [$reason] result: $result (exit=$osa_exit)"
 
+    # P-AL.1: 落 query_decisions.jsonl（包括 gave_up 也记，作为负 reward）
+    local user_response="" corrected="" reward=0
     if echo "$result" | grep -q "gave up:true"; then
-        log "user 60s 内未响应，跳过"
-        return 0
+        user_response="gave_up"
+        reward=0
+        log "user 60s 内未响应，跳过 reward=0"
+    elif [ $osa_exit -ne 0 ] || echo "$result" | grep -q "User canceled"; then
+        user_response="canceled"
+        reward=0
+        log "user 取消 / osascript 错误 reward=0"
+    else
+        case "$result" in
+            *正*) corrected="positive" ;;
+            *中*) corrected="none" ;;
+            *负*) corrected="negative" ;;
+            *) log "unknown button: $result"; corrected="?"; ;;
+        esac
+        user_response="$corrected"
     fi
-    if [ $osa_exit -ne 0 ] || echo "$result" | grep -q "User canceled"; then
-        log "user 取消 / osascript 错误"
-        return 0
-    fi
-
-    local corrected=""
-    case "$result" in
-        *正*) corrected="positive" ;;
-        *中*) corrected="none" ;;
-        *负*) corrected="negative" ;;
-        *) log "unknown button: $result"; return 0 ;;
-    esac
 
     # predicted 填真 intent_pred（有 intent_head 后是 positive/negative/none，否则 none 占位）
     local predicted="${INTENT_PRED:-none}"
+
+    # 二元 reward 计算（川哥钦定）：响应 + 纠错 LNN = 正反馈；gave_up = 负
+    if [ -n "$corrected" ] && [ "$corrected" != "?" ]; then
+        if [ "$corrected" != "$predicted" ]; then
+            reward=1   # 川哥纠错了 LNN（真正有学习价值）
+        else
+            reward=1   # 响应了即正 reward（确认 LNN 也算正）
+        fi
+    fi
+
+    # 写 query_decisions.jsonl（无论是否响应都记）
+    python3 - <<PYEOF >/dev/null 2>&1 || true
+import json
+from pathlib import Path
+entry = {
+    "ts_ns": ${ts_ns},
+    "ui_session": "${UI_SESSION}",
+    "trigger_reason": "${reason}",
+    "lnn_state": {
+        "phase2_state": "${state}",
+        "intent_pred": "${predicted}",
+        "evidence_str": "${evidence}",
+    },
+    "user_response": "${user_response}",
+    "corrected": "${corrected}",
+    "response_time_s": ${response_time_s},
+    "reward": ${reward},
+}
+Path("${QUERY_DECISIONS_JSONL}").parent.mkdir(parents=True, exist_ok=True)
+with open("${QUERY_DECISIONS_JSONL}", "a") as f:
+    f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+PYEOF
+
+    # 如果是 gave_up/canceled，不 POST 反馈，提前 return
+    if [ -z "$corrected" ] || [ "$corrected" = "?" ]; then
+        return 0
+    fi
+
     local resp
     resp=$(curl -s -X POST "$FEEDBACK_URL" \
         -H "Content-Type: application/json" \
-        -d "{\"ts_ns\":${ts_ns},\"predicted\":\"${predicted}\",\"corrected\":\"${corrected}\",\"ui_session\":\"${UI_SESSION}\",\"note\":\"v2|reason=${reason}|phase2=${state}|${evidence}\"}" 2>&1)
-    log "POST: ${predicted}→${corrected} ($reason) → $resp"
+        -d "{\"ts_ns\":${ts_ns},\"predicted\":\"${predicted}\",\"corrected\":\"${corrected}\",\"ui_session\":\"${UI_SESSION}\",\"note\":\"v2|reason=${reason}|phase2=${state}|${evidence}|reward=${reward}\"}" 2>&1)
+    log "POST: ${predicted}→${corrected} ($reason) reward=$reward → $resp"
 
     # 成功通知
     osascript -e "display notification \"已记录: ${corrected} ($reason)\" with title \"LnMem 反馈\" sound name \"Tink\"" 2>/dev/null
@@ -284,10 +339,71 @@ PYEOF
 }
 
 # 启动 log
-log "===== notify_watcher v2 (active learning) 启动 ====="
-log "POLL=${POLL_INTERVAL}s GLOBAL_COOLDOWN=${GLOBAL_COOLDOWN_S}s PER_REASON_COOLDOWN=${PER_REASON_COOLDOWN_S}s DAILY_MAX=${DAILY_MAX}"
+log "===== notify_watcher v2.2 (active learning + cooldown adaptation) 启动 ====="
+log "POLL=${POLL_INTERVAL}s GLOBAL_COOLDOWN=${GLOBAL_COOLDOWN_S}s (initial, will adapt) PER_REASON=${PER_REASON_COOLDOWN_S}s DAILY_MAX=${DAILY_MAX}"
+log "adaptation: window=${ADAPT_WINDOW_N} 每 ${ADAPT_EVERY_N} 次重算 range=[${ADAPT_MIN_COOLDOWN}s, ${ADAPT_MAX_COOLDOWN}s]"
 log "阈值：intent_top2_diff<${INTENT_TOP2_DIFF_MAX} phase2_margin<${PHASE2_MARGIN_MIN} entropy>${PHASE2_ENTROPY_MAX}"
 log "触发器: F(冷启动) > A(意图不确定) > B(表情不确定) > C(状态突变) > D(稀疏类) > E(翻转)"
+
+# P-AL.2 cooldown adaptation 函数
+adapt_cooldown() {
+    local current_cooldown="$1"
+    python3 - <<PYEOF
+import json, os, sys
+from pathlib import Path
+
+jsonl = Path("${QUERY_DECISIONS_JSONL}")
+if not jsonl.exists():
+    print(${current_cooldown}); sys.exit(0)
+
+window_n = int(os.environ.get('ADAPT_WINDOW_N', '20'))
+low_thresh = float(os.environ.get('ADAPT_LOW_THRESH', '0.3'))
+high_thresh = float(os.environ.get('ADAPT_HIGH_THRESH', '0.7'))
+cd_min = int(os.environ.get('ADAPT_MIN_COOLDOWN', '180'))
+cd_max = int(os.environ.get('ADAPT_MAX_COOLDOWN', '3600'))
+
+# 读最近 window_n 条
+rewards = []
+with jsonl.open() as f:
+    for line in f:
+        try:
+            d = json.loads(line)
+            r = d.get('reward')
+            if r is not None:
+                rewards.append(int(r))
+        except: pass
+rewards = rewards[-window_n:]
+n = len(rewards)
+if n < 5:
+    print(${current_cooldown}); sys.exit(0)
+
+avg = sum(rewards) / n
+cd = ${current_cooldown}
+old_cd = cd
+
+if avg < low_thresh:
+    cd = int(cd * 1.5)   # 川哥嫌烦，拉长
+elif avg > high_thresh:
+    cd = int(cd * 0.8)   # 川哥积极参与，缩短
+# 中间区不变
+
+cd = max(cd_min, min(cd_max, cd))
+print(cd, file=sys.stderr)
+print(f"[adapt] n={n} avg_reward={avg:.2f} {old_cd}s → {cd}s", file=sys.stderr)
+print(cd)
+PYEOF
+}
+
+# 初始 cooldown
+EFFECTIVE_COOLDOWN="$GLOBAL_COOLDOWN_S"
+if [ -f "$ADAPTED_COOLDOWN_FILE" ]; then
+    stored=$(cat "$ADAPTED_COOLDOWN_FILE" 2>/dev/null)
+    if [ -n "$stored" ] && [ "$stored" -gt 0 ] 2>/dev/null; then
+        EFFECTIVE_COOLDOWN="$stored"
+        log "复用上次 adapted cooldown: ${EFFECTIVE_COOLDOWN}s"
+    fi
+fi
+TRIGGER_COUNT=0
 
 while true; do
     # 日上限检查
@@ -348,11 +464,11 @@ except: pass
     # state 用 lnn predicted_state
     STATE=$(echo "$LNN_JSON" | python3 -c "import sys,json;print(json.load(sys.stdin).get('predicted_state','?'))")
 
-    # 全局 cooldown
+    # 全局 cooldown（用 adapted cooldown 不用静态 GLOBAL_COOLDOWN_S）
     NOW=$(now_s)
     LAST_GLOBAL=$(read_ts "$LAST_GLOBAL_TS_FILE")
     ELAPSED=$((NOW - LAST_GLOBAL))
-    if [ "$ELAPSED" -lt "$GLOBAL_COOLDOWN_S" ]; then
+    if [ "$ELAPSED" -lt "$EFFECTIVE_COOLDOWN" ]; then
         sleep "$POLL_INTERVAL"
         continue
     fi
@@ -366,11 +482,25 @@ except: pass
         continue
     fi
 
-    log "TRIGGER [${REASON}] state=${STATE} elapsed_global=${ELAPSED}s elapsed_reason=${RS_ELAPSED}s"
+    log "TRIGGER [${REASON}] state=${STATE} elapsed_global=${ELAPSED}s elapsed_reason=${RS_ELAPSED}s effective_cooldown=${EFFECTIVE_COOLDOWN}s"
     log "  evidence: $EVIDENCE"
 
     reason_help="$HELP_TEXT"
-    trigger_dialog "$REASON" "$REASON_DESC" "$STATE" "$EVIDENCE" "$TS_NS" &
+    # 同步等待 trigger_dialog（不再 &），让 query_decisions 落盘后再算 adaptation
+    trigger_dialog "$REASON" "$REASON_DESC" "$STATE" "$EVIDENCE" "$TS_NS"
+    TRIGGER_COUNT=$((TRIGGER_COUNT + 1))
+
+    # P-AL.2 每 ADAPT_EVERY_N 次触发后重算 cooldown
+    if [ $((TRIGGER_COUNT % ADAPT_EVERY_N)) -eq 0 ]; then
+        NEW_CD=$(adapt_cooldown "$EFFECTIVE_COOLDOWN" 2>/tmp/adapt_$$.log)
+        if [ -n "$NEW_CD" ] && [ "$NEW_CD" != "$EFFECTIVE_COOLDOWN" ]; then
+            cat /tmp/adapt_$$.log >> ~/.lnmem/logs/notify_watcher/launchd.out.log
+            EFFECTIVE_COOLDOWN="$NEW_CD"
+            echo "$EFFECTIVE_COOLDOWN" > "$ADAPTED_COOLDOWN_FILE"
+            log "🎯 cooldown adapted → ${EFFECTIVE_COOLDOWN}s（基于最近 ${ADAPT_WINDOW_N} 次反馈 reward）"
+        fi
+        rm -f /tmp/adapt_$$.log
+    fi
 
     sleep "$POLL_INTERVAL"
 done
