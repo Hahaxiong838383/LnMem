@@ -435,6 +435,77 @@ class RealtimeLNNInferencer:
                 signal_path_used=self._signal_path,
             )
 
+    def predict_future(self, steps: int) -> list[dict[str, Any]]:
+        """Project future frames with LTC/CfC ODE persistence assumption."""
+        if not self._enabled or self._state_model is None:
+            return [{"error": "disabled"}]
+        if steps < 0:
+            return [{"error": "steps must be >= 0"}]
+        if not self._history:
+            return [{"error": "no_recent_input"}]
+
+        try:
+            sm = self._state_model
+            history = [list(row) for row in self._history]
+            last_input_values = list(history[-1])
+            if len(last_input_values) != 18:
+                return [{"error": f"last input dim {len(last_input_values)} != 18"}]
+
+            x = torch.tensor(history, dtype=torch.float32).unsqueeze(0)
+            pid = torch.tensor([self._persona_idx], dtype=torch.long)
+
+            with torch.no_grad():
+                hidden = self._forward_last_hidden_for_model(sm, x, pid)
+                last_input = torch.tensor(last_input_values, dtype=torch.float32).unsqueeze(0)
+                last_input = last_input.to(device=hidden.device, dtype=hidden.dtype)
+
+                persona_ids = pid.to(device=hidden.device, dtype=torch.long)
+                tau_bias = sm.personalization.get_tau_bias(persona_ids).to(hidden.device, hidden.dtype)
+                gamma, beta = sm.personalization.get_film_params(persona_ids)
+                gamma = gamma.to(hidden.device, hidden.dtype)
+                beta = beta.to(hidden.device, hidden.dtype)
+                timespans = sm._timespans_from_tau(tau_bias)
+
+                predictions: list[dict[str, Any]] = []
+                for step in range(steps):
+                    features = sm.input_projection(last_input.float()).to(hidden.device, hidden.dtype)
+                    hidden, _ = sm.backbone.rnn_cell(features, hidden, timespans)
+                    hidden = sm._apply_film(hidden, gamma, beta)
+
+                    logits = sm.readout(hidden)[0]
+                    state_tensor = torch.softmax(logits, dim=-1)
+                    state_probs = [float(value) for value in state_tensor.detach().cpu().tolist()]
+                    predicted_state, top_prob, margin, entropy = self._state_from_probs(state_probs)
+
+                    intent_probs: list[float] | None = None
+                    intent_pred: str | None = None
+                    intent_confidence: float | None = None
+                    if self._intent_head is not None:
+                        intent_logits = self._intent_head(hidden)[0]
+                        intent_tensor = torch.softmax(intent_logits, dim=-1)
+                        intent_probs = [float(value) for value in intent_tensor.detach().cpu().tolist()]
+                        intent_idx = int(max(range(len(intent_probs)), key=intent_probs.__getitem__))
+                        intent_pred = INTENT_LABELS[intent_idx]
+                        intent_confidence = float(intent_probs[intent_idx])
+
+                    predictions.append(
+                        {
+                            "step": step,
+                            "predicted_state": predicted_state,
+                            "state_probs": state_probs,
+                            "top_prob": top_prob,
+                            "margin": margin,
+                            "entropy": entropy,
+                            "intent_probs": intent_probs,
+                            "intent_pred": intent_pred,
+                            "intent_confidence": intent_confidence,
+                        }
+                    )
+            return predictions
+        except Exception as exc:  # noqa: BLE001
+            self._record_fail()
+            return [{"error": f"predict_future failed: {type(exc).__name__}: {exc}"}]
+
     def _record_fail(self) -> None:
         """累计失败计数，超过阈值永久 disable（fail-soft 熔断）。"""
         self._fail_count += 1

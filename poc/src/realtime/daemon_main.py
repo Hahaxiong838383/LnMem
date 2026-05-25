@@ -221,6 +221,28 @@ class DaemonApp:
     def recent_signals(self, seconds: int) -> list[dict[str, Any]]:
         return self._storage.get_recent(seconds)
 
+    def handle_predict_future(self, steps: int) -> tuple[int, dict[str, Any]]:
+        """Return LTC ODE persistence future predictions for HTTP/UI consumers."""
+        if os.environ.get("LNMEM_DISABLE_PREDICT_FUTURE") == "1":
+            return 503, {"error": "disabled by env"}
+        bounded_steps = max(0, min(60, steps))
+        predictions = (
+            self._lnn_inferencer.predict_future(bounded_steps)
+            if self._lnn_inferencer is not None
+            else [{"error": "inferencer_unavailable"}]
+        )
+        return 200, {
+            "steps": bounded_steps,
+            "predictions": predictions,
+            "ts_ns": time.time_ns(),
+            "ckpt_sha8": (
+                self._lnn_inferencer.ckpt_sha8
+                if self._lnn_inferencer is not None
+                else None
+            ),
+            "method": "ltc_ode_persistence",
+        }
+
     def _frame_router_loop(self) -> None:
         while not self._stop_event.is_set() or not self._capture_out.empty():
             try:
@@ -637,6 +659,16 @@ class DaemonApp:
                 if parsed.path == "/signals/recent":
                     seconds = int(parse_qs(parsed.query).get("seconds", ["300"])[0])
                     self._write_json(200, app.recent_signals(seconds))
+                    return
+                if parsed.path == "/predict_future":
+                    raw_steps = parse_qs(parsed.query).get("steps", ["10"])[0]
+                    try:
+                        steps = int(raw_steps)
+                    except ValueError:
+                        self._write_json(400, {"error": "invalid_steps"})
+                        return
+                    code, payload = app.handle_predict_future(steps)
+                    self._write_json(code, payload)
                     return
                 self._write_json(404, {"error": "not_found"})
 

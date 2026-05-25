@@ -345,8 +345,31 @@ def render_studio_panel():
                 st.code(log_tail, language="text")
 
 
+@st.cache_data(ttl=10, show_spinner=False)
+def fetch_ltc_predictions(steps: int = 10) -> tuple[list[dict], str]:
+    """拉 daemon /predict_future 真 LNN 预测，返 (predictions, method)。
+
+    fallback: 失败返 ([], "mean_extrapolation") 让 UI 降级用 mean 外推。
+    """
+    import requests
+    try:
+        r = requests.get(f"http://127.0.0.1:9876/predict_future?steps={steps}", timeout=2)
+        if r.status_code == 200:
+            data = r.json()
+            preds = data.get("predictions", [])
+            # 第一项是 error dict → fallback
+            if preds and "error" in preds[0]:
+                return [], f"mean_fallback ({preds[0]['error']})"
+            return preds, data.get("method", "ltc_ode_persistence")
+        elif r.status_code == 503:
+            return [], "mean_fallback (endpoint disabled)"
+    except Exception as e:
+        return [], f"mean_fallback ({type(e).__name__})"
+    return [], "mean_fallback (unknown)"
+
+
 def render_evolution_panel(history):
-    """历史表情 + 意图演化曲线 + 简单外推预测"""
+    """历史表情 + 意图演化曲线 + LTC ODE 真预测（fallback 到 mean 外推）"""
     if len(history) < 10:
         st.info(f"演化曲线需要 ≥10 帧数据（当前 {len(history)}）")
         return
@@ -355,7 +378,17 @@ def render_evolution_panel(history):
     import altair as alt
     from datetime import datetime, timedelta
 
-    # ---- 1. 意图概率演化 (3 类 stacked area + 10s 外推) ----
+    # 拉真 LNN 预测
+    ltc_preds, method = fetch_ltc_predictions(steps=10)
+    use_ltc = bool(ltc_preds)
+
+    # 显示预测方法标识
+    if use_ltc:
+        st.success(f"🧠 预测方法: **LTC ODE 真预测**（method={method}），右侧 10 帧来自 LNN 微分方程演化")
+    else:
+        st.warning(f"⚠️ 预测方法: **mean 外推 fallback**（{method}），LTC endpoint 不可用")
+
+    # ---- 1. 意图概率演化 (3 类 stacked area + 真预测 or mean fallback) ----
     rows = []
     for h in history:
         ts = datetime.fromtimestamp(h.ts_ns / 1e9)
@@ -367,22 +400,39 @@ def render_evolution_panel(history):
                 "是否预测": False,
             })
 
-    # 外推 10s：用最近 10 帧的 mean
-    recent = list(history)[-10:]
-    mean_probs = {
-        cls: sum(h.intent_probs.get(cls, 0.0) for h in recent) / len(recent)
-        for cls in ("positive", "negative", "none")
-    }
     last_ts = datetime.fromtimestamp(history[-1].ts_ns / 1e9)
-    for i in range(1, 11):  # 10 个未来帧
-        future_ts = last_ts + timedelta(seconds=i)
-        for cls in ("positive", "negative", "none"):
-            rows.append({
-                "ts": future_ts,
-                "意图类别": {"positive": "🟢 正反馈", "negative": "🔴 负反馈", "none": "⚪ 中性"}[cls],
-                "概率": mean_probs[cls],
-                "是否预测": True,
-            })
+
+    if use_ltc:
+        # 真 LTC 预测：每帧有完整 intent_probs
+        cls_names = ("positive", "negative", "none")
+        for i, p in enumerate(ltc_preds[:10], 1):
+            future_ts = last_ts + timedelta(seconds=i)
+            ip = p.get("intent_probs")
+            if not ip or len(ip) != 3:
+                continue
+            for j, cls in enumerate(cls_names):
+                rows.append({
+                    "ts": future_ts,
+                    "意图类别": {"positive": "🟢 正反馈", "negative": "🔴 负反馈", "none": "⚪ 中性"}[cls],
+                    "概率": float(ip[j]),
+                    "是否预测": True,
+                })
+    else:
+        # fallback: 用最近 10 帧 mean 外推
+        recent = list(history)[-10:]
+        mean_probs = {
+            cls: sum(h.intent_probs.get(cls, 0.0) for h in recent) / len(recent)
+            for cls in ("positive", "negative", "none")
+        }
+        for i in range(1, 11):
+            future_ts = last_ts + timedelta(seconds=i)
+            for cls in ("positive", "negative", "none"):
+                rows.append({
+                    "ts": future_ts,
+                    "意图类别": {"positive": "🟢 正反馈", "negative": "🔴 负反馈", "none": "⚪ 中性"}[cls],
+                    "概率": mean_probs[cls],
+                    "是否预测": True,
+                })
 
     df_intent = pd.DataFrame(rows)
     intent_chart = (
@@ -402,99 +452,154 @@ def render_evolution_panel(history):
             opacity=alt.condition(alt.datum["是否预测"], alt.value(0.35), alt.value(0.85)),
             tooltip=["ts:T", "意图类别:N", alt.Tooltip("概率:Q", format=".3f"), "是否预测:N"],
         )
-        .properties(height=200, title="🎯 意图概率演化 + 10s 外推（半透明 = 预测）")
+        .properties(height=200, title=f"🎯 意图概率演化 + 10s {'LTC ODE 真预测' if use_ltc else 'mean fallback'}（半透明 = 预测）")
     )
     st.altair_chart(intent_chart, use_container_width=True)
 
-    # ---- 2. 表情状态时间线 (8 类色块 + 5s 外推) ----
-    state_color = {
-        "emotional_positive": "#10b981",
-        "emotional_negative": "#ef4444",
-        "neutral": "#9ca3af",
-        "focused": "#3b82f6",
-        "distracted": "#f59e0b",
-        "fatigued": "#a78bfa",
-        "low_energy": "#6b7280",
-        "transitioning": "#ec4899",
-        "unknown": "#000000",
-    }
-    state_zh = {
-        "emotional_positive": "😊 情绪-正向",
-        "emotional_negative": "😟 情绪-负向",
-        "neutral": "😐 中立",
-        "focused": "🎯 专注",
-        "distracted": "🌀 分心",
-        "fatigued": "😴 疲惫",
-        "low_energy": "🪫 低能量",
-        "transitioning": "🔄 过渡中",
-        "unknown": "❓ 未知",
+    # ---- 2. 表情状态时间线 (ADR-033 分情绪 + 注意力两组 + valence) ----
+    # 模型层仍 8 类，UI 层 mapping 到两组
+    state_meta = {
+        "emotional_positive": {"group": "情绪", "label": "😊 情绪-正向", "valence": "✅ 正向", "color": "#10b981"},
+        "emotional_negative": {"group": "情绪", "label": "😟 情绪-负向", "valence": "❌ 负向", "color": "#ef4444"},
+        "neutral":            {"group": "情绪", "label": "😐 中立",     "valence": "⚪ 中性", "color": "#9ca3af"},
+        "focused":            {"group": "注意力", "label": "🎯 专注",   "valence": "✅ 正向", "color": "#3b82f6"},
+        "distracted":         {"group": "注意力", "label": "🌀 分心",   "valence": "⚠️ 偏负", "color": "#f59e0b"},
+        "fatigued":           {"group": "注意力", "label": "😴 疲惫",   "valence": "❌ 负向", "color": "#a78bfa"},
+        "low_energy":         {"group": "注意力", "label": "🪫 低能量", "valence": "❌ 负向", "color": "#6b7280"},
+        "transitioning":      {"group": "注意力", "label": "🔄 过渡中", "valence": "⚪ 中性", "color": "#ec4899"},
+        "unknown":            {"group": "其他",   "label": "❓ 未知",   "valence": "❓",      "color": "#000000"},
     }
 
-    state_rows = []
-    for i, h in enumerate(history):
-        ts = datetime.fromtimestamp(h.ts_ns / 1e9)
-        next_ts = (datetime.fromtimestamp(history[i+1].ts_ns / 1e9)
-                   if i + 1 < len(history) else ts + timedelta(seconds=1))
-        state_rows.append({
-            "ts_start": ts,
-            "ts_end": next_ts,
-            "状态": state_zh.get(h.phase2_state, h.phase2_state),
-            "原始": h.phase2_state,
-            "置信度": h.top_prob,
-            "是否预测": False,
+    def _build_rows(history, group_filter):
+        """构造某分组的色块行"""
+        rows = []
+        for i, h in enumerate(history):
+            meta = state_meta.get(h.phase2_state, state_meta["unknown"])
+            if meta["group"] != group_filter:
+                continue
+            ts = datetime.fromtimestamp(h.ts_ns / 1e9)
+            next_ts = (datetime.fromtimestamp(history[i+1].ts_ns / 1e9)
+                       if i + 1 < len(history) else ts + timedelta(seconds=1))
+            rows.append({
+                "ts_start": ts, "ts_end": next_ts,
+                "状态": meta["label"], "valence": meta["valence"],
+                "置信度": h.top_prob, "是否预测": False,
+            })
+        return rows
+
+    # 外推：优先用 LTC 真预测 5 步，fallback 最近 5 帧 mode
+    last_ts_dt = datetime.fromtimestamp(history[-1].ts_ns / 1e9)
+    pred_rows = []
+    if use_ltc:
+        # LTC 每帧给出 predicted_state，把连续相同 state 合成一个色块
+        prev_state = None
+        block_start = last_ts_dt
+        for i, p in enumerate(ltc_preds[:5], 1):
+            st_name = p.get("predicted_state", "unknown")
+            ts_i = last_ts_dt + timedelta(seconds=i)
+            if prev_state is None:
+                prev_state = st_name; block_start = last_ts_dt
+            elif st_name != prev_state:
+                # 切块
+                meta = state_meta.get(prev_state, state_meta["unknown"])
+                pred_rows.append({
+                    "ts_start": block_start, "ts_end": ts_i,
+                    "状态": meta["label"], "valence": meta["valence"],
+                    "置信度": float(p.get("top_prob", 0.0)), "是否预测": True,
+                })
+                prev_state = st_name; block_start = ts_i
+        # 最后一块
+        if prev_state is not None:
+            meta = state_meta.get(prev_state, state_meta["unknown"])
+            pred_rows.append({
+                "ts_start": block_start, "ts_end": last_ts_dt + timedelta(seconds=5),
+                "状态": meta["label"], "valence": meta["valence"],
+                "置信度": float(ltc_preds[-1].get("top_prob", 0.0)) if ltc_preds else 0.0,
+                "是否预测": True,
+            })
+    else:
+        from collections import Counter
+        recent_5 = [h.phase2_state for h in list(history)[-5:]]
+        pred_state = Counter(recent_5).most_common(1)[0][0] if recent_5 else "unknown"
+        pred_meta = state_meta.get(pred_state, state_meta["unknown"])
+        pred_rows.append({
+            "ts_start": last_ts_dt, "ts_end": last_ts_dt + timedelta(seconds=5),
+            "状态": pred_meta["label"], "valence": pred_meta["valence"],
+            "置信度": 0.0, "是否预测": True,
         })
 
-    # 外推：用最近 5 帧中频率最高的 state 当未来 5s 预测
-    from collections import Counter
-    recent_5 = [h.phase2_state for h in list(history)[-5:]]
-    pred_state = Counter(recent_5).most_common(1)[0][0] if recent_5 else "unknown"
-    pred_state_zh = state_zh.get(pred_state, pred_state)
-    last_ts_dt = datetime.fromtimestamp(history[-1].ts_ns / 1e9)
-    state_rows.append({
-        "ts_start": last_ts_dt,
-        "ts_end": last_ts_dt + timedelta(seconds=5),
-        "状态": pred_state_zh,
-        "原始": pred_state,
-        "置信度": 0.0,
-        "是否预测": True,
-    })
-
-    df_state = pd.DataFrame(state_rows)
-    state_chart = (
-        alt.Chart(df_state)
-        .mark_rect()
-        .encode(
-            x=alt.X("ts_start:T", title="时间"),
-            x2="ts_end:T",
-            color=alt.Color(
-                "状态:N",
-                scale=alt.Scale(
-                    domain=list(state_zh.values()),
-                    range=[state_color[k] for k in state_zh.keys()],
+    def _render_group_chart(group_name, group_emoji, height=70):
+        rows = _build_rows(history, group_name)
+        # 把所有预测块按分组过滤
+        for pr in pred_rows:
+            # 找原始 state 看分组（pr["状态"] 是 label 不是原始）
+            for orig_state, m in state_meta.items():
+                if m["label"] == pr["状态"] and m["group"] == group_name:
+                    rows.append(pr)
+                    break
+        if not rows:
+            st.caption(f"{group_emoji} {group_name}: 本批历史无此类记录")
+            return
+        df = pd.DataFrame(rows)
+        # 该分组的 label/color subset
+        group_labels = [m["label"] for m in state_meta.values() if m["group"] == group_name]
+        group_colors = [m["color"] for m in state_meta.values() if m["group"] == group_name]
+        chart = (
+            alt.Chart(df)
+            .mark_rect()
+            .encode(
+                x=alt.X("ts_start:T", title=None),
+                x2="ts_end:T",
+                color=alt.Color(
+                    "状态:N",
+                    scale=alt.Scale(domain=group_labels, range=group_colors),
+                    legend=alt.Legend(orient="top", columns=len(group_labels)),
                 ),
-                legend=alt.Legend(orient="top", columns=4),
-            ),
-            opacity=alt.condition(alt.datum["是否预测"], alt.value(0.35), alt.value(0.9)),
-            tooltip=["ts_start:T", "状态:N", alt.Tooltip("置信度:Q", format=".3f"), "是否预测:N"],
+                opacity=alt.condition(alt.datum["是否预测"], alt.value(0.35), alt.value(0.9)),
+                tooltip=["ts_start:T", "状态:N", "valence:N",
+                         alt.Tooltip("置信度:Q", format=".3f"), "是否预测:N"],
+            )
+            .properties(height=height, title=f"{group_emoji} {group_name} 时间线（右侧 5s {'LTC 预测' if use_ltc else 'mean fallback'}）")
         )
-        .properties(height=80, title="😊 表情状态时间线 + 5s 外推（半透明 = 预测）")
+        st.altair_chart(chart, use_container_width=True)
+
+    _render_group_chart("情绪", "😊", height=70)
+    _render_group_chart("注意力", "🎯", height=70)
+
+    # valence 图例说明
+    st.caption(
+        "🎨 **valence 标签**："
+        "✅ 正向（专注/情绪-正向）· "
+        "❌ 负向（疲惫/低能量/情绪-负向）· "
+        "⚠️ 偏负（分心）· "
+        "⚪ 中性（中立/过渡中）"
     )
-    st.altair_chart(state_chart, use_container_width=True)
 
     # 说明
     with st.expander("ℹ️ 预测是怎么算的？"):
-        st.markdown("""
-**当前算法（v0 简单外推）**：
+        st.markdown(f"""
+**当前算法：{'🧠 LTC ODE 真预测' if use_ltc else '⚠️ mean 外推 fallback'}**（ADR-033）
 
-- **意图 10s 外推**：取最近 10 帧的 `intent_probs` 平均值，假设接下来 10 秒分布延续
-- **表情 5s 外推**：取最近 5 帧出现最频繁的 phase2 state，假设短期内不切换
+### LTC ODE 真预测（推荐）
+- daemon `/predict_future?steps=N` endpoint
+- 取最近一帧的 `hidden_state` (64 维) + `fused_vector` (18 维 input)
+- **persistence assumption**: 未来 N 步 input 持续 = 最后一帧
+- LTC ODE 自由演化：`hidden_t+1 = backbone.rnn_cell(last_input, hidden_t, timespans)`
+- 每步过 `readout(hidden)` 算 state_probs，过 `intent_head(hidden)` 算 intent_probs
+- 能捕获 "疲劳累积 / 注意力衰减" 这种**内在动力学**，能预测状态切换时机
 
-**局限**：
-- 不会预测"状态突变"（比如你突然从专注变成疲惫）
-- 不利用 LNN 内部 hidden state 的 ODE 演化能力（那才是真预测）
+### Mean 外推 fallback
+- LTC endpoint 失败时自动降级
+- 取最近 10 帧 `intent_probs` mean / 最近 5 帧 state mode
+- 不能预测突变 / 不利用 LNN ODE
 
-**未来 (Phase 3，M0 demo 后)**：用 LTC ODE 真预测 —— 当前 hidden state h(t) 通过微分方程
-向前积分得到 h(t+Δt)，再过 intent_head 算未来概率。这样能预测状态切换的时机。
+### 当前限制（真 LTC 预测仍有）
+- **persistence assumption** 不能预测外部刺激驱动的突变（比如有人敲门）
+- 长期预测会衰减到 ODE attractor（不是真未来），**5-15s 内可信，>30s 不要看**
+
+### 切换方法
+- 关 LTC 预测: `export LNMEM_DISABLE_PREDICT_FUTURE=1` + 重启 daemon → 自动降 mean
+- 完整 revert: `git revert b356847` (ADR-033 commit)
         """)
 
 
