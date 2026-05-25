@@ -10,6 +10,8 @@
         onerror="this.dataset.failed='1'"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"
         onerror="this.dataset.failed='1'"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"
+        onerror="this.dataset.failed='1'"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -147,6 +149,14 @@ const dataBuf = {
   predictions: [],  // [{ts_ns, state_probs, intent_probs}] (来自 LTC)
 };
 
+// 注册 annotation plugin（如果加载了）
+if (typeof Chart !== 'undefined' && typeof window.chartjsPluginAnnotation !== 'undefined') {
+  Chart.register(window.chartjsPluginAnnotation);
+  dlog('✅ annotation plugin 已注册', 'ok');
+} else if (typeof Chart !== 'undefined') {
+  dlog('⚠️ annotation plugin 未加载（"现在" 分割线不会显示）', 'warn');
+}
+
 // ====== Chart 工厂 ======
 function makeStackedChart(ctxId, datasets, yMax = 1.0) {
   const ctx = document.getElementById(ctxId).getContext('2d');
@@ -160,6 +170,11 @@ function makeStackedChart(ctxId, datasets, yMax = 1.0) {
       plugins: {
         legend: { position: 'top', labels: { color: '#cbd5e1', font: { size: 11 } } },
         tooltip: { mode: 'index', intersect: false },
+        annotation: {
+          annotations: {
+            // 占位，每次 update 时由 setNowAnnotation() 填充
+          }
+        },
       },
       scales: {
         x: {
@@ -248,10 +263,61 @@ function rebuildChart(chart, allFrames, predFrames, kind) {
   chart.update('none');  // 不触发动画 = 不闪
 }
 
+function setNowAnnotation(chart) {
+  // 注入 "现在" 红虚线 + 预测段黄色背景
+  if (dataBuf.history.length === 0) return;
+  const lastHistTs = dataBuf.history[dataBuf.history.length - 1].ts_ns / 1e6;
+  const lastPredTs = dataBuf.predictions.length > 0
+    ? dataBuf.predictions[dataBuf.predictions.length - 1].ts_ns / 1e6
+    : lastHistTs + 10000;  // 默认 10s 未来
+
+  chart.options.plugins.annotation.annotations = {
+    futureBox: {
+      type: 'box',
+      xMin: lastHistTs, xMax: lastPredTs,
+      backgroundColor: 'rgba(251, 191, 36, 0.10)',  // 浅黄背景
+      borderWidth: 0,
+      drawTime: 'beforeDatasetsDraw',  // 画在数据下面
+    },
+    nowLine: {
+      type: 'line',
+      xMin: lastHistTs, xMax: lastHistTs,
+      borderColor: '#ef4444',  // 红色
+      borderWidth: 2,
+      borderDash: [6, 3],
+      label: {
+        display: true,
+        content: '⏱ 现在',
+        position: 'start',
+        backgroundColor: 'rgba(239, 68, 68, 0.9)',
+        color: '#fff',
+        font: { size: 10, weight: 'bold' },
+        padding: 3,
+      },
+    },
+    futureLabel: {
+      type: 'label',
+      xValue: (lastHistTs + lastPredTs) / 2,
+      yValue: 0.95,
+      content: ['🔮 LTC 真预测'],
+      backgroundColor: 'rgba(146, 64, 14, 0.85)',
+      color: '#fff',
+      font: { size: 10, weight: 'bold', style: 'italic' },
+      padding: 4,
+      borderRadius: 3,
+    },
+  };
+}
+
 function refreshAllCharts() {
   rebuildChart(intentChart, dataBuf.history, dataBuf.predictions, 'intent');
   rebuildChart(emotionChart, dataBuf.history, dataBuf.predictions, 'emotion');
   rebuildChart(attentionChart, dataBuf.history, dataBuf.predictions, 'attention');
+  // 三图都加 "现在" 分割线
+  [intentChart, emotionChart, attentionChart].forEach(c => {
+    setNowAnnotation(c);
+    c.update('none');
+  });
 }
 
 // ====== FPS 计数 ======
