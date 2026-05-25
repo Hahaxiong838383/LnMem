@@ -897,10 +897,15 @@ def main():
             help="开：减少打扰；关：所有推断都弹卡（标注模式）",
         )
     with ctrl2:
-        # 5/25 cc fix: 默认改 3s + 默认关，防曲线闪烁
-        # 演化曲线/Studio panel 已用 @st.fragment 独立刷新，主刷新只用于反馈队列
-        auto_refresh = st.toggle("快刷新主面板 (3s)", value=False,
-                                  help="主面板 3s 全刷新；演化曲线已独立 fragment 刷新（5s），即使关掉这个曲线也会更新")
+        # 5/25 cc: streamlit-autorefresh 用 JavaScript 触发，避免 time.sleep+rerun 闪烁
+        auto_refresh = st.toggle("自动刷新 (5s)", value=True,
+                                  help="勾选后用 streamlit-autorefresh 每 5s 平滑更新（不再 time.sleep）")
+        if auto_refresh:
+            try:
+                from streamlit_autorefresh import st_autorefresh
+                st_autorefresh(interval=5000, key="main_refresh")
+            except ImportError:
+                st.warning("streamlit-autorefresh 未装，fallback time.sleep 模式")
     with ctrl3:
         if st.button("🔄 重置历史"):
             st.session_state.history.clear()
@@ -1039,26 +1044,12 @@ def main():
     else:
         st.caption(f"已积累 {len(st.session_state.history)} 条，攒到 5 条再画图")
 
-    # ---- 状态演化时间线 + 外推预测 (@st.fragment 独立 5s 自刷新，不全 rerun 不闪) ----
+    # ---- 状态演化时间线 + 外推预测 ----
     st.markdown("---")
     st.subheader("🔮 状态演化 + 预测")
+    render_evolution_panel(list(st.session_state.history))
 
-    @st.fragment(run_every=5)
-    def _evolution_fragment():
-        # fragment 内部独立 5s 刷新：自己拉新 inference + render
-        # 这样即使主面板 auto_refresh 关，曲线也会更新
-        new_inf = fetch_latest_inference()
-        if new_inf is not None:
-            st.session_state.history.append(new_inf)
-            st.session_state.stats["total"] += 1
-        render_evolution_panel(list(st.session_state.history))
-
-    _evolution_fragment()
-
-    # ---- auto refresh （已改慢且默认关）----
-    if auto_refresh:
-        time.sleep(3)  # 3s 而非 1s，闪烁减少
-        st.rerun()
+    # 不再用 time.sleep+st.rerun，刷新由 streamlit-autorefresh 通过 JavaScript 触发（顶部 toggle）
 
 
 if __name__ == "__main__":
