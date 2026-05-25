@@ -31,9 +31,10 @@ SIGNALS_URL="http://${DAEMON_HOST}:9876/signals/recent?limit=1"
 HEALTH_URL="http://${DAEMON_HOST}:9876/health"
 FEEDBACK_URL="http://${DAEMON_HOST}:9877/intent_feedback"
 POLL_INTERVAL="${POLL_INTERVAL:-3}"
-GLOBAL_COOLDOWN_S="${GLOBAL_COOLDOWN_S:-30}"
-PER_REASON_COOLDOWN_S="${PER_REASON_COOLDOWN_S:-120}"
-DAILY_MAX="${DAILY_MAX:-150}"
+GLOBAL_COOLDOWN_S="${GLOBAL_COOLDOWN_S:-300}"        # 5 分钟（之前 30s 太频繁）
+PER_REASON_COOLDOWN_S="${PER_REASON_COOLDOWN_S:-1800}"  # 30 分钟（之前 120s 同问重问）
+RECENT_FEEDBACK_DEDUP_S="${RECENT_FEEDBACK_DEDUP_S:-1800}"  # 30 分钟内反馈过的 (state, intent_pred) 不再问
+DAILY_MAX="${DAILY_MAX:-60}"                         # 日上限 60（之前 150）
 
 # active learning 触发阈值（codex 对抗审后定）
 INTENT_TOP2_DIFF_MAX="${INTENT_TOP2_DIFF_MAX:-0.10}"
@@ -180,13 +181,15 @@ if ckpt_sha and ckpt_sha != last_ckpt_sha:
 jsonl = Path(os.path.expanduser(f"~/.lnmem/data/intent_feedback/{__import__('datetime').date.today()}.jsonl"))
 state_count = Counter()
 state_corrected = {}  # state -> Counter of corrected
+recent_combos = set()  # 最近 N 分钟内反馈过的 (state, predicted) 组合 → 不再问
+dedup_window = int(os.environ.get('RECENT_FEEDBACK_DEDUP_S', '1800'))
+cutoff_ts_ns = (now - dedup_window) * 1_000_000_000
 if jsonl.exists():
     with jsonl.open() as f:
         for line in f:
             try:
                 d = json.loads(line)
                 note = d.get('note', '')
-                # v2 格式 phase2=X，v1 格式 phase2_state=X
                 ps = None
                 for token in note.split('|'):
                     if token.startswith('phase2=') or token.startswith('phase2_state='):
@@ -195,7 +198,19 @@ if jsonl.exists():
                 if ps:
                     state_count[ps] += 1
                     state_corrected.setdefault(ps, Counter())[d.get('corrected', '?')] += 1
+                # 提取这条反馈的 ts_ns + 组合
+                ts_ns_val = d.get('ts_ns') or 0
+                if ts_ns_val and ts_ns_val >= cutoff_ts_ns:
+                    pred = d.get('predicted', 'none')
+                    if ps:
+                        recent_combos.add((ps, pred))
             except: pass
+
+# 抑制：当前 (state, intent_pred) 已经在最近 N 分钟反馈过 → SKIP
+current_combo = (state, intent_pred)
+if current_combo in recent_combos:
+    print(f"SKIP|recent_feedback|组合 {current_combo} 最近 {dedup_window//60}min 内已反馈过，不重问")
+    sys.exit(0)
 
 # 计算 6 触发器，按优先级返回第一个命中
 intent_sorted = sorted(intent_probs, reverse=True)

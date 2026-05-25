@@ -42,15 +42,17 @@
         <key>HOME</key>
         <string>/Users/rayman.chen</string>
 
-        <!-- v2 active learning 触发阈值（codex 对抗审后定） -->
+        <!-- v2.1 active learning（5/25 13:18 川哥反馈"太频繁+重复问"后大幅收紧）-->
         <key>POLL_INTERVAL</key>
         <string>3</string>
         <key>GLOBAL_COOLDOWN_S</key>
-        <string>30</string>
+        <string>300</string>
         <key>PER_REASON_COOLDOWN_S</key>
-        <string>120</string>
+        <string>1800</string>
+        <key>RECENT_FEEDBACK_DEDUP_S</key>
+        <string>1800</string>
         <key>DAILY_MAX</key>
-        <string>150</string>
+        <string>60</string>
         <key>INTENT_TOP2_DIFF_MAX</key>
         <string>0.10</string>
         <key>PHASE2_MARGIN_MIN</key>
