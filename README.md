@@ -22,7 +22,82 @@
 
 ---
 
-## 📍 当前阶段（2026-05-23 凌晨）
+## 🚀 当前阶段（2026-05-25 12:35 最新）
+
+**🎯 v0.1 Sprint 2 真闭环 + Active Learning v2 + 全套 LaunchAgent 守护就绪**
+
+> M0 demo 5/28-6/3 数据/工程层全就绪，只等反馈积累 + Studio 训练 8h 周期跑起来。
+
+### 5/25 全天 12 commits（凌晨 → 中午）
+
+| 阶段 | commit | 内容 |
+|------|--------|------|
+| **凌晨 03:00** | `578baf3 → 2e260c6` | Sprint 2 一轮 + gemini H1/H2/H3 整改 |
+| **早晨 08-09** | `0cc73a5 / 0f7a3f3 / d900e66 / ffc055b / d3fb96e` | UI HTTP polling + window 60→8 + 3 按钮 + supervisor 防循环 |
+| **中午 12:00** | `1f8be85` | Sprint 2 部署完整复盘 |
+| **12:08** | **`b649815`** | **P0-1 launchd 全装 + daemon ckpt watcher + ADR-030 24h 决策** |
+| **12:18** | **`a1f1ac8`** | **川哥反转 → 8h 调度 + UI list/dict 兼容** |
+| **12:35** | **`fec97d6`** | **notify_watcher v2 active learning + 6 触发器 + ADR-031** |
+
+### 端到端真闭环已实证（5/25 12:31）
+
+```
+川哥点反馈 → daemon /intent_feedback → ~/.lnmem/data/intent_feedback/*.jsonl
+            ↓ (Air sync LaunchAgent 每 1h)
+Studio ~/lnmem-daemon-sync/ → ssh trigger nightly-train (8h: 00/08/16)
+            ↓ 双门: 增量≥10 + 距上次≥6h
+intent_head 训练 → ckpt + atomic symlink
+            ↓ (Air pull LaunchAgent 每 10min)
+~/.lnmem/ckpt/intent_head_latest.pt
+            ↓ (daemon ckpt_watcher 60s 周期)
+inferencer._load_intent_head_ckpt → 1s 软重启
+            ↓
+新 /signals/recent intent_pred = 真预测（不再 None）
+            ↓ (notify_watcher v2 active learning)
+LNN 真求反馈时弹窗 + 显示理由 → 川哥点 → 循环
+```
+
+**实测 sha8**：`cdaa4d69 → 98227c93`（60s 内 daemon 自动 reload，无需重启）✅
+
+### 6 个 LaunchAgent 守护就位
+
+| 服务 | 调度 | 用途 |
+|------|------|------|
+| `com.lnmem.daemon-supervisor` | 已有 | daemon 业务拉起 |
+| `com.lnmem.daemon-watchdog` | 已有 | daemon 健康检查 |
+| `com.lnmem.sync-daemon-to-studio` | 3600s | Air → Studio 数据同步 |
+| `com.lnmem.pull-ckpt-from-studio` | 600s | Air ← Studio ckpt 拉回 |
+| `com.lnmem.notify-watcher` | KeepAlive | active learning 弹窗 |
+| `com.lnmem.studio-nightly-train`（Studio） | **8h (00/08/16)** | 训练 + cursor 双门 |
+
+### notify_watcher v2 active learning 范式（ADR-031）
+
+弹窗时机从「阈值触发」改成「**LNN 自己判断需要反馈**时触发」+ 附理由（codex 对抗审 7 个 finding 全采纳）：
+
+| 优先级 | 触发器 | 何时弹 |
+|--------|--------|--------|
+| F | 冷启动校准 | ckpt 5min 内换过 + 有不确定信号 |
+| A | 意图不确定 | intent_probs top-2 差 < 0.10 持续 3 帧 |
+| B | 表情不确定 | phase2 margin<0.30 或 entropy>0.60 持续 3 帧 |
+| C | 状态突变 | 两次高置信 top_prob ≥ 0.80 但 state 不同 |
+| D | 稀疏类样本 | 此 state 历史 < 5 条 |
+| E | 历史标注分歧 | 同 state 历史 ≥ 10 条且主类占比 40-60% |
+
+弹窗 3 段文案：【为什么这次问你】+【依据：字段+数值】+【你的反馈如何帮我】，**禁止心理化拟人**。
+
+### 新增 ADR
+
+- [ADR-030](docs/decisions/030-train-schedule-24h-vs-8h.md) Studio 训练 24h vs 8h（cc/codex/gemini 三方评审 + 川哥反转采纳 8h）
+- [ADR-031](docs/decisions/031-active-learning-feedback-trigger.md) 主动反馈从阈值改 active learning 范式
+
+### 5/25 详细复盘
+
+- [`docs/reports/2026-05-25-sprint2-real-deployment-complete.md`](docs/reports/2026-05-25-sprint2-real-deployment-complete.md) — 凌晨+早晨 7h 部署
+- [`docs/reports/2026-05-25-afternoon-p0-active-learning.md`](docs/reports/2026-05-25-afternoon-p0-active-learning.md) — 中午 P0-1 + active learning v2
+
+---
+
+## 📍 历史阶段（2026-05-23 凌晨）
 
 **🚀 v0.1 实时意图预测 · Sprint 1 完成 · Sprint 2 启动 · M0 6/10 收口在跑**
 

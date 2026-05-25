@@ -6,12 +6,18 @@
 
 ---
 
-## ⭐ 当前阶段：v0.1 Sprint 2 **已部署实战中**（5/25 09:30 真闭环跑通）
+## ⭐ 当前阶段：v0.1 Sprint 2 **完整端到端闭环就绪**（5/25 12:35 P0-1 + Active Learning v2 上线）
 
 > **2026-05-23 ADR-028 战略转折**：LNN 从「24h AU 序列预测」改为「online 三分类意图估计 + 用户反馈闭环」。
-> 复盘：[`docs/reports/2026-05-23-v0.1-direction-shift-complete.md`](docs/reports/2026-05-23-v0.1-direction-shift-complete.md)
 > Sprint 2 spec：[`docs/decisions/029-sprint2-intent-classifier-daf-studio-pipeline.md`](docs/decisions/029-sprint2-intent-classifier-daf-studio-pipeline.md)
-> **实战部署完整复盘（5/25 凌晨+早晨 7h）**：[`docs/reports/2026-05-25-sprint2-real-deployment-complete.md`](docs/reports/2026-05-25-sprint2-real-deployment-complete.md)
+>
+> **5/25 三份重要复盘**：
+> - 凌晨+早晨 7h 部署：[`docs/reports/2026-05-25-sprint2-real-deployment-complete.md`](docs/reports/2026-05-25-sprint2-real-deployment-complete.md)
+> - 中午 P0-1 + active learning：[`docs/reports/2026-05-25-afternoon-p0-active-learning.md`](docs/reports/2026-05-25-afternoon-p0-active-learning.md)
+>
+> **5/25 中午两次范式决策**：
+> - [ADR-030](docs/decisions/030-train-schedule-24h-vs-8h.md) Studio 训练 8h 调度
+> - [ADR-031](docs/decisions/031-active-learning-feedback-trigger.md) 主动反馈 active learning 范式
 
 **真闭环实证**（5/25 08:44:03）：川哥点 [→正] → 1s 内 `~/.lnmem/data/intent_feedback/2026-05-25.jsonl` 落一条含 `hidden_state_window` 64-dim phase2 特征向量。Sprint 2 最小可用单位 ✅
 
@@ -43,9 +49,12 @@
 | S2-14 第一条 intent_feedback 落盘 | ✅ | 5/25 08:44:03 含 hidden_state_window |
 | S2-15 旧 ProactiveQueryEngine 静默化 | ✅ | enable_prompt=False 旁路 |
 | S2-16 修 5 个 UX/Bug（详见复盘 §4-5） | ✅ | 8 个 commit 全 push |
-| **S2-17 川哥反馈累计 50 条** | 🔄 | 当前 5 条，继续给反馈 |
-| **S2-18 Studio 03:00 cron 训第一个 intent_head ckpt** | ⏳ | 等 ≥ 50 条触发 |
-| S2-19 装 LaunchAgent 让 rsync/pull/夜训自动跑 | ⏳ | `scripts/install_launchd_air.sh` 待跑 |
+| **S2-17 川哥反馈累计 50 条** | ✅ | 当前 **92+ 条（v1）+ v2 增长中** |
+| **S2-18 Studio cron 训第一个 intent_head ckpt** | ✅ | 5/25 12:04 + 12:31 已训 2 次 + sha8 验证 |
+| S2-19 装 LaunchAgent 让 sync/pull/夜训/watcher 自动跑 | ✅ | **5 个 Air + 1 个 Studio 全装上** |
+| **S2-20 daemon ckpt watcher 60s 周期热加载** | ✅ | daemon_main.py `_ckpt_watcher_loop`，实测 sha8 cdaa4d69→98227c93 |
+| **S2-21 Studio 调度策略决策（24h vs 8h）** | ✅ | ADR-030：川哥钦定 **8h (00/08/16)** + 增量门 10/6h |
+| **S2-22 notify_watcher v2 active learning 范式** | ✅ | ADR-031：6 触发器 + KeepAlive + 文案诚实性 |
 
 **5/24 凌晨 Sprint 2 启动归档**：
 - 战略锚：[ADR-028](docs/decisions/028-lnn-role-redefine-online-intent.md) + [ADR-029](docs/decisions/029-sprint2-intent-classifier-daf-studio-pipeline.md)
@@ -55,6 +64,36 @@
 **项目哲学锚**：[ADR-009 拒绝 RAG](docs/decisions/009-no-rag-shortcut-stick-to-lnn-first.md) + [ADR-028 LNN 角色重定义](docs/decisions/028-lnn-role-redefine-online-intent.md)
 **🏗 技术全景**：[`docs/architecture-overview.md`](docs/architecture-overview.md)
 **🤖 AI 同事 30 秒上手**：[`docs/onboarding-ai.md`](docs/onboarding-ai.md)
+
+---
+
+## 🎯 M0 demo 准备 TODO（5/28-6/3）
+
+| # | 任务 | 状态 | 阻塞条件 |
+|---|------|------|---------|
+| **D-1** | **24h 学习曲线录制**（confidence/margin/entropy 随时间 + intent_head 训练前后对比）| ⏳ | 需要 24h 持续跑（Studio 至少训 3 次）|
+| **D-2** | **Studio USB 摄像头 hold-out 验证**（2h 数据当 hold-out 验证 Air ckpt 泛化）| ⏳ | 需要川哥到 Studio 物理位置或远程 |
+| **D-3** | **demo 录屏 5-10min**（端到端：弹窗 → 反馈 → 训练 → reload → 更准的预测）| ⏳ | 需要 v2 watcher 触发自然 + 川哥配合录 |
+| **D-4** | UI intent_head 状态指示灯（"已训练 vs 暖机中" 一眼可见）| ⏳ | 1h 工作量 |
+| **D-5** | daemon /health 加 ckpt_sha8 + last_reload_ts 字段 | ⏳ | 15min 工作量 |
+| **D-6** | feedback jsonl → parquet 转换脚本（防 50k 条后 200MB jsonl）| 🟡 | demo 后做也行 |
+| **D-7** | 删除旧 ProactiveQueryEngine 死代码（现在 enable_prompt=False bypass）| 🟡 | 派 codex 重构 |
+
+---
+
+## 📋 当前观察 / 等待
+
+**等待 16:00 Studio 自动训**（8h 调度首次自然触发，验证 LaunchAgent 完整链路）：
+1. 16:00 launchd 触发 nightly-train
+2. 检查双门（增量 ≥10 + 距上次 ≥6h）
+3. 训完 → Air pull → daemon reload → /health sha8 变化
+4. 川哥下午继续点弹窗，反馈数据持续累积
+
+**1 周后 retro 监测项**（写入 ADR-030/031 末尾）：
+- 8h 调度灾难性遗忘风险（val_loss 单调下降 vs 震荡）
+- v2 触发器分布（应该 A+B 占大头，F 偶发，D/E 长尾）
+- 川哥主观打分：弹窗时机"问得有道理" 1-5 分
+- 反馈质量：v1 全 corrected=none 占 79% → v2 应分布更均匀
 
 ---
 
