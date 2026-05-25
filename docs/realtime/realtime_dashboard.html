@@ -264,26 +264,43 @@ function rebuildChart(chart, allFrames, predFrames, kind) {
 }
 
 function setNowAnnotation(chart) {
-  // 注入 "现在" 红虚线 + 预测段黄色背景
+  // 川哥钦定：'现在' 居于图正中 (1:1 分历史/预测)
   if (dataBuf.history.length === 0) return;
   const lastHistTs = dataBuf.history[dataBuf.history.length - 1].ts_ns / 1e6;
   const lastPredTs = dataBuf.predictions.length > 0
     ? dataBuf.predictions[dataBuf.predictions.length - 1].ts_ns / 1e6
-    : lastHistTs + 10000;  // 默认 10s 未来
+    : lastHistTs + 10000;
+  const predDurationMs = lastPredTs - lastHistTs;
+  const xMinMs = lastHistTs - predDurationMs;  // 左侧历史窗 = 右侧预测时长
+  const xMaxMs = lastPredTs;
+
+  // 强制 x 轴 1:1 比例
+  chart.options.scales.x.min = xMinMs;
+  chart.options.scales.x.max = xMaxMs;
 
   chart.options.plugins.annotation.annotations = {
+    // 左半部分背景 (淡蓝灰，标记"历史"区)
+    historyBox: {
+      type: 'box',
+      xMin: xMinMs, xMax: lastHistTs,
+      backgroundColor: 'rgba(100, 116, 139, 0.05)',
+      borderWidth: 0,
+      drawTime: 'beforeDatasetsDraw',
+    },
+    // 右半部分背景 (浅黄，标记"预测"区)
     futureBox: {
       type: 'box',
       xMin: lastHistTs, xMax: lastPredTs,
-      backgroundColor: 'rgba(251, 191, 36, 0.10)',  // 浅黄背景
+      backgroundColor: 'rgba(251, 191, 36, 0.12)',
       borderWidth: 0,
-      drawTime: 'beforeDatasetsDraw',  // 画在数据下面
+      drawTime: 'beforeDatasetsDraw',
     },
+    // "现在" 红色垂直分割线
     nowLine: {
       type: 'line',
       xMin: lastHistTs, xMax: lastHistTs,
-      borderColor: '#ef4444',  // 红色
-      borderWidth: 2,
+      borderColor: '#ef4444',
+      borderWidth: 2.5,
       borderDash: [6, 3],
       label: {
         display: true,
@@ -291,20 +308,33 @@ function setNowAnnotation(chart) {
         position: 'start',
         backgroundColor: 'rgba(239, 68, 68, 0.9)',
         color: '#fff',
-        font: { size: 10, weight: 'bold' },
-        padding: 3,
+        font: { size: 11, weight: 'bold' },
+        padding: 4,
       },
     },
+    // "← 历史" 左半中点标签
+    historyLabel: {
+      type: 'label',
+      xValue: (xMinMs + lastHistTs) / 2,
+      yValue: 0.95,
+      content: ['← 历史'],
+      backgroundColor: 'rgba(71, 85, 105, 0.85)',
+      color: '#f1f5f9',
+      font: { size: 11, weight: 'bold' },
+      padding: 5,
+      borderRadius: 4,
+    },
+    // "🔮 LTC 预测 →" 右半中点标签
     futureLabel: {
       type: 'label',
-      xValue: (lastHistTs + lastPredTs) / 2,
+      xValue: (lastHistTs + xMaxMs) / 2,
       yValue: 0.95,
-      content: ['🔮 LTC 真预测'],
-      backgroundColor: 'rgba(146, 64, 14, 0.85)',
+      content: ['🔮 LTC 预测 →'],
+      backgroundColor: 'rgba(146, 64, 14, 0.9)',
       color: '#fff',
-      font: { size: 10, weight: 'bold', style: 'italic' },
-      padding: 4,
-      borderRadius: 3,
+      font: { size: 11, weight: 'bold', style: 'italic' },
+      padding: 5,
+      borderRadius: 4,
     },
   };
 }
