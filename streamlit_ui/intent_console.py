@@ -437,11 +437,12 @@ def render_evolution_panel(history):
                 })
 
     df_intent = pd.DataFrame(rows)
-    intent_chart = (
+    # 主面积图
+    intent_area = (
         alt.Chart(df_intent)
-        .mark_area(opacity=0.7)
+        .mark_area(opacity=0.85)
         .encode(
-            x=alt.X("ts:T", title="时间（右侧虚线区为 10s 外推预测）"),
+            x=alt.X("ts:T", title=None),
             y=alt.Y("概率:Q", stack="normalize", title="意图概率分布"),
             color=alt.Color(
                 "意图类别:N",
@@ -449,12 +450,42 @@ def render_evolution_panel(history):
                     domain=["🟢 正反馈", "🔴 负反馈", "⚪ 中性"],
                     range=["#10b981", "#ef4444", "#9ca3af"],
                 ),
-                legend=alt.Legend(orient="top"),
+                legend=alt.Legend(orient="top", title=None),
             ),
-            opacity=alt.condition(alt.datum["是否预测"], alt.value(0.35), alt.value(0.85)),
+            opacity=alt.condition(alt.datum["是否预测"], alt.value(0.45), alt.value(0.92)),
             tooltip=["ts:T", "意图类别:N", alt.Tooltip("概率:Q", format=".3f"), "是否预测:N"],
         )
-        .properties(height=200, title=f"🎯 意图概率演化 + 10s {'LTC ODE 真预测' if use_ltc else 'mean fallback'}（半透明 = 预测）")
+    )
+    # 预测段灰黄背景
+    future_max_ts = last_ts + timedelta(seconds=10)
+    intent_bg = (
+        alt.Chart(pd.DataFrame([{"x_start": last_ts, "x_end": future_max_ts}]))
+        .mark_rect(color="#fbbf24", opacity=0.08)
+        .encode(x="x_start:T", x2="x_end:T")
+    )
+    # "现在" 垂直红虚线
+    intent_now_rule = (
+        alt.Chart(pd.DataFrame([{"x": last_ts}]))
+        .mark_rule(color="#dc2626", strokeWidth=2, strokeDash=[6, 3])
+        .encode(x="x:T")
+    )
+    intent_now_text = (
+        alt.Chart(pd.DataFrame([{"x": last_ts}]))
+        .mark_text(text="⏱ 现在", align="left", dx=4, dy=-4,
+                   color="#dc2626", fontSize=12, fontWeight="bold")
+        .encode(x="x:T", y=alt.value(0))
+    )
+    intent_future_text = (
+        alt.Chart(pd.DataFrame([{"x": last_ts + timedelta(seconds=5)}]))
+        .mark_text(text=("🔮 LTC 真预测" if use_ltc else "🔮 mean fallback"),
+                   align="center", dy=14, color="#92400e",
+                   fontSize=12, fontWeight="bold", fontStyle="italic")
+        .encode(x="x:T", y=alt.value(0))
+    )
+
+    intent_chart = (intent_bg + intent_area + intent_now_rule + intent_now_text + intent_future_text).properties(
+        height=200,
+        title=f"🎯 意图概率演化（红虚线 = '现在'，右侧黄色区 = {'LTC 真预测' if use_ltc else 'mean fallback'}）"
     )
     st.altair_chart(intent_chart, use_container_width=True)
 
@@ -593,12 +624,12 @@ def render_evolution_panel(history):
         group_labels = [state_meta[s]["label"] for s in group_states]
         group_colors = [state_meta[s]["color"] for s in group_states]
 
-        chart = (
+        # 主图：stacked area
+        main_chart = (
             alt.Chart(df)
-            .mark_area(opacity=0.75)
+            .mark_area(opacity=0.85)
             .encode(
                 x=alt.X("ts:T", title=None),
-                # 该组内归一化（让组内 3-5 类概率重新加起来=1，方便看相对占比）
                 y=alt.Y("概率:Q", stack="normalize",
                         title=f"{group_name}组内概率占比 (总=100%)"),
                 color=alt.Color(
@@ -606,14 +637,70 @@ def render_evolution_panel(history):
                     scale=alt.Scale(domain=group_labels, range=group_colors),
                     legend=alt.Legend(orient="top", columns=len(group_labels), title=None),
                 ),
-                opacity=alt.condition(alt.datum["是否预测"], alt.value(0.4), alt.value(0.85)),
+                opacity=alt.condition(alt.datum["是否预测"],
+                                       alt.value(0.45),  # 预测段半透明
+                                       alt.value(0.92)),  # 历史段实色
                 tooltip=["ts:T", "状态:N", "valence:N",
                          alt.Tooltip("概率:Q", format=".3f"), "是否预测:N"],
             )
-            .properties(
-                height=height,
-                title=f"{group_emoji} {group_name} 概率演化（堆叠面积，右侧 {'10s LTC 真预测' if use_ltc else '5s fallback'} 半透明）"
+        )
+
+        # 预测段背景灰带（用一帧矩形覆盖预测时间范围）
+        future_max_ts = last_ts_dt + timedelta(seconds=10 if use_ltc else 5)
+        bg_df = pd.DataFrame([{"x_start": last_ts_dt, "x_end": future_max_ts}])
+        bg_layer = (
+            alt.Chart(bg_df)
+            .mark_rect(color="#fbbf24", opacity=0.08)  # 浅黄背景
+            .encode(x="x_start:T", x2="x_end:T")
+        )
+
+        # "现在" 垂直分割线
+        now_line_df = pd.DataFrame([{"x": last_ts_dt}])
+        now_rule = (
+            alt.Chart(now_line_df)
+            .mark_rule(color="#dc2626", strokeWidth=2, strokeDash=[6, 3])
+            .encode(x="x:T")
+        )
+
+        # 顶部"现在"标签
+        now_text = (
+            alt.Chart(now_line_df)
+            .mark_text(text="⏱ 现在", align="left", dx=4, dy=-4,
+                       color="#dc2626", fontSize=12, fontWeight="bold")
+            .encode(x="x:T", y=alt.value(0))
+        )
+
+        # 预测段顶部 "🔮 LTC 预测" 标签
+        if use_ltc or pred_rows:
+            mid_future = last_ts_dt + timedelta(seconds=5 if use_ltc else 2.5)
+            label_text = "🔮 LTC 真预测" if use_ltc else "🔮 mean fallback"
+            future_text = (
+                alt.Chart(pd.DataFrame([{"x": mid_future}]))
+                .mark_text(text=label_text, align="center", dy=14,
+                           color="#92400e", fontSize=12, fontWeight="bold",
+                           fontStyle="italic")
+                .encode(x="x:T", y=alt.value(0))
             )
+        else:
+            future_text = alt.Chart(pd.DataFrame()).mark_text()
+
+        # 历史段 "← 历史" 标签
+        if len(history) > 0:
+            mid_history = datetime.fromtimestamp(
+                history[max(0, len(history) // 2)].ts_ns / 1e9
+            )
+            history_text = (
+                alt.Chart(pd.DataFrame([{"x": mid_history}]))
+                .mark_text(text="← 历史", align="center", dy=14,
+                           color="#1f2937", fontSize=12, fontWeight="bold")
+                .encode(x="x:T", y=alt.value(0))
+            )
+        else:
+            history_text = alt.Chart(pd.DataFrame()).mark_text()
+
+        chart = (bg_layer + main_chart + now_rule + now_text + future_text + history_text).properties(
+            height=height,
+            title=f"{group_emoji} {group_name} 概率演化（红虚线 = '现在'，右侧黄色区 = 预测）"
         )
         st.altair_chart(chart, use_container_width=True)
         return  # 下面的旧 mark_line 代码忽略
