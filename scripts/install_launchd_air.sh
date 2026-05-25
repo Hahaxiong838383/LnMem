@@ -14,12 +14,13 @@ LAUNCHD_DIR="${HOME}/Library/LaunchAgents"
 PLISTS=(
   "com.lnmem.sync-daemon-to-studio"
   "com.lnmem.pull-ckpt-from-studio"
+  "com.lnmem.notify-watcher"
 )
 
 UNINSTALL=0
 [ "${1:-}" = "--uninstall" ] && UNINSTALL=1
 
-mkdir -p "$LAUNCHD_DIR" "${HOME}/.lnmem/logs/sync" "${HOME}/.lnmem/logs/ckpt_pull"
+mkdir -p "$LAUNCHD_DIR" "${HOME}/.lnmem/logs/sync" "${HOME}/.lnmem/logs/ckpt_pull" "${HOME}/.lnmem/logs/notify_watcher"
 
 for label in "${PLISTS[@]}"; do
     src="${REPO_DIR}/scripts/launchd/${label}.plist"

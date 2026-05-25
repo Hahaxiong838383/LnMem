@@ -1,65 +1,102 @@
 #!/usr/bin/env bash
-# notify_watcher.sh — 后台 poll daemon /signals/recent，触发 macOS 系统通知 + 弹窗反馈
+# notify_watcher.sh v2 — Active Learning 主动反馈触发（川哥 5/25 12:25 钦定）
 #
-# 解决：川哥不能一直开 Streamlit web UI，但又要给反馈攒训练数据
-# 方案：后台守护进程，每 N 秒 poll daemon，触发条件：
-#   - margin/confidence > NOTIFY_THRESHOLD（默认 0.85）
-#   - 距上次通知 ≥ NOTIFY_COOLDOWN_S 秒（默认 180，3 分钟，防骚扰）
-#   - state 与上次通知不同（防同状态连发）
-# 弹窗后：川哥点 [正/负/无/跳过]，自动 POST 到 daemon /intent_feedback
+# v1 → v2 范式转变：不再用单一阈值，由 LNN 自己判断"需要反馈"才弹，并附诚实理由。
+#
+# 6 触发器（codex 对抗审后整改，按优先级；同时段只取最高优先级一个）：
+#   F. 冷启动校准 (ckpt 刚换 5min 内 + 任意不确定信号)
+#   A. 意图不确定 (intent_probs top-2 差 < 0.10) 持续 ≥ 3 帧
+#   B. 表情不确定 (phase2 margin < 0.30 或 entropy > 0.60) 持续 ≥ 3 帧
+#   C. 状态突变 (高置信 top_prob ≥ 0.80 的 state 切到不同 state) cooldown 90s
+#   D. 稀疏类  (此 state 历史 feedback < 5 条) cooldown 600s 防长尾尖刺
+#   E. 预测翻转 (同 state 历史 ≥ 10 条 且主类占比在 40%-60% 之间) cooldown 600s
+#
+# 防抖：
+#   - 同一触发器+同一 state 最小间隔 120s
+#   - 全局最小间隔 30s
+#   - lnn.error 非 null / 字段缺失 → 跳过（信号质量异常，不弹）
+#
+# 文案诚实性：
+#   - 弹窗必带「依据：触发器 X + 关键字段=值」，不写"我觉得"心理化表述
+#   - 多触发器并发只展示最高优先级 1 个主因（codex 钦定避免编故事拼接）
 #
 # 用法：
-#   ./scripts/notify_watcher.sh                  # 前台跑（看 log）
-#   nohup ./scripts/notify_watcher.sh > /tmp/notify_watcher.log 2>&1 &
-#                                                # 后台跑
-#
-# 停止：pkill -f notify_watcher.sh
+#   ./scripts/notify_watcher.sh                        # 前台
+#   通过 LaunchAgent com.lnmem.notify-watcher 自动起   # 推荐生产方式
 
-set -uo pipefail   # 不用 -e，poll 单次失败不退出整个 watcher
+set -uo pipefail
 
 DAEMON_HOST="${DAEMON_HOST:-127.0.0.1}"
 SIGNALS_URL="http://${DAEMON_HOST}:9876/signals/recent?limit=1"
+HEALTH_URL="http://${DAEMON_HOST}:9876/health"
 FEEDBACK_URL="http://${DAEMON_HOST}:9877/intent_feedback"
-POLL_INTERVAL="${POLL_INTERVAL:-3}"           # 每 3s 看一次
-NOTIFY_THRESHOLD="${NOTIFY_THRESHOLD:-0.85}"  # margin 高于此触发
-NOTIFY_COOLDOWN_S="${NOTIFY_COOLDOWN_S:-180}" # 通知冷却 3min
-UI_SESSION="notify-watcher-$(date +%s)"
+POLL_INTERVAL="${POLL_INTERVAL:-3}"
+GLOBAL_COOLDOWN_S="${GLOBAL_COOLDOWN_S:-30}"
+PER_REASON_COOLDOWN_S="${PER_REASON_COOLDOWN_S:-120}"
+DAILY_MAX="${DAILY_MAX:-150}"
 
-LAST_NOTIFY_TS=0
-LAST_NOTIFY_STATE=""
+# active learning 触发阈值（codex 对抗审后定）
+INTENT_TOP2_DIFF_MAX="${INTENT_TOP2_DIFF_MAX:-0.10}"
+PHASE2_MARGIN_MIN="${PHASE2_MARGIN_MIN:-0.30}"
+PHASE2_ENTROPY_MAX="${PHASE2_ENTROPY_MAX:-0.60}"
+HIGH_CONF_TOP_PROB="${HIGH_CONF_TOP_PROB:-0.80}"
+PERSIST_FRAMES="${PERSIST_FRAMES:-3}"        # A/B 要持续 N 帧防瞬时噪声
+COLD_START_WINDOW_S="${COLD_START_WINDOW_S:-300}"  # F 冷启动窗口
+SPARSE_CLASS_MAX="${SPARSE_CLASS_MAX:-5}"
+FLIP_MIN_SAMPLES="${FLIP_MIN_SAMPLES:-10}"
 
-log() {
-    echo "[$(date '+%H:%M:%S')] $*"
-}
+UI_SESSION="notify-watcher-v2-$(date +%s)"
+FEEDBACK_JSONL="${HOME}/.lnmem/data/intent_feedback/$(date +%Y-%m-%d).jsonl"
 
+# 状态（持久化在 ~/.lnmem/watcher_state/）
+STATE_DIR="${HOME}/.lnmem/watcher_state"
+mkdir -p "$STATE_DIR"
+LAST_GLOBAL_TS_FILE="${STATE_DIR}/last_global_ts"
+LAST_REASON_TS_FILE="${STATE_DIR}/last_reason_ts"   # key=reason|state value=ts
+LAST_CKPT_SHA_FILE="${STATE_DIR}/last_ckpt_sha8"
+LAST_CKPT_CHANGE_TS_FILE="${STATE_DIR}/last_ckpt_change_ts"
+PERSIST_COUNTER_FILE="${STATE_DIR}/persist_counter"  # JSON {A:n, B:n}
+LAST_STATE_FILE="${STATE_DIR}/last_high_conf_state"
+DAILY_COUNT_FILE="${STATE_DIR}/daily_count_$(date +%Y-%m-%d)"
+
+# helpers
+read_ts() { [ -f "$1" ] && cat "$1" 2>/dev/null || echo 0; }
+write_ts() { echo "$1" > "$2"; }
+log() { echo "[$(date '+%H:%M:%S')] $*"; }
+now_s() { date +%s; }
+
+# trigger_dialog: 弹窗 + 提交反馈
 trigger_dialog() {
-    local state="$1" margin="$2" ts_ns="$3"
+    local reason="$1" reason_desc="$2" state="$3" evidence="$4" ts_ns="$5"
 
-    # AppleScript 弹窗：osascript display dialog 最多 3 按钮（5/25 川哥实测踩坑）
-    # 设计：[→ 负] [→ 中] [→ 正]，「跳过」靠 ESC / 60s 超时
-    local prompt="LnMem 检测到状态：${state} (置信度 ${margin})
+    # 诚实文案：触发依据 + 关键字段 + 反馈作用
+    local prompt="🤔 LNN 主动求反馈
 
-这个推断准吗？给反馈让 AI 学得更快
-（不想反馈点叉关闭或等 60s 超时）"
+【为什么这次问你】${reason_desc}
+
+【依据】${evidence}
+
+【你的反馈如何帮我】${reason_help}
+
+当前推断状态：${state}"
 
     local result
     result=$(osascript -e "display dialog \"${prompt}\" \
-        with title \"LnMem 反馈\" \
+        with title \"LnMem 主动学习\" \
         buttons {\"→ 负\", \"→ 中\", \"→ 正\"} \
-        default button \"→ 正\" \
+        default button \"→ 中\" \
         with icon note \
         giving up after 60" 2>&1)
     local osa_exit=$?
 
-    log "osascript result: $result (exit=$osa_exit)"
+    log "osascript [$reason] result: $result (exit=$osa_exit)"
 
-    # gave up=true 或 user canceled → 跳过
     if echo "$result" | grep -q "gave up:true"; then
-        log "user did not respond in 60s, skip"
+        log "user 60s 内未响应，跳过"
         return 0
     fi
     if [ $osa_exit -ne 0 ] || echo "$result" | grep -q "User canceled"; then
-        log "user canceled / osascript error"
+        log "user 取消 / osascript 错误"
         return 0
     fi
 
@@ -68,77 +105,257 @@ trigger_dialog() {
         *正*) corrected="positive" ;;
         *中*) corrected="none" ;;
         *负*) corrected="negative" ;;
-        *) log "unknown button choice"; return 0 ;;
+        *) log "unknown button: $result"; return 0 ;;
     esac
 
-    # POST 反馈
-    # 5/25 cc fix: daemon endpoint 限 predicted ∈ {positive,negative,none}（ADR-028 3 类）
-    # 但 intent_head 没训之前 daemon 输出的是 phase2 8 类（transitioning/focused/...）
-    # 解决：predicted 统一填 "none"（占位），真实 8 类 state 放 note 字段
+    # predicted 填真 intent_pred（有 intent_head 后是 positive/negative/none，否则 none 占位）
+    local predicted="${INTENT_PRED:-none}"
     local resp
     resp=$(curl -s -X POST "$FEEDBACK_URL" \
         -H "Content-Type: application/json" \
-        -d "{\"ts_ns\":${ts_ns},\"predicted\":\"none\",\"corrected\":\"${corrected}\",\"ui_session\":\"${UI_SESSION}\",\"note\":\"notify_watcher|phase2_state=${state}|conf=${margin}\"}" 2>&1)
-    log "feedback POST: $corrected (phase2_state=$state) → $resp"
+        -d "{\"ts_ns\":${ts_ns},\"predicted\":\"${predicted}\",\"corrected\":\"${corrected}\",\"ui_session\":\"${UI_SESSION}\",\"note\":\"v2|reason=${reason}|phase2=${state}|${evidence}\"}" 2>&1)
+    log "POST: ${predicted}→${corrected} ($reason) → $resp"
 
     # 成功通知
-    osascript -e "display notification \"已记录: ${corrected}\" with title \"LnMem 反馈\" sound name \"Tink\"" 2>/dev/null
+    osascript -e "display notification \"已记录: ${corrected} ($reason)\" with title \"LnMem 反馈\" sound name \"Tink\"" 2>/dev/null
+
+    # 更新 cooldown
+    local now=$(now_s)
+    write_ts "$now" "$LAST_GLOBAL_TS_FILE"
+    echo "${reason}|${state}=${now}" >> "$LAST_REASON_TS_FILE"
+    # 日计数 +1
+    local cnt=$(read_ts "$DAILY_COUNT_FILE")
+    write_ts "$((cnt + 1))" "$DAILY_COUNT_FILE"
 }
 
-log "===== notify_watcher 启动 ====="
-log "POLL_INTERVAL=${POLL_INTERVAL}s NOTIFY_THRESHOLD=${NOTIFY_THRESHOLD} COOLDOWN=${NOTIFY_COOLDOWN_S}s"
-log "等待 daemon 推断..."
+# 主决策（Python 写更稳）
+decide_trigger() {
+    local lnn_json="$1"
+    python3 - <<PYEOF
+import json, os, sys
+from collections import Counter
+from pathlib import Path
+
+lnn = json.loads('''$lnn_json''')
+if not lnn or lnn.get('error'):
+    print("SKIP|signal_quality|lnn block error or empty")
+    sys.exit(0)
+
+state = lnn.get('predicted_state')
+top_prob = lnn.get('top_prob') or 0.0
+margin = lnn.get('margin') or 0.0
+entropy = lnn.get('entropy') or 0.0
+intent_probs = lnn.get('intent_probs') or []
+intent_pred = lnn.get('intent_pred')
+ckpt_sha = lnn.get('ckpt_sha8')
+
+# 缺关键字段 → skip
+if not state or not isinstance(intent_probs, list) or len(intent_probs) != 3:
+    print(f"SKIP|signal_quality|fields_missing state={state} probs_len={len(intent_probs) if isinstance(intent_probs, list) else '?'}")
+    sys.exit(0)
+
+# 读历史
+state_dir = Path(os.path.expanduser('~/.lnmem/watcher_state'))
+last_ckpt_sha = (state_dir / 'last_ckpt_sha8').read_text().strip() if (state_dir / 'last_ckpt_sha8').exists() else ''
+last_ckpt_change_ts = int((state_dir / 'last_ckpt_change_ts').read_text().strip()) if (state_dir / 'last_ckpt_change_ts').exists() else 0
+last_high_conf_state = (state_dir / 'last_high_conf_state').read_text().strip() if (state_dir / 'last_high_conf_state').exists() else ''
+persist_file = state_dir / 'persist_counter'
+persist = json.loads(persist_file.read_text()) if persist_file.exists() else {'A': 0, 'B': 0}
+
+import time
+now = int(time.time())
+
+# 持久化 ckpt 变更时间
+# 修：watcher 第一次启动看到 last_ckpt_sha 空，不能当作"刚换"
+# 必须区分 "初次见到" vs "真换了"
+if ckpt_sha and ckpt_sha != last_ckpt_sha:
+    (state_dir / 'last_ckpt_sha8').write_text(ckpt_sha)
+    if last_ckpt_sha:
+        # 真换了（之前记过 sha 但不同）
+        (state_dir / 'last_ckpt_change_ts').write_text(str(now))
+        last_ckpt_change_ts = now
+    # 初次见到不更新 last_ckpt_change_ts，保持 0 → F 不触发
+
+# 读历史 feedback 分布（今天 jsonl）
+jsonl = Path(os.path.expanduser(f"~/.lnmem/data/intent_feedback/{__import__('datetime').date.today()}.jsonl"))
+state_count = Counter()
+state_corrected = {}  # state -> Counter of corrected
+if jsonl.exists():
+    with jsonl.open() as f:
+        for line in f:
+            try:
+                d = json.loads(line)
+                note = d.get('note', '')
+                # v2 格式 phase2=X，v1 格式 phase2_state=X
+                ps = None
+                for token in note.split('|'):
+                    if token.startswith('phase2=') or token.startswith('phase2_state='):
+                        ps = token.split('=', 1)[1]
+                        break
+                if ps:
+                    state_count[ps] += 1
+                    state_corrected.setdefault(ps, Counter())[d.get('corrected', '?')] += 1
+            except: pass
+
+# 计算 6 触发器，按优先级返回第一个命中
+intent_sorted = sorted(intent_probs, reverse=True)
+top2_diff = intent_sorted[0] - intent_sorted[1]
+is_intent_uncertain = top2_diff < float(os.environ.get('INTENT_TOP2_DIFF_MAX', '0.10'))
+is_phase2_uncertain = margin < float(os.environ.get('PHASE2_MARGIN_MIN', '0.30')) or entropy > float(os.environ.get('PHASE2_ENTROPY_MAX', '0.60'))
+is_high_conf = top_prob >= float(os.environ.get('HIGH_CONF_TOP_PROB', '0.80'))
+persist_n = int(os.environ.get('PERSIST_FRAMES', '3'))
+cold_window = int(os.environ.get('COLD_START_WINDOW_S', '300'))
+sparse_max = int(os.environ.get('SPARSE_CLASS_MAX', '5'))
+flip_min = int(os.environ.get('FLIP_MIN_SAMPLES', '10'))
+
+# 更新持续帧计数
+if is_intent_uncertain:
+    persist['A'] = persist.get('A', 0) + 1
+else:
+    persist['A'] = 0
+if is_phase2_uncertain:
+    persist['B'] = persist.get('B', 0) + 1
+else:
+    persist['B'] = 0
+persist_file.write_text(json.dumps(persist))
+
+# 更新 last_high_conf_state
+state_changed = is_high_conf and last_high_conf_state and state != last_high_conf_state
+if is_high_conf:
+    (state_dir / 'last_high_conf_state').write_text(state)
+
+# 触发器优先级判断
+# F. 冷启动校准（最高优先级，仅当 ckpt 5min 内换过 + 有任意不确定信号）
+if last_ckpt_change_ts > 0 and (now - last_ckpt_change_ts) < cold_window:
+    if is_intent_uncertain or is_phase2_uncertain:
+        ago = (now - last_ckpt_change_ts) // 60
+        print(f"F|冷启动校准期|我刚学完一批反馈（{ago} 分钟前 ckpt 换到 {ckpt_sha[:6]}），需要你验证学得对|intent_top2_diff={top2_diff:.3f} phase2_margin={margin:.3f}|帮我确认新模型的判断方向，避免学偏")
+        sys.exit(0)
+
+# A. 意图不确定（持续 N 帧）
+if persist['A'] >= persist_n:
+    print(f"A|意图不确定|我对你这一刻意图判断很犹豫（pos={intent_probs[0]:.2f}/neg={intent_probs[1]:.2f}/none={intent_probs[2]:.2f}，top2 差仅 {top2_diff:.3f}）|连续 {persist['A']} 帧三类概率差 < {os.environ.get('INTENT_TOP2_DIFF_MAX', '0.10')}|你告诉我到底是 positive/negative/none，我下次同情境能学会")
+    sys.exit(0)
+
+# B. 表情不确定（持续 N 帧）
+if persist['B'] >= persist_n:
+    issue = "margin 太小" if margin < 0.30 else "entropy 太高"
+    print(f"B|表情不确定|我对你当前表情 ({state}) 不确定（{issue}：margin={margin:.3f} entropy={entropy:.3f}）|连续 {persist['B']} 帧 phase2 head 模糊|你的反馈能帮 phase2 backbone 校准表情判断")
+    sys.exit(0)
+
+# C. 状态突变
+if state_changed:
+    print(f"C|高置信状态突变|刚才你是 {last_high_conf_state}，现在切到 {state}（两次都 top_prob ≥ 0.80），是真切换还是误判？|state_change top_prob={top_prob:.3f}|确认是否真切换，避免我把临时表情学成长期偏好")
+    sys.exit(0)
+
+# D. 稀疏类
+n = state_count.get(state, 0)
+if n < sparse_max:
+    print(f"D|稀疏类样本|你当前是 {state} 状态，但历史反馈仅 {n} 条（< {sparse_max}），这类样本对我极宝贵|sparse_class_count={n}|多 1 条样本，我对这种状态的判断准确率能提升明显")
+    sys.exit(0)
+
+# E. 预测翻转（同 state 历史 ≥ 10 条 且主类占比 40-60）
+if n >= flip_min:
+    c = state_corrected.get(state, Counter())
+    total = sum(c.values()) or 1
+    top_share = max(c.values()) / total
+    if 0.4 <= top_share <= 0.6:
+        breakdown = ', '.join([f'{k}={v}' for k,v in c.most_common()])
+        print(f"E|历史标注分歧|你之前对 {state} 状态的反馈分布很均匀（{breakdown}），我拿不准|flip_top_share={top_share:.2f}|这次你的选择能帮我决定这种状态默认偏向哪类")
+        sys.exit(0)
+
+print("NONE|all triggers idle")
+PYEOF
+}
+
+# 启动 log
+log "===== notify_watcher v2 (active learning) 启动 ====="
+log "POLL=${POLL_INTERVAL}s GLOBAL_COOLDOWN=${GLOBAL_COOLDOWN_S}s PER_REASON_COOLDOWN=${PER_REASON_COOLDOWN_S}s DAILY_MAX=${DAILY_MAX}"
+log "阈值：intent_top2_diff<${INTENT_TOP2_DIFF_MAX} phase2_margin<${PHASE2_MARGIN_MIN} entropy>${PHASE2_ENTROPY_MAX}"
+log "触发器: F(冷启动) > A(意图不确定) > B(表情不确定) > C(状态突变) > D(稀疏类) > E(翻转)"
 
 while true; do
-    # 拉最新 1 条
+    # 日上限检查
+    cnt=$(read_ts "$DAILY_COUNT_FILE")
+    if [ "$cnt" -ge "$DAILY_MAX" ]; then
+        log "DAILY_MAX=$DAILY_MAX 已达上限，今天不再弹窗"
+        sleep 300
+        continue
+    fi
+
+    # 拉数据
     JSON=$(curl -s -m 2 "$SIGNALS_URL" 2>/dev/null)
     if [ -z "$JSON" ]; then
         sleep "$POLL_INTERVAL"
         continue
     fi
 
-    # python 解析（macOS bash 不擅长 json）
-    PARSED=$(python3 -c "
-import json, sys
+    # 提取 lnn 块 + ts_ns + intent_pred
+    META=$(echo "$JSON" | python3 -c "
+import sys, json
 try:
-    data = json.loads('''$JSON''')
+    data = json.load(sys.stdin)
     if not data: sys.exit(0)
     rec = data[0]
     lnn = rec.get('lnn') or {}
-    state = lnn.get('predicted_state', 'unknown')
-    margin = lnn.get('margin') or 0.0
-    confidence = lnn.get('intent_confidence') or margin   # fallback margin
     ts = rec.get('ts', '')
     from datetime import datetime
     try:
-        ts_ns = int(datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp() * 1e9)
-    except Exception:
-        ts_ns = 0
-    print(f'{state}|{confidence:.3f}|{ts_ns}')
-except Exception:
-    pass
+        ts_ns = int(datetime.fromisoformat(ts.replace('Z','+00:00')).timestamp() * 1e9)
+    except: ts_ns = 0
+    print(f'{ts_ns}|{lnn.get(\"intent_pred\") or \"none\"}|{json.dumps(lnn)}')
+except: pass
 " 2>/dev/null)
 
-    if [ -z "$PARSED" ]; then
+    if [ -z "$META" ]; then
         sleep "$POLL_INTERVAL"
         continue
     fi
 
-    STATE=$(echo "$PARSED" | cut -d'|' -f1)
-    CONF=$(echo "$PARSED" | cut -d'|' -f2)
-    TS_NS=$(echo "$PARSED" | cut -d'|' -f3)
-    NOW=$(date +%s)
-    ELAPSED=$((NOW - LAST_NOTIFY_TS))
+    TS_NS=$(echo "$META" | cut -d'|' -f1)
+    INTENT_PRED=$(echo "$META" | cut -d'|' -f2)
+    export INTENT_PRED
+    LNN_JSON=$(echo "$META" | cut -d'|' -f3-)
 
-    # 触发条件：置信度高 + 冷却已过 + state 跟上次不同
-    if awk "BEGIN {exit !($CONF >= $NOTIFY_THRESHOLD)}" \
-       && [ "$ELAPSED" -ge "$NOTIFY_COOLDOWN_S" ] \
-       && [ "$STATE" != "$LAST_NOTIFY_STATE" ]; then
-        log "trigger: state=$STATE conf=$CONF (elapsed=${ELAPSED}s)"
-        trigger_dialog "$STATE" "$CONF" "$TS_NS" &
-        LAST_NOTIFY_TS=$NOW
-        LAST_NOTIFY_STATE="$STATE"
+    DECISION=$(decide_trigger "$LNN_JSON")
+    REASON=$(echo "$DECISION" | cut -d'|' -f1)
+
+    if [ "$REASON" = "NONE" ] || [ "$REASON" = "SKIP" ]; then
+        sleep "$POLL_INTERVAL"
+        continue
     fi
+
+    REASON_DESC=$(echo "$DECISION" | cut -d'|' -f2)
+    REASON_HELP_RAW=$(echo "$DECISION" | cut -d'|' -f3)
+    EVIDENCE=$(echo "$DECISION" | cut -d'|' -f4)
+    HELP_TEXT=$(echo "$DECISION" | cut -d'|' -f5)
+
+    # state 用 lnn predicted_state
+    STATE=$(echo "$LNN_JSON" | python3 -c "import sys,json;print(json.load(sys.stdin).get('predicted_state','?'))")
+
+    # 全局 cooldown
+    NOW=$(now_s)
+    LAST_GLOBAL=$(read_ts "$LAST_GLOBAL_TS_FILE")
+    ELAPSED=$((NOW - LAST_GLOBAL))
+    if [ "$ELAPSED" -lt "$GLOBAL_COOLDOWN_S" ]; then
+        sleep "$POLL_INTERVAL"
+        continue
+    fi
+
+    # 同一原因+state cooldown（grep last_reason_ts_file）
+    LAST_RS=$(grep "^${REASON}|${STATE}=" "$LAST_REASON_TS_FILE" 2>/dev/null | tail -1 | cut -d'=' -f2)
+    LAST_RS=${LAST_RS:-0}
+    RS_ELAPSED=$((NOW - LAST_RS))
+    if [ "$RS_ELAPSED" -lt "$PER_REASON_COOLDOWN_S" ]; then
+        sleep "$POLL_INTERVAL"
+        continue
+    fi
+
+    log "TRIGGER [${REASON}] state=${STATE} elapsed_global=${ELAPSED}s elapsed_reason=${RS_ELAPSED}s"
+    log "  evidence: $EVIDENCE"
+
+    reason_help="$HELP_TEXT"
+    trigger_dialog "$REASON" "$REASON_DESC" "$STATE" "$EVIDENCE" "$TS_NS" &
 
     sleep "$POLL_INTERVAL"
 done

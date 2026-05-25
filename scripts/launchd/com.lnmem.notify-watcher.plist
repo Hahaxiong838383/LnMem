@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  notify_watcher v2 守护：active learning 主动反馈
+  - KeepAlive=true: 崩了 launchd 自动拉起
+  - RunAtLoad=true: 装上立刻起
+  - Throttle 60s: 避免 crash loop（最快 60s 重启一次）
+  - env 写死 v2 触发阈值，重启后保持一致
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lnmem.notify-watcher</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc/scripts/notify_watcher.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc</string>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/rayman.chen/.lnmem/logs/notify_watcher/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/rayman.chen/.lnmem/logs/notify_watcher/launchd.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/rayman.chen</string>
+
+        <!-- v2 active learning 触发阈值（codex 对抗审后定） -->
+        <key>POLL_INTERVAL</key>
+        <string>3</string>
+        <key>GLOBAL_COOLDOWN_S</key>
+        <string>30</string>
+        <key>PER_REASON_COOLDOWN_S</key>
+        <string>120</string>
+        <key>DAILY_MAX</key>
+        <string>150</string>
+        <key>INTENT_TOP2_DIFF_MAX</key>
+        <string>0.10</string>
+        <key>PHASE2_MARGIN_MIN</key>
+        <string>0.30</string>
+        <key>PHASE2_ENTROPY_MAX</key>
+        <string>0.60</string>
+        <key>HIGH_CONF_TOP_PROB</key>
+        <string>0.80</string>
+        <key>PERSIST_FRAMES</key>
+        <string>3</string>
+        <key>COLD_START_WINDOW_S</key>
+        <string>300</string>
+        <key>SPARSE_CLASS_MAX</key>
+        <string>5</string>
+        <key>FLIP_MIN_SAMPLES</key>
+        <string>10</string>
+    </dict>
+</dict>
+</plist>
