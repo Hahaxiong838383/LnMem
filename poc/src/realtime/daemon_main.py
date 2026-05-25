@@ -479,8 +479,17 @@ class DaemonApp:
             )
             return RealtimeLNNInferencer(ckpt_path=None)
 
+        # 5/25 cc：支持 env LNMEM_INTENT_HEAD_CKPT 加载 intent classifier head（Sprint 2-B）
+        intent_head_env = os.environ.get("LNMEM_INTENT_HEAD_CKPT")
+        intent_head_path: Path | None = None
+        if intent_head_env:
+            candidate = Path(os.path.expanduser(intent_head_env))
+            if candidate.exists():
+                intent_head_path = candidate
+
         return RealtimeLNNInferencer(
             ckpt_path=ckpt_path,
+            intent_head_ckpt=intent_head_path,
             persona_idx=int(os.environ.get("LNMEM_PERSONA_IDX", "30")),
             signal_path=resolve_runtime_config()["signal_path"],
         )

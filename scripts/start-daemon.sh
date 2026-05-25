@@ -138,6 +138,21 @@ echo -e "${YELLOW}注意：摄像头 TCC 授权依赖当前 Terminal.app 上下�
 echo ""
 
 cd "$REPO_ROOT"
+
+# 自动加载 LNN backbone ckpt（如果存在），可被外部 env 覆盖
+# 5/25 cc: 复用 Studio 5/22 凌晨 Phase 2 训练成果（含 online_tau_drift LoRA adapter）
+# 注：v3.0_200ep.pt schema 不兼容 inferencer（cfg vs config），phase2 系列 OK
+if [ -z "${LNMEM_LNN_CKPT:-}" ] && [ -f "$HOME/.lnmem/ckpt/lnn_backbone_phase2_latest.pt" ]; then
+    export LNMEM_LNN_CKPT="$HOME/.lnmem/ckpt/lnn_backbone_phase2_latest.pt"
+    echo "   LNN ckpt: $LNMEM_LNN_CKPT (auto phase2 latest, 5/22 sha8 59cd1d9c)"
+fi
+
+# 自动加载最新 intent_head ckpt（Studio 训完后通过 pull_ckpt_from_studio.sh 拉过来）
+if [ -z "${LNMEM_INTENT_HEAD_CKPT:-}" ] && [ -L "$HOME/.lnmem/ckpt/intent_head_latest.pt" ]; then
+    export LNMEM_INTENT_HEAD_CKPT="$HOME/.lnmem/ckpt/intent_head_latest.pt"
+    echo "   intent head: $LNMEM_INTENT_HEAD_CKPT (auto latest)"
+fi
+
 # 取消 ERR trap 让 daemon_main 的退出码原样回传（响应 codex F3 — exec 后不再 trap）
 trap - ERR
 # exec 替换 shell 自身，确保 SIGINT 直达 daemon_main
