@@ -193,12 +193,16 @@ def submit_feedback(inf: Inference, corrected: str, note: str = "") -> bool:
 # ---- Studio 远程状态（智能 SSH 路径） ----
 @st.cache_data(ttl=60, show_spinner=False)
 def detect_studio_alias() -> tuple[str, float, str]:
-    """探测可达 Studio SSH alias：优先 ibro（局域网雷电网桥），fallback pub（公网）。
+    """探测可达 Studio SSH alias：优先 ibro（公司内网 iBRO WiFi + 雷电网桥），fallback pub（外网 FRP）。
+
+    场景说明：
+    - 川哥在公司 → WiFi=iBRO → studio-ibro 通（Studio 物理在公司）~50ms
+    - 川哥在家/外面 → 公网 → studio-pub 通（cli4 FRP + mini-pub:22022）~500-2000ms
 
     Returns: (alias, latency_s, status_msg) — alias 为 "" 表示都不通
     """
     import subprocess, time as _time
-    for alias, label in [("studio-ibro", "🏠 局域网"), ("studio-pub", "🌐 公网")]:
+    for alias, label in [("studio-ibro", "🏢 公司内网 iBRO"), ("studio-pub", "🌐 外网 FRP")]:
         start = _time.time()
         try:
             r = subprocess.run(

@@ -19,7 +19,7 @@ set -euo pipefail
 
 # ---- 配置 ----
 SRC="${HOME}/.lnmem/data/"
-DST_HOST="${LNMEM_STUDIO_HOST:-studio-pub}"  # 默认走公网（cli4.hahaxiong.cc 跳板），家里 iBRO 可 export LNMEM_STUDIO_HOST=studio-ibro
+DST_HOST="${LNMEM_STUDIO_HOST:-studio-pub}"  # 默认走外网 FRP（cli4 跳板），公司 iBRO WiFi 下可 export LNMEM_STUDIO_HOST=studio-ibro 走雷电网桥
 DST_PATH="~/lnmem-daemon-sync/"   # 新建目录避免与 Studio 现有 ~/lnmem-data（训练集 cache）冲突
 LOCK_FILE="/tmp/lnmem_sync_daemon_to_studio.lock"
 LOG_DIR="${HOME}/.lnmem/logs/sync"
