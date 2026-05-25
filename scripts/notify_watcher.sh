@@ -81,64 +81,111 @@ now_s() { date +%s; }
 trigger_dialog() {
     local reason="$1" reason_desc="$2" state="$3" evidence="$4" ts_ns="$5"
 
-    # 诚实文案：触发依据 + 关键字段 + 反馈作用
-    local prompt="🤔 LNN 主动求反馈
+    # 用 INTENT_LABELS 把 intent_pred 翻译成中文给川哥看
+    local intent_label="${INTENT_PRED:-none}"
+    case "$intent_label" in
+        positive) intent_label_zh="🟢 正反馈" ;;
+        negative) intent_label_zh="🔴 负反馈" ;;
+        none) intent_label_zh="⚪ 中性" ;;
+        *) intent_label_zh="$intent_label" ;;
+    esac
+
+    # 把 phase2 8 类状态翻成中文
+    local state_zh
+    case "$state" in
+        emotional_positive) state_zh="😊 情绪-正向" ;;
+        emotional_negative) state_zh="😟 情绪-负向" ;;
+        neutral) state_zh="😐 中立" ;;
+        focused) state_zh="🎯 专注" ;;
+        distracted) state_zh="🌀 分心" ;;
+        fatigued) state_zh="😴 疲惫" ;;
+        low_energy) state_zh="🪫 低能量" ;;
+        transitioning) state_zh="🔄 过渡中" ;;
+        *) state_zh="$state" ;;
+    esac
+
+    # 第一段弹窗：直接问推断对不对（confirm vs correct）
+    local prompt1="🤔 LNN 当前推断
+
+【表情状态】${state_zh}
+【意图判断】${intent_label_zh}
 
 【为什么这次问你】${reason_desc}
-
 【依据】${evidence}
 
-【你的反馈如何帮我】${reason_help}
-
-当前推断状态：${state}"
+我推断得对吗？"
 
     local dialog_start=$(date +%s)
-    local result
-    result=$(osascript -e "display dialog \"${prompt}\" \
+    local result1
+    result1=$(osascript -e "display dialog \"${prompt1}\" \
         with title \"LnMem 主动学习\" \
-        buttons {\"→ 负反馈\", \"→ 中性\", \"→ 正反馈\"} \
-        default button \"→ 中性\" \
+        buttons {\"⏭ 跳过\", \"✏️ 推断错\", \"✅ 推断对\"} \
+        default button \"✅ 推断对\" \
         with icon note \
         giving up after 60" 2>&1)
     local osa_exit=$?
+
+    log "osascript [$reason] 第一段 result: $result1 (exit=$osa_exit)"
+
+    local user_response="" corrected="" reward=0 response_type=""
+    local predicted="${INTENT_PRED:-none}"
+
+    if echo "$result1" | grep -q "gave up:true"; then
+        user_response="gave_up"
+        response_type="gave_up"
+        reward=0
+        log "user 60s 内未响应"
+    elif [ $osa_exit -ne 0 ] || echo "$result1" | grep -q "User canceled"; then
+        user_response="canceled"
+        response_type="canceled"
+        reward=0
+    elif echo "$result1" | grep -q "推断对"; then
+        # ✅ 推断对：confirm 信号 → corrected = predicted（不变）
+        corrected="$predicted"
+        user_response="confirm"
+        response_type="confirm"
+        reward=1   # 轻 reward
+        log "user 确认推断对 (intent_pred=$predicted)"
+    elif echo "$result1" | grep -q "跳过"; then
+        user_response="skip"
+        response_type="skip"
+        reward=0
+    elif echo "$result1" | grep -q "推断错"; then
+        # ✏️ 推断错：第二段弹窗让川哥选真实是什么
+        local prompt2="那你此刻真实意图是？
+
+LNN 推断: ${intent_label_zh}
+（你的纠正会成为训练 ground truth）"
+        local result2
+        result2=$(osascript -e "display dialog \"${prompt2}\" \
+            with title \"LnMem 纠正\" \
+            buttons {\"→ 负反馈\", \"→ 中性\", \"→ 正反馈\"} \
+            default button \"→ 中性\" \
+            with icon caution \
+            giving up after 60" 2>&1)
+        log "osascript [$reason] 第二段 result: $result2"
+
+        if echo "$result2" | grep -q "gave up:true"; then
+            user_response="correct_gave_up"
+            response_type="gave_up"
+            reward=0
+        else
+            case "$result2" in
+                *正*) corrected="positive" ;;
+                *中*) corrected="none" ;;
+                *负*) corrected="negative" ;;
+                *) corrected="?"; ;;
+            esac
+            user_response="correct_${corrected}"
+            response_type="correct"
+            reward=2   # 强 reward：纠错最有学习价值
+            log "user 纠正 → $corrected (原推断 $predicted)"
+        fi
+    fi
     local dialog_end=$(date +%s)
     local response_time_s=$((dialog_end - dialog_start))
 
-    log "osascript [$reason] result: $result (exit=$osa_exit)"
-
-    # P-AL.1: 落 query_decisions.jsonl（包括 gave_up 也记，作为负 reward）
-    local user_response="" corrected="" reward=0
-    if echo "$result" | grep -q "gave up:true"; then
-        user_response="gave_up"
-        reward=0
-        log "user 60s 内未响应，跳过 reward=0"
-    elif [ $osa_exit -ne 0 ] || echo "$result" | grep -q "User canceled"; then
-        user_response="canceled"
-        reward=0
-        log "user 取消 / osascript 错误 reward=0"
-    else
-        case "$result" in
-            *正*) corrected="positive" ;;
-            *中*) corrected="none" ;;       # "→ 中性" 按钮 → 内部 none
-            *负*) corrected="negative" ;;
-            *) log "unknown button: $result"; corrected="?"; ;;
-        esac
-        user_response="$corrected"
-    fi
-
-    # predicted 填真 intent_pred（有 intent_head 后是 positive/negative/none，否则 none 占位）
-    local predicted="${INTENT_PRED:-none}"
-
-    # 二元 reward 计算（川哥钦定）：响应 + 纠错 LNN = 正反馈；gave_up = 负
-    if [ -n "$corrected" ] && [ "$corrected" != "?" ]; then
-        if [ "$corrected" != "$predicted" ]; then
-            reward=1   # 川哥纠错了 LNN（真正有学习价值）
-        else
-            reward=1   # 响应了即正 reward（确认 LNN 也算正）
-        fi
-    fi
-
-    # 写 query_decisions.jsonl（无论是否响应都记）
+    # 写 query_decisions.jsonl（无论是否响应都记，含 response_type 区分 confirm/correct/skip）
     python3 - <<PYEOF >/dev/null 2>&1 || true
 import json
 from pathlib import Path
@@ -152,6 +199,7 @@ entry = {
         "evidence_str": "${evidence}",
     },
     "user_response": "${user_response}",
+    "response_type": "${response_type}",  # confirm | correct | skip | gave_up | canceled
     "corrected": "${corrected}",
     "response_time_s": ${response_time_s},
     "reward": ${reward},
@@ -161,7 +209,7 @@ with open("${QUERY_DECISIONS_JSONL}", "a") as f:
     f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 PYEOF
 
-    # 如果是 gave_up/canceled，不 POST 反馈，提前 return
+    # 如果是 gave_up/canceled/skip，不 POST 反馈到 intent_feedback
     if [ -z "$corrected" ] || [ "$corrected" = "?" ]; then
         return 0
     fi
@@ -169,11 +217,17 @@ PYEOF
     local resp
     resp=$(curl -s -X POST "$FEEDBACK_URL" \
         -H "Content-Type: application/json" \
-        -d "{\"ts_ns\":${ts_ns},\"predicted\":\"${predicted}\",\"corrected\":\"${corrected}\",\"ui_session\":\"${UI_SESSION}\",\"note\":\"v2|reason=${reason}|phase2=${state}|${evidence}|reward=${reward}\"}" 2>&1)
-    log "POST: ${predicted}→${corrected} ($reason) reward=$reward → $resp"
+        -d "{\"ts_ns\":${ts_ns},\"predicted\":\"${predicted}\",\"corrected\":\"${corrected}\",\"ui_session\":\"${UI_SESSION}\",\"note\":\"v2.3|reason=${reason}|phase2=${state}|${evidence}|response_type=${response_type}|reward=${reward}\"}" 2>&1)
+    log "POST [${response_type}]: ${predicted}→${corrected} ($reason) reward=$reward → $resp"
 
-    # 成功通知
-    osascript -e "display notification \"已记录: ${corrected} ($reason)\" with title \"LnMem 反馈\" sound name \"Tink\"" 2>/dev/null
+    # 成功通知（按 response_type 显示不同消息）
+    local notify_msg
+    case "$response_type" in
+        confirm) notify_msg="✅ 推断对 (reward=1)" ;;
+        correct) notify_msg="✏️ 纠正→${corrected} (reward=2)" ;;
+        *) notify_msg="${corrected}" ;;
+    esac
+    osascript -e "display notification \"${notify_msg}\" with title \"LnMem 反馈\" sound name \"Tink\"" 2>/dev/null
 
     # 更新 cooldown
     local now=$(now_s)
