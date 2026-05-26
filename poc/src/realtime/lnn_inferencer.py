@@ -436,13 +436,33 @@ class RealtimeLNNInferencer:
             )
 
     def predict_future(self, steps: int) -> list[dict[str, Any]]:
-        """Project future frames with LTC/CfC ODE persistence assumption."""
+        """Project future frames with LTC/CfC ODE + A+B 混合 input 外推。
+
+        ADR-036 (2026-05-26)：放弃 ADR-033 的纯 persistence assumption（input 常数），
+        改为 input trend 1阶导数外推 + decay 回 baseline 混合：
+          input[t+1] = input[t] + α·velocity - β·(input[t] - baseline)
+          velocity *= 0.8  # 衰减防爆炸
+
+        - velocity = (history[-1] - history[-VELOCITY_WINDOW]) / (VELOCITY_WINDOW-1)
+        - baseline = mean(history)
+        - α=0.5（trend 保持系数），β=0.1（decay 拉回系数）
+
+        修复 cc 实测发现：persistence 让 LTC 第 2 步就收敛到吸引子，10 步 state_probs
+        变化 < 0.4%（gemini 3.5 钦定根因 1：ODE 自治系统在常数输入下趋向稳态）。
+        现在 input 有动态变化 → hidden 也有动态变化 → 预测曲线不再是直线。
+        """
         if not self._enabled or self._state_model is None:
             return [{"error": "disabled"}]
         if steps < 0:
             return [{"error": "steps must be >= 0"}]
         if not self._history:
             return [{"error": "no_recent_input"}]
+
+        # A+B 混合外推系数（ADR-036 §决策）
+        AUTOREG_ALPHA = 0.5         # trend 保持
+        AUTOREG_BETA = 0.1          # decay 回 baseline
+        AUTOREG_VELOCITY_DECAY = 0.8  # velocity 每步衰减
+        VELOCITY_WINDOW = 5         # 用最近 5 帧算 trend
 
         try:
             sm = self._state_model
@@ -451,13 +471,21 @@ class RealtimeLNNInferencer:
             if len(last_input_values) != 18:
                 return [{"error": f"last input dim {len(last_input_values)} != 18"}]
 
+            # 算 baseline (mean of history) 和 velocity (recent trend)
+            import numpy as _np
+            hist_arr = _np.array(history, dtype=_np.float32)  # (T, 18)
+            baseline_np = hist_arr.mean(axis=0)               # (18,)
+            if len(history) >= VELOCITY_WINDOW:
+                velocity_np = (hist_arr[-1] - hist_arr[-VELOCITY_WINDOW]) / (VELOCITY_WINDOW - 1)
+            else:
+                velocity_np = _np.zeros(18, dtype=_np.float32)
+            projected_input_np = _np.array(last_input_values, dtype=_np.float32)
+
             x = torch.tensor(history, dtype=torch.float32).unsqueeze(0)
             pid = torch.tensor([self._persona_idx], dtype=torch.long)
 
             with torch.no_grad():
                 hidden = self._forward_last_hidden_for_model(sm, x, pid)
-                last_input = torch.tensor(last_input_values, dtype=torch.float32).unsqueeze(0)
-                last_input = last_input.to(device=hidden.device, dtype=hidden.dtype)
 
                 persona_ids = pid.to(device=hidden.device, dtype=torch.long)
                 tau_bias = sm.personalization.get_tau_bias(persona_ids).to(hidden.device, hidden.dtype)
@@ -468,6 +496,17 @@ class RealtimeLNNInferencer:
 
                 predictions: list[dict[str, Any]] = []
                 for step in range(steps):
+                    # A+B 外推：每步算下一帧 input（除第 0 步用 last_input）
+                    if step > 0:
+                        projected_input_np = (
+                            projected_input_np
+                            + AUTOREG_ALPHA * velocity_np
+                            - AUTOREG_BETA * (projected_input_np - baseline_np)
+                        )
+                        velocity_np = velocity_np * AUTOREG_VELOCITY_DECAY
+
+                    last_input = torch.tensor(projected_input_np, dtype=torch.float32).unsqueeze(0)
+                    last_input = last_input.to(device=hidden.device, dtype=hidden.dtype)
                     features = sm.input_projection(last_input.float()).to(hidden.device, hidden.dtype)
                     hidden, _ = sm.backbone.rnn_cell(features, hidden, timespans)
                     hidden = sm._apply_film(hidden, gamma, beta)
