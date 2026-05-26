@@ -245,8 +245,19 @@ function makeStackedChart(ctxId, datasets, yMax = 1.0) {
       animation: false,           // 关动画 = 平滑（每帧 update 不闪）
       responsive: true,
       maintainAspectRatio: false,
+      // 顶部留 22px 给"← 历史 | 🔮 LTC 预测 →"label（位于"现在"虚线正上方）
+      layout: { padding: { top: 22 } },
       plugins: {
-        legend: { position: 'top', labels: { color: '#cbd5e1', font: { size: 11 } } },
+        legend: {
+          position: 'left',
+          align: 'center',
+          labels: {
+            color: '#cbd5e1',
+            font: { size: 11 },
+            boxWidth: 14,
+            padding: 8,
+          },
+        },
         tooltip: { mode: 'index', intersect: false },
         annotation: {
           annotations: {
@@ -413,29 +424,37 @@ function setNowAnnotation(chart) {
         padding: 4,
       },
     },
-    // "← 历史" 左半中点标签
+    // "← 历史" 紧贴 "现在" 虚线左侧，浮在图表顶部之外
+    // 川哥 5/26 19:xx 钦定布局：legend 改 left 后，把 label 挪到图表上方在虚线两侧
     historyLabel: {
       type: 'label',
-      xValue: (xMinMs + lastHistTs) / 2,
-      yValue: 0.95,
+      xValue: lastHistTs,
+      xAdjust: -8,
+      yValue: 1.0,
+      yAdjust: -10,
+      position: { x: 'end', y: 'center' },  // x:end = 文本右对齐到 xValue 左侧
       content: ['← 历史'],
       backgroundColor: 'rgba(71, 85, 105, 0.85)',
       color: '#f1f5f9',
       font: { size: 11, weight: 'bold' },
-      padding: 5,
+      padding: 4,
       borderRadius: 4,
+      clip: false,  // 关键：允许画到 chart area 之外
     },
-    // "🔮 LTC 预测 →" 右半中点标签
     futureLabel: {
       type: 'label',
-      xValue: (lastHistTs + xMaxMs) / 2,
-      yValue: 0.95,
+      xValue: lastHistTs,
+      xAdjust: 8,
+      yValue: 1.0,
+      yAdjust: -10,
+      position: { x: 'start', y: 'center' },  // x:start = 文本左对齐到 xValue 右侧
       content: ['🔮 LTC 预测 →'],
       backgroundColor: 'rgba(146, 64, 14, 0.9)',
       color: '#fff',
       font: { size: 11, weight: 'bold', style: 'italic' },
-      padding: 5,
+      padding: 4,
       borderRadius: 4,
+      clip: false,
     },
   };
 }
