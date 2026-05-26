@@ -457,20 +457,32 @@ setInterval(() => {
   lastFpsTime = now;
 }, 1000);
 
-// ====== SSE 连接 ======
+// ====== SSE 连接 + 心跳监控（防 Safari 后台暂停僵死）======
+let _currentES = null;
+let _lastMessageTime = Date.now();
+const STALE_THRESHOLD_MS = 10000;  // 10s 没收消息 = 僵死
+
 function connect() {
+  // 关旧连接
+  if (_currentES) {
+    try { _currentES.close(); } catch(e) {}
+  }
   dlog(`📡 创建 EventSource(${SSE_URL})...`);
   const es = new EventSource(SSE_URL);
+  _currentES = es;
+  _lastMessageTime = Date.now();
   const statusEl = document.getElementById('conn-status');
 
   es.onopen = () => {
     statusEl.className = 'status-pill ok';
     statusEl.textContent = '✅ 已连接';
     dlog('✅ SSE onopen 触发', 'ok');
+    _lastMessageTime = Date.now();
   };
 
   let msgCount = 0;
   es.onmessage = (e) => {
+    _lastMessageTime = Date.now();  // 心跳：记录最后收到数据时间
     msgCount++;
     if (msgCount <= 3) dlog(`📨 收到 #${msgCount} msg (${e.data.length}B)`, 'ok');
     if (msgCount === 5) dlog('（之后不再 log 单帧，看 fps pill）', 'info');
@@ -527,6 +539,28 @@ try {
 } catch (e) {
   dlog(`❌ connect() 异常: ${e.message}`, 'err');
 }
+
+// 心跳监控：每 5s 检查最后收到数据时间，> 10s 没数据 → 自动重连
+setInterval(() => {
+  const age = Date.now() - _lastMessageTime;
+  if (age > STALE_THRESHOLD_MS && _currentES) {
+    dlog(`⚠️ SSE 僵死 ${(age/1000).toFixed(0)}s 没数据，强制重连`, 'warn');
+    try { _currentES.close(); } catch(e) {}
+    connect();
+  }
+}, 5000);
+
+// 页面可见性变化：从后台回前台时立即检查 + 重连
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    const age = Date.now() - _lastMessageTime;
+    dlog(`👁 页面回到前台（${(age/1000).toFixed(0)}s 没数据）`, 'info');
+    if (age > 3000) {
+      try { _currentES?.close(); } catch(e) {}
+      connect();
+    }
+  }
+});
 </script>
 
 </body>
