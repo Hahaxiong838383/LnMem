@@ -92,6 +92,31 @@
   }
   #debug-panel.show { max-height: 160px; }
   #debug-log > div { color: #e2e8f0; }  /* log 每条一行 */
+
+  /* ====== "现在"虚线两侧浮动标签 (HTML overlay, 不依赖 chart.js annotation) ====== */
+  /* 川哥 5/26 反馈 chart annotation label 被遮挡，改 HTML overlay 100% 可靠 */
+  .now-label {
+    position: absolute;
+    top: 2px;
+    z-index: 10;
+    padding: 3px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    pointer-events: none;
+    white-space: nowrap;
+    display: none;        /* 初始隐藏，等 chart 第一次渲染后才显示 */
+    transition: left 0.15s, transform 0.15s;
+  }
+  .now-label.history {
+    background: rgba(71, 85, 105, 0.95);
+    color: #f1f5f9;
+  }
+  .now-label.future {
+    background: rgba(146, 64, 14, 0.95);
+    color: #fff;
+    font-style: italic;
+  }
 </style>
 </head>
 <body>
@@ -116,17 +141,29 @@
 <div class="charts-container">
   <div class="chart-section">
     <h2>🎯 意图概率（红虚线 = 现在 · 黄色 = LTC 预测）</h2>
-    <div class="canvas-wrap"><canvas id="intent-chart"></canvas></div>
+    <div class="canvas-wrap">
+      <canvas id="intent-chart"></canvas>
+      <div class="now-label history" data-for="intent-chart">← 历史</div>
+      <div class="now-label future" data-for="intent-chart">🔮 LTC 预测 →</div>
+    </div>
   </div>
 
   <div class="chart-section">
     <h2>😊 情绪（正向 / 负向 / 中立）</h2>
-    <div class="canvas-wrap"><canvas id="emotion-chart"></canvas></div>
+    <div class="canvas-wrap">
+      <canvas id="emotion-chart"></canvas>
+      <div class="now-label history" data-for="emotion-chart">← 历史</div>
+      <div class="now-label future" data-for="emotion-chart">🔮 LTC 预测 →</div>
+    </div>
   </div>
 
   <div class="chart-section">
     <h2>🎯 注意力（专注 / 分心 / 疲惫 / 低能量 / 过渡）</h2>
-    <div class="canvas-wrap"><canvas id="attention-chart"></canvas></div>
+    <div class="canvas-wrap">
+      <canvas id="attention-chart"></canvas>
+      <div class="now-label history" data-for="attention-chart">← 历史</div>
+      <div class="now-label future" data-for="attention-chart">🔮 LTC 预测 →</div>
+    </div>
   </div>
 </div>
 
@@ -424,42 +461,33 @@ function setNowAnnotation(chart) {
         padding: 4,
       },
     },
-    // "← 历史" 紧贴 "现在" 虚线左侧，浮在图表顶部 layout padding 区
-    // 修订 5/26 19:xx：删错误的 position 对象（label annotation 不支持），
-    // 加 z+drawTime='afterDraw' 强制最上层，xAdjust 偏移 -45 让 label 整体居于虚线左侧
-    historyLabel: {
-      type: 'label',
-      xValue: lastHistTs,
-      xAdjust: -45,                     // 整体往左偏 45px
-      yValue: 1.0,                      // chart area 顶部
-      yAdjust: -10,                     // 再往上 10px（落入 padding.top 区）
-      content: ['← 历史'],
-      backgroundColor: 'rgba(71, 85, 105, 0.95)',
-      color: '#f1f5f9',
-      font: { size: 11, weight: 'bold' },
-      padding: 4,
-      borderRadius: 4,
-      clip: false,                      // 允许画到 chart area 之外
-      drawTime: 'afterDraw',            // 在最末绘制（datasets + 其他 annotation 之后）
-      z: 100,                           // 强制最上层
-    },
-    futureLabel: {
-      type: 'label',
-      xValue: lastHistTs,
-      xAdjust: 60,                      // 整体往右偏 60px（"🔮 LTC 预测 →" 更宽）
-      yValue: 1.0,
-      yAdjust: -10,
-      content: ['🔮 LTC 预测 →'],
-      backgroundColor: 'rgba(146, 64, 14, 0.95)',
-      color: '#fff',
-      font: { size: 11, weight: 'bold', style: 'italic' },
-      padding: 4,
-      borderRadius: 4,
-      clip: false,
-      drawTime: 'afterDraw',
-      z: 100,
-    },
+    // 历史 / 预测 label 已迁出 chart annotation，改用 HTML overlay (DOM .now-label)
+    // 由 syncHtmlNowLabels(chart) 在 refreshAllCharts 末尾同步位置
+    // chart annotation v3 的 label clip:false + drawTime:afterDraw 实测仍被遮挡，弃用
   };
+}
+
+// HTML overlay 同步：每帧把 .now-label.history / .now-label.future 定位到"现在"虚线左右两侧
+// chart.chartArea 是 chart.js v4 暴露的 plot area 像素坐标（CSS px），left/right 是 plot 左右边界
+function syncHtmlNowLabels(chart) {
+  const area = chart.chartArea;
+  if (!area || area.right == null || area.left == null) return;
+  const canvas = chart.canvas;
+  const wrap = canvas.parentElement;
+  if (!wrap) return;
+  const histLabel = wrap.querySelector('.now-label.history');
+  const futLabel = wrap.querySelector('.now-label.future');
+  if (!histLabel || !futLabel) return;
+  // "现在"虚线在 plot area 正中点（setNowAnnotation 强制 1:1 居中）
+  const nowX = (area.left + area.right) / 2;
+  // 历史 label 右对齐到 nowX-6（虚线左侧 6px 处）
+  histLabel.style.left = (nowX - 6) + 'px';
+  histLabel.style.transform = 'translateX(-100%)';  // 右对齐：label 右边缘对齐 left:nowX-6
+  histLabel.style.display = 'block';
+  // 预测 label 左对齐到 nowX+6（虚线右侧 6px 处）
+  futLabel.style.left = (nowX + 6) + 'px';
+  futLabel.style.transform = 'none';
+  futLabel.style.display = 'block';
 }
 
 let _annotationFailedOnce = false;
@@ -483,6 +511,8 @@ function refreshAllCharts() {
     try { c.update('none'); } catch (e) {
       dlog(`❌ chart.update 失败: ${e.message}`, 'err');
     }
+    // chart.update 后 chartArea 已重算，立刻同步 HTML overlay label 位置
+    try { syncHtmlNowLabels(c); } catch (e) { /* silent */ }
   });
   _chartUpdateCount++;
   // 显示在 frame-pill 之后，让川哥看到 chart 真在重画
@@ -697,6 +727,13 @@ setInterval(async () => {
     dlog(`⚠️ /health 探针失败: ${err.message}（daemon 可能挂了）`, 'warn');
   }
 }, HEALTH_PROBE_INTERVAL_MS);
+
+// 窗口 resize 时立即同步 HTML overlay label 位置（不等下一帧 SSE）
+window.addEventListener('resize', () => {
+  [intentChart, emotionChart, attentionChart].forEach(c => {
+    try { syncHtmlNowLabels(c); } catch(e) {}
+  });
+});
 
 // 页面可见性变化：从后台回前台时立即检查 + 重连
 document.addEventListener('visibilitychange', () => {
