@@ -360,12 +360,18 @@ function setNowAnnotation(chart) {
   // 川哥钦定：'现在' 居于图正中 (1:1 分历史/预测)
   if (dataBuf.history.length === 0) return;
   const lastHistTs = safeNsToMs(dataBuf.history[dataBuf.history.length - 1].ts_ns);
-  const lastPredTs = dataBuf.predictions.length > 0
+  const rawLastPredTs = dataBuf.predictions.length > 0
     ? safeNsToMs(dataBuf.predictions[dataBuf.predictions.length - 1].ts_ns)
     : lastHistTs + 10000;
-  const predDurationMs = lastPredTs - lastHistTs;
-  const xMinMs = lastHistTs - predDurationMs;  // 左侧历史窗 = 右侧预测时长
-  const xMaxMs = lastPredTs;
+  // codex 钦定根因 1 修复：prediction 5s 一次推送，但 history 每秒前进
+  // → lastPredTs 可能 ≤ lastHistTs（过期）→ predDurationMs ≤ 0 → x 轴翻转卡死
+  // 修：safePredTs 至少 lastHistTs + 1s；predDurationMs 至少 1000ms
+  const safePredTs = Number.isFinite(rawLastPredTs)
+    ? Math.max(rawLastPredTs, lastHistTs + 1000)
+    : lastHistTs + 10000;
+  const predDurationMs = Math.max(1000, safePredTs - lastHistTs);
+  const xMinMs = lastHistTs - predDurationMs;
+  const xMaxMs = lastHistTs + predDurationMs;  // 对称：保证 1:1 居中
 
   // 强制 x 轴 1:1 比例
   chart.options.scales.x.min = xMinMs;
@@ -505,10 +511,18 @@ function connect() {
 
       if (msg.type === 'frame') {
         const lnn = msg.lnn || {};
-        // 深度防空：所有字段给默认值，防 push 后 chart 渲染时炸
+        // codex 钦定根因 3：坏包校验，防静默污染时间轴
+        if (!Number.isFinite(msg.ts_ns)) {
+          dlog(`⚠️ frame.ts_ns 非法（${msg.ts_ns}），丢弃`, 'warn');
+          return;
+        }
+        if (!Array.isArray(lnn.state_probs) || lnn.state_probs.length !== 8) {
+          // 不丢，给默认（warmup 期间 state_probs 可能 null）
+          lnn.state_probs = [0,0,0,0,0,0,0,0];
+        }
         dataBuf.history.push({
           ts_ns: msg.ts_ns,
-          state_probs: lnn.state_probs || [0,0,0,0,0,0,0,0],
+          state_probs: lnn.state_probs,
           intent_probs: lnn.intent_probs || [0,0,0],
           predicted_state: lnn.predicted_state || 'unknown',
         });
