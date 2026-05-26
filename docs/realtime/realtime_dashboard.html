@@ -492,6 +492,21 @@ function syncHtmlNowLabels(chart) {
 
 let _annotationFailedOnce = false;
 let _chartUpdateCount = 0;
+
+// rAF 节流：onmessage 只调 scheduleRefresh()，多个 event 自然合并到下一帧统一画
+// 修复 2026-05-26 21:30 川哥反馈：ADR-036 让 prediction 5s→1s 后客户端 backlog
+// 每秒积压 0.7 event（770ms/event 处理太慢）→ lag 线性增长。
+// rAF 节流让 chart.update 跑在 16ms 一帧，多 event 合并 → 永不 backlog
+let _refreshScheduled = false;
+function scheduleRefresh() {
+  if (_refreshScheduled) return;  // 已 schedule，多个 event 合并
+  _refreshScheduled = true;
+  requestAnimationFrame(() => {
+    _refreshScheduled = false;
+    refreshAllCharts();
+  });
+}
+
 function refreshAllCharts() {
   try {
     rebuildChart(intentChart, dataBuf.history, dataBuf.predictions, 'intent');
@@ -580,7 +595,7 @@ function processFrame(rawData) {
         document.getElementById('ckpt-pill').textContent = `ckpt: ${lnn.ckpt_sha8}`;
       }
       frameCount++;
-      refreshAllCharts();
+      scheduleRefresh();  // rAF 节流：多 event 合并到下一帧统一画
     } else if (msg.type === 'prediction') {
       const preds = msg.predictions || [];
       const lastTs = dataBuf.history.length > 0
@@ -592,9 +607,9 @@ function processFrame(rawData) {
         intent_probs: p.intent_probs || [0,0,0],
         predicted_state: p.predicted_state || 'unknown',
       }));
-      refreshAllCharts();
+      scheduleRefresh();  // rAF 节流：多 event 合并到下一帧统一画
     }
-    // 心跳放在末尾：所有 chart 渲染同步部分跑完才算"真活"
+    // 心跳放在末尾：onmessage 同步部分跑完即算"真活"（不必等 rAF 渲染）
     _lastMessageTime = Date.now();
   } catch (err) {
     console.error('parse/render SSE msg failed:', err, rawData?.slice(0, 200));
