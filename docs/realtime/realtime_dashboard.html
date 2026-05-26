@@ -424,37 +424,40 @@ function setNowAnnotation(chart) {
         padding: 4,
       },
     },
-    // "← 历史" 紧贴 "现在" 虚线左侧，浮在图表顶部之外
-    // 川哥 5/26 19:xx 钦定布局：legend 改 left 后，把 label 挪到图表上方在虚线两侧
+    // "← 历史" 紧贴 "现在" 虚线左侧，浮在图表顶部 layout padding 区
+    // 修订 5/26 19:xx：删错误的 position 对象（label annotation 不支持），
+    // 加 z+drawTime='afterDraw' 强制最上层，xAdjust 偏移 -45 让 label 整体居于虚线左侧
     historyLabel: {
       type: 'label',
       xValue: lastHistTs,
-      xAdjust: -8,
-      yValue: 1.0,
-      yAdjust: -10,
-      position: { x: 'end', y: 'center' },  // x:end = 文本右对齐到 xValue 左侧
+      xAdjust: -45,                     // 整体往左偏 45px
+      yValue: 1.0,                      // chart area 顶部
+      yAdjust: -10,                     // 再往上 10px（落入 padding.top 区）
       content: ['← 历史'],
-      backgroundColor: 'rgba(71, 85, 105, 0.85)',
+      backgroundColor: 'rgba(71, 85, 105, 0.95)',
       color: '#f1f5f9',
       font: { size: 11, weight: 'bold' },
       padding: 4,
       borderRadius: 4,
-      clip: false,  // 关键：允许画到 chart area 之外
+      clip: false,                      // 允许画到 chart area 之外
+      drawTime: 'afterDraw',            // 在最末绘制（datasets + 其他 annotation 之后）
+      z: 100,                           // 强制最上层
     },
     futureLabel: {
       type: 'label',
       xValue: lastHistTs,
-      xAdjust: 8,
+      xAdjust: 60,                      // 整体往右偏 60px（"🔮 LTC 预测 →" 更宽）
       yValue: 1.0,
       yAdjust: -10,
-      position: { x: 'start', y: 'center' },  // x:start = 文本左对齐到 xValue 右侧
       content: ['🔮 LTC 预测 →'],
-      backgroundColor: 'rgba(146, 64, 14, 0.9)',
+      backgroundColor: 'rgba(146, 64, 14, 0.95)',
       color: '#fff',
       font: { size: 11, weight: 'bold', style: 'italic' },
       padding: 4,
       borderRadius: 4,
       clip: false,
+      drawTime: 'afterDraw',
+      z: 100,
     },
   };
 }
