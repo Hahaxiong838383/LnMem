@@ -2,7 +2,10 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>LnMem 实时大屏</title>
+<title>LnMem 实时大屏 v3</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <!-- Chart.js + Luxon CDN（如被 Brave Shields block 改用本地 /static/vendor/ 路径）-->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"
         onerror="this.dataset.failed='1'"></script>
@@ -99,6 +102,7 @@
     <span id="conn-status" class="status-pill">⏳ 连接中...</span>
     <span id="fps-pill" class="status-pill">0 fps</span>
     <span id="frame-pill" class="status-pill">frame: -</span>
+    <span id="chart-updates-pill" class="status-pill">redraws: 0</span>
     <span id="ckpt-pill" class="status-pill">ckpt: -</span>
   </div>
 </div>
@@ -334,7 +338,8 @@ function rebuildChart(chart, allFrames, predFrames, kind) {
       y: getProbs(f)[i] || 0,
     }));
   });
-  chart.update('none');  // 不触发动画 = 不闪
+  // 注意：chart.update() 在 refreshAllCharts 末尾统一调，不在 rebuildChart 里
+  // 避免 setNowAnnotation 跑两遍 / canvas 重画两遍
 }
 
 function setNowAnnotation(chart) {
@@ -414,6 +419,7 @@ function setNowAnnotation(chart) {
 }
 
 let _annotationFailedOnce = false;
+let _chartUpdateCount = 0;
 function refreshAllCharts() {
   try {
     rebuildChart(intentChart, dataBuf.history, dataBuf.predictions, 'intent');
@@ -423,22 +429,21 @@ function refreshAllCharts() {
     dlog(`❌ rebuildChart 失败: ${e.message}`, 'err');
     return;
   }
-  // 三图都加 "现在" 分割线（失败不阻塞 chart 更新）
   [intentChart, emotionChart, attentionChart].forEach(c => {
-    try {
-      setNowAnnotation(c);
-    } catch (e) {
+    try { setNowAnnotation(c); } catch (e) {
       if (!_annotationFailedOnce) {
-        dlog(`⚠️ setNowAnnotation 失败（annotation plugin 未注册？）: ${e.message}`, 'warn');
+        dlog(`⚠️ setNowAnnotation 失败: ${e.message}`, 'warn');
         _annotationFailedOnce = true;
       }
     }
-    try {
-      c.update('none');
-    } catch (e) {
+    try { c.update('none'); } catch (e) {
       dlog(`❌ chart.update 失败: ${e.message}`, 'err');
     }
   });
+  _chartUpdateCount++;
+  // 显示在 frame-pill 之后，让川哥看到 chart 真在重画
+  const cuPill = document.getElementById('chart-updates-pill');
+  if (cuPill) cuPill.textContent = `redraws: ${_chartUpdateCount}`;
 }
 
 // ====== FPS 计数 ======
