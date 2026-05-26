@@ -85,6 +85,19 @@ class RealtimeLNNInferencer:
         self._fail_count_circuit_break = 100
         self._logger = logging.getLogger(__name__)
 
+        # ADR-037：state 投影对齐 + intent EMA 平滑
+        # 缓存最新 infer 的 state_probs/intent_probs，供 predict_future 第 0 步对齐
+        self._last_state_probs: list[float] | None = None
+        self._last_intent_probs: list[float] | None = None
+        # intent EMA 平滑：新值权重 α，老值 (1-α)
+        # 修复川哥反馈"intent 1 秒翻 3 次"（gemini 钦定"快变量欠阻尼"）
+        try:
+            self._intent_ema_alpha = float(os.environ.get("LNMEM_INTENT_EMA_ALPHA", "0.3"))
+        except (TypeError, ValueError):
+            self._intent_ema_alpha = 0.3
+        self._intent_ema_alpha = max(0.05, min(1.0, self._intent_ema_alpha))
+        self._intent_ema_probs: list[float] | None = None
+
         if ckpt_path is None:
             self._logger.warning("RealtimeLNNInferencer: ckpt_path=None → disabled")
             return
@@ -405,6 +418,25 @@ class RealtimeLNNInferencer:
 
             self._append_recent_temporal(ts_ns, hidden_for_store, fused.vector)
 
+            # ADR-037: intent EMA 平滑（修"intent 1 秒翻 3 次"快变量欠阻尼）
+            if intent_probs is not None:
+                if self._intent_ema_probs is None or len(self._intent_ema_probs) != len(intent_probs):
+                    self._intent_ema_probs = list(intent_probs)  # 冷启动
+                else:
+                    a = self._intent_ema_alpha
+                    self._intent_ema_probs = [
+                        a * new + (1.0 - a) * old
+                        for new, old in zip(intent_probs, self._intent_ema_probs)
+                    ]
+                # 归一化（防 EMA 数值漂移）
+                _s = sum(self._intent_ema_probs) or 1.0
+                self._intent_ema_probs = [v / _s for v in self._intent_ema_probs]
+                intent_probs = list(self._intent_ema_probs)
+
+            # ADR-037: 缓存最新 frame 输出，供 predict_future step=0 对齐
+            self._last_state_probs = list(state_probs)
+            self._last_intent_probs = list(intent_probs) if intent_probs is not None else None
+
             intent_pred: str | None = None
             intent_confidence: float | None = None
             if intent_probs is not None:
@@ -495,15 +527,48 @@ class RealtimeLNNInferencer:
                 timespans = sm._timespans_from_tau(tau_bias)
 
                 predictions: list[dict[str, Any]] = []
+                # ADR-037: state 投影对齐 ——
+                # step=0 用最新一帧 frame state (跟 UI 虚线左侧严格连续)
+                # step=1..N-1 才用 LTC ODE + A+B 外推
+                # 修复 gemini 钦定的"算法不对称"根因：虚线左侧 frame infer vs 右侧 LTC forward 主导 state 翻转
+                ALIGN_STEP0_WITH_FRAME = (
+                    self._last_state_probs is not None
+                    and len(self._last_state_probs) == 8
+                )
+
                 for step in range(steps):
-                    # A+B 外推：每步算下一帧 input（除第 0 步用 last_input）
-                    if step > 0:
-                        projected_input_np = (
-                            projected_input_np
-                            + AUTOREG_ALPHA * velocity_np
-                            - AUTOREG_BETA * (projected_input_np - baseline_np)
-                        )
-                        velocity_np = velocity_np * AUTOREG_VELOCITY_DECAY
+                    if step == 0 and ALIGN_STEP0_WITH_FRAME:
+                        # 短路：用 frame infer 的 state_probs/intent_probs（保证 UI 虚线两侧连续）
+                        state_probs = list(self._last_state_probs)
+                        predicted_state, top_prob, margin, entropy = self._state_from_probs(state_probs)
+                        intent_probs = list(self._last_intent_probs) if self._last_intent_probs else None
+                        intent_pred = None
+                        intent_confidence = None
+                        if intent_probs is not None:
+                            ii = int(max(range(len(intent_probs)), key=intent_probs.__getitem__))
+                            intent_pred = INTENT_LABELS[ii]
+                            intent_confidence = float(intent_probs[ii])
+                        predictions.append({
+                            "step": 0,
+                            "predicted_state": predicted_state,
+                            "state_probs": state_probs,
+                            "top_prob": top_prob,
+                            "margin": margin,
+                            "entropy": entropy,
+                            "intent_probs": intent_probs,
+                            "intent_pred": intent_pred,
+                            "intent_confidence": intent_confidence,
+                            "aligned_with_frame": True,
+                        })
+                        continue
+
+                    # step >= 1：走 A+B 外推 + LTC forward（原 ADR-036 逻辑）
+                    projected_input_np = (
+                        projected_input_np
+                        + AUTOREG_ALPHA * velocity_np
+                        - AUTOREG_BETA * (projected_input_np - baseline_np)
+                    )
+                    velocity_np = velocity_np * AUTOREG_VELOCITY_DECAY
 
                     last_input = torch.tensor(projected_input_np, dtype=torch.float32).unsqueeze(0)
                     last_input = last_input.to(device=hidden.device, dtype=hidden.dtype)
