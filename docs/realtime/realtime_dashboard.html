@@ -464,6 +464,12 @@ function refreshAllCharts() {
   // 显示在 frame-pill 之后，让川哥看到 chart 真在重画
   const cuPill = document.getElementById('chart-updates-pill');
   if (cuPill) cuPill.textContent = `redraws: ${_chartUpdateCount}`;
+  // 防御性诊断：每 30 次 redraw 报一次最新 lnn frame 时间，让川哥/cc 一眼看 chart 是否真活
+  if (_chartUpdateCount % 30 === 0 && dataBuf.history.length > 0) {
+    const lastMs = safeNsToMs(dataBuf.history[dataBuf.history.length - 1].ts_ns);
+    const lag = Date.now() - lastMs;
+    dlog(`📊 redraws=${_chartUpdateCount} lastFrame=${new Date(lastMs).toLocaleTimeString()} lag=${(lag/1000).toFixed(1)}s`, lag > 5000 ? 'warn' : 'info');
+  }
 }
 
 // ====== FPS 计数 ======

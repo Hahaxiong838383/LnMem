@@ -816,6 +816,10 @@ class DaemonApp:
                 self.send_response(code)
                 self.send_header("Content-Type", content_type)
                 self.send_header("Content-Length", str(len(body)))
+                # 5/25 cc: 强制不缓存 HTML，川哥每次 reload 都拿最新版（含调试 + 修复）
+                self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+                self.send_header("Pragma", "no-cache")
+                self.send_header("Expires", "0")
                 self.end_headers()
                 self.wfile.write(body)
 
