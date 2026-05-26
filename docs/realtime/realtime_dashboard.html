@@ -301,8 +301,22 @@ const attentionStates = STATE_ORDER.filter(s => STATE_META[s].group === 'attenti
 const attentionChart = makeStackedChart('attention-chart', makeDatasets(attentionStates));
 
 // ====== 数据 → chart 渲染 ======
+// gemini 钦定根因 1 修复：JS Number 精度上限 2^53 ≈ 9e15，但 ts_ns 是 19 位
+// 直接 ts_ns / 1e6 触发精度坍塌 → chart 时间戳错乱 → x 轴静默卡死
+// 解法：字符串截前 13 位即毫秒级（避开大数运算）
+function safeNsToMs(ts_ns) {
+  if (ts_ns == null) return Date.now();
+  const str = String(ts_ns);
+  if (str.length >= 13) {
+    const ms = Number(str.slice(0, 13));
+    return isNaN(ms) ? Date.now() : ms;
+  }
+  const val = Number(str);
+  if (isNaN(val)) return Date.now();
+  return val < 1e11 ? val * 1000 : val;
+}
+
 function normalizeGroup(probs, indices) {
-  // probs 是 8 维，indices 是该组里 state 的位置，返回归一化后的子向量
   const subset = indices.map(i => probs[i]);
   const sum = subset.reduce((a, b) => a + b, 0) || 1;
   return subset.map(v => v / sum);
@@ -334,7 +348,7 @@ function rebuildChart(chart, allFrames, predFrames, kind) {
   // 重建 datasets data（追加模式：每个 dataset push 新点）
   chart.data.datasets.forEach((ds, i) => {
     ds.data = all.map(f => ({
-      x: new Date(f.ts_ns / 1e6),
+      x: new Date(safeNsToMs(f.ts_ns)),
       y: getProbs(f)[i] || 0,
     }));
   });
@@ -345,9 +359,9 @@ function rebuildChart(chart, allFrames, predFrames, kind) {
 function setNowAnnotation(chart) {
   // 川哥钦定：'现在' 居于图正中 (1:1 分历史/预测)
   if (dataBuf.history.length === 0) return;
-  const lastHistTs = dataBuf.history[dataBuf.history.length - 1].ts_ns / 1e6;
+  const lastHistTs = safeNsToMs(dataBuf.history[dataBuf.history.length - 1].ts_ns);
   const lastPredTs = dataBuf.predictions.length > 0
-    ? dataBuf.predictions[dataBuf.predictions.length - 1].ts_ns / 1e6
+    ? safeNsToMs(dataBuf.predictions[dataBuf.predictions.length - 1].ts_ns)
     : lastHistTs + 10000;
   const predDurationMs = lastPredTs - lastHistTs;
   const xMinMs = lastHistTs - predDurationMs;  // 左侧历史窗 = 右侧预测时长
@@ -482,19 +496,21 @@ function connect() {
 
   let msgCount = 0;
   es.onmessage = (e) => {
-    _lastMessageTime = Date.now();  // 心跳：记录最后收到数据时间
     msgCount++;
     if (msgCount <= 3) dlog(`📨 收到 #${msgCount} msg (${e.data.length}B)`, 'ok');
     if (msgCount === 5) dlog('（之后不再 log 单帧，看 fps pill）', 'info');
     try {
       const msg = JSON.parse(e.data);
+      if (!msg || !msg.type) return;
+
       if (msg.type === 'frame') {
         const lnn = msg.lnn || {};
+        // 深度防空：所有字段给默认值，防 push 后 chart 渲染时炸
         dataBuf.history.push({
           ts_ns: msg.ts_ns,
-          state_probs: lnn.state_probs,
-          intent_probs: lnn.intent_probs,
-          predicted_state: lnn.predicted_state,
+          state_probs: lnn.state_probs || [0,0,0,0,0,0,0,0],
+          intent_probs: lnn.intent_probs || [0,0,0],
+          predicted_state: lnn.predicted_state || 'unknown',
         });
         if (dataBuf.history.length > HISTORY_FRAMES) dataBuf.history.shift();
 
@@ -506,21 +522,25 @@ function connect() {
         frameCount++;
         refreshAllCharts();
       } else if (msg.type === 'prediction') {
-        // 把 predictions 数组转成 dataBuf.predictions
         const preds = msg.predictions || [];
         const lastTs = dataBuf.history.length > 0
           ? dataBuf.history[dataBuf.history.length - 1].ts_ns
           : Date.now() * 1e6;
         dataBuf.predictions = preds.slice(0, PRED_FRAMES).map((p, i) => ({
-          ts_ns: lastTs + (i + 1) * 1e9,  // 未来 i 秒
-          state_probs: p.state_probs,
-          intent_probs: p.intent_probs,
-          predicted_state: p.predicted_state,
+          ts_ns: lastTs + (i + 1) * 1e9,
+          state_probs: p.state_probs || [0,0,0,0,0,0,0,0],
+          intent_probs: p.intent_probs || [0,0,0],
+          predicted_state: p.predicted_state || 'unknown',
         }));
         refreshAllCharts();
       }
+      // gemini 钦定根因 2 修复：心跳必须在 chart 更新成功之后才更新
+      // 之前在顶部更新，任何后续抛错都让心跳"假活"永不重连
+      _lastMessageTime = Date.now();
     } catch (err) {
-      console.error('parse SSE msg failed:', err, e.data);
+      // 这里不更新 _lastMessageTime → 10s 后心跳触发重连
+      console.error('parse/render SSE msg failed:', err, e.data?.slice(0, 200));
+      dlog(`❌ onmessage 异常: ${err.message}`, 'err');
     }
   };
 
