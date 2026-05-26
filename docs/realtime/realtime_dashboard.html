@@ -183,12 +183,33 @@ const dataBuf = {
   predictions: [],  // [{ts_ns, state_probs, intent_probs}] (来自 LTC)
 };
 
-// 注册 annotation plugin（如果加载了）
-if (typeof Chart !== 'undefined' && typeof window.chartjsPluginAnnotation !== 'undefined') {
-  Chart.register(window.chartjsPluginAnnotation);
-  dlog('✅ annotation plugin 已注册', 'ok');
-} else if (typeof Chart !== 'undefined') {
-  dlog('⚠️ annotation plugin 未加载（"现在" 分割线不会显示）', 'warn');
+// 注册 annotation plugin
+// chartjs-plugin-annotation v3 UMD build 全局名是 'chartjs-plugin-annotation'（连字符）或自动注册
+if (typeof Chart !== 'undefined') {
+  // 候选全局名（不同打包版本不同）
+  const annotationPlugin =
+    window['chartjs-plugin-annotation'] ||
+    window['chartjsPluginAnnotation'] ||
+    window.Annotation ||
+    null;
+  if (annotationPlugin) {
+    try {
+      Chart.register(annotationPlugin);
+      dlog('✅ annotation plugin 手动注册成功', 'ok');
+    } catch (e) {
+      dlog(`⚠️ annotation register 失败: ${e.message}`, 'warn');
+    }
+  } else {
+    // 看是否已自动注册（v3 UMD 自包含注册）
+    const registered = Chart.registry?.plugins?.get?.('annotation');
+    if (registered) {
+      dlog('✅ annotation plugin 已自动注册', 'ok');
+    } else {
+      // 列 window 上所有 chart 相关键，方便诊断
+      const candidates = Object.keys(window).filter(k => /annot|chart/i.test(k));
+      dlog(`⚠️ annotation 未找到，window 上找到: ${candidates.join(', ') || '(none)'}`, 'warn');
+    }
+  }
 }
 
 // ====== Chart 工厂 ======
