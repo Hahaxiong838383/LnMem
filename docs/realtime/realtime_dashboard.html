@@ -77,9 +77,12 @@
   }
   .footer a { color: #94a3b8; text-decoration: none; margin: 0 6px; }
 
-  /* 调试面板更紧凑 */
-  #debug-panel { display: none; }  /* 默认隐藏，出错才显示 */
-  #debug-panel.show { display: block !important; }
+  /* 调试面板（默认显示一行，方便看实时状态）*/
+  #debug-panel {
+    max-height: 36px; overflow-y: auto;
+    white-space: nowrap; font-size: 10px;
+  }
+  #debug-panel.show { max-height: 120px; }
 </style>
 </head>
 <body>
@@ -394,14 +397,31 @@ function setNowAnnotation(chart) {
   };
 }
 
+let _annotationFailedOnce = false;
 function refreshAllCharts() {
-  rebuildChart(intentChart, dataBuf.history, dataBuf.predictions, 'intent');
-  rebuildChart(emotionChart, dataBuf.history, dataBuf.predictions, 'emotion');
-  rebuildChart(attentionChart, dataBuf.history, dataBuf.predictions, 'attention');
-  // 三图都加 "现在" 分割线
+  try {
+    rebuildChart(intentChart, dataBuf.history, dataBuf.predictions, 'intent');
+    rebuildChart(emotionChart, dataBuf.history, dataBuf.predictions, 'emotion');
+    rebuildChart(attentionChart, dataBuf.history, dataBuf.predictions, 'attention');
+  } catch (e) {
+    dlog(`❌ rebuildChart 失败: ${e.message}`, 'err');
+    return;
+  }
+  // 三图都加 "现在" 分割线（失败不阻塞 chart 更新）
   [intentChart, emotionChart, attentionChart].forEach(c => {
-    setNowAnnotation(c);
-    c.update('none');
+    try {
+      setNowAnnotation(c);
+    } catch (e) {
+      if (!_annotationFailedOnce) {
+        dlog(`⚠️ setNowAnnotation 失败（annotation plugin 未注册？）: ${e.message}`, 'warn');
+        _annotationFailedOnce = true;
+      }
+    }
+    try {
+      c.update('none');
+    } catch (e) {
+      dlog(`❌ chart.update 失败: ${e.message}`, 'err');
+    }
   });
 }
 
