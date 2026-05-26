@@ -77,12 +77,18 @@
   }
   .footer a { color: #94a3b8; text-decoration: none; margin: 0 6px; }
 
-  /* 调试面板（默认显示一行，方便看实时状态）*/
+  /* 调试面板（默认显示最近 4 行）*/
   #debug-panel {
-    max-height: 36px; overflow-y: auto;
-    white-space: nowrap; font-size: 10px;
+    flex: 0 0 auto;
+    max-height: 80px; overflow-y: auto;
+    font-size: 10px;
+    background:#1e293b;border-left:3px solid #f59e0b;
+    padding:6px 10px;margin:4px 0;
+    font-family:monospace;color:#fcd34d;
+    line-height: 1.4;
   }
-  #debug-panel.show { max-height: 120px; }
+  #debug-panel.show { max-height: 160px; }
+  #debug-log > div { color: #e2e8f0; }  /* log 每条一行 */
 </style>
 </head>
 <body>
@@ -97,9 +103,10 @@
   </div>
 </div>
 
-<!-- 调试面板：仅出错时显示（防 Brave Shields 静默 block CDN）-->
-<div id="debug-panel" style="background:#1e293b;border-left:3px solid #f59e0b;padding:6px 10px;margin:4px 0;font-family:monospace;font-size:10px;color:#fcd34d;">
-  <strong>🔍 调试日志</strong>：<span id="debug-log" style="color:#e2e8f0;"></span>
+<!-- 调试面板：默认显示最近 4 行，警告/错误时自动撑开 -->
+<div id="debug-panel">
+  <div style="color:#fcd34d;font-weight:bold;">🔍 调试日志（最近 30 条）：</div>
+  <div id="debug-log"></div>
 </div>
 
 <div class="charts-container">
@@ -130,11 +137,20 @@ function dlog(msg, level = 'info') {
   if (!el) { console.log(msg); return; }
   const colors = { info: '#e2e8f0', ok: '#6ee7b7', warn: '#fcd34d', err: '#fca5a5' };
   const ts = new Date().toLocaleTimeString();
-  el.innerHTML += `<span style="color:${colors[level]||colors.info};margin-right:8px">[${ts}] ${msg}</span>`;
+  // 每条 log 一个 div 独占一行（不是 span 横向拼）
+  const line = document.createElement('div');
+  line.style.color = colors[level] || colors.info;
+  line.textContent = `[${ts}] ${msg}`;
+  el.appendChild(line);
+  // 保留最近 30 行
+  while (el.children.length > 30) el.removeChild(el.firstChild);
+  // 自动滚到底
+  const panel = document.getElementById('debug-panel');
+  if (panel) panel.scrollTop = panel.scrollHeight;
   console.log(`[${level}]`, msg);
-  // 有错才显示 debug panel
+  // 有错警告自动撑开
   if (level === 'err' || level === 'warn') {
-    document.getElementById('debug-panel')?.classList.add('show');
+    panel?.classList.add('show');
   }
 }
 window.onerror = function(msg, src, line, col, err) {
