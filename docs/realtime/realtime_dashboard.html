@@ -387,9 +387,11 @@ function setNowAnnotation(chart) {
       drawTime: 'beforeDatasetsDraw',
     },
     // 右半部分背景 (浅黄，标记"预测"区)
+    // cc 5/26 复盘：之前误用未声明 lastPredTs → 非 strict 下 window.lastPredTs=undefined，
+    // 让 futureBox xMax 变成 NaN，annotation plugin 静默坏（不影响数据但 UI 错乱）
     futureBox: {
       type: 'box',
-      xMin: lastHistTs, xMax: lastPredTs,
+      xMin: lastHistTs, xMax: xMaxMs,
       backgroundColor: 'rgba(251, 191, 36, 0.12)',
       borderWidth: 0,
       drawTime: 'beforeDatasetsDraw',
@@ -483,112 +485,196 @@ setInterval(() => {
   lastFpsTime = now;
 }, 1000);
 
-// ====== SSE 连接 + 心跳监控（防 Safari 后台暂停僵死）======
-let _currentES = null;
-let _lastMessageTime = Date.now();
-const STALE_THRESHOLD_MS = 10000;  // 10s 没收消息 = 僵死
+// ====== SSE 客户端 v2.0：fetch + ReadableStream（替换 EventSource）======
+// 川哥 2026-05-26 钦定方案 B（Team 模式 cc+codex+gemini 联合评估）
+// 替换理由（gemini 3.5-flash 高 thinking 给出的 5 个深层根因）：
+//   1. EventSource 黑盒：浏览器 SSE 实现底层有 HTTP/1.1 连接池上限、TCP window 锁死等
+//      不可控的死锁路径；用 fetch 我们能完全掌控 reader 生命周期、AbortController 主动超时
+//   2. 心跳盲区：onmessage 同步成功 → _lastMessageTime 更新 → 实际渲染 rAF 被静默丢
+//      → 心跳假活。改成 reader.read() 主动 await（loop 自己暴露），任何 hang 都立即可见
+//   3. 6 个 HTTP/1.1 连接上限：close() 进 TIME_WAIT 不释放，重连几次后池满 silent pending
+//      → 用 AbortController 主动 abort 立即释放底层 socket
+// 数据格式不变（SSE 协议帧 "data: <json>\n\n"），服务端无需改动。
 
-function connect() {
-  // 关旧连接
-  if (_currentES) {
-    try { _currentES.close(); } catch(e) {}
+let _currentAbortCtrl = null;
+let _lastMessageTime = Date.now();
+let _connectGen = 0;  // 每次重连递增，旧 reader 检测到 gen 失配立即退出
+const STALE_THRESHOLD_MS = 10000;
+const HEALTH_PROBE_INTERVAL_MS = 30000;  // 30s 主动 ping /health 验证 daemon 真活
+
+function processFrame(rawData) {
+  // 完全沿用旧 onmessage 内部逻辑，rawData 是 "data:" 后面的 JSON 字符串
+  try {
+    const msg = JSON.parse(rawData);
+    if (!msg || !msg.type) return;
+    if (msg.type === 'frame') {
+      const lnn = msg.lnn || {};
+      if (!Number.isFinite(msg.ts_ns)) {
+        dlog(`⚠️ frame.ts_ns 非法（${msg.ts_ns}），丢弃`, 'warn');
+        return;
+      }
+      if (!Array.isArray(lnn.state_probs) || lnn.state_probs.length !== 8) {
+        lnn.state_probs = [0,0,0,0,0,0,0,0];
+      }
+      dataBuf.history.push({
+        ts_ns: msg.ts_ns,
+        state_probs: lnn.state_probs,
+        intent_probs: lnn.intent_probs || [0,0,0],
+        predicted_state: lnn.predicted_state || 'unknown',
+      });
+      if (dataBuf.history.length > HISTORY_FRAMES) dataBuf.history.shift();
+      document.getElementById('frame-pill').textContent = `frame: ${msg.frame_id || '-'}`;
+      if (lnn.ckpt_sha8) {
+        document.getElementById('ckpt-pill').textContent = `ckpt: ${lnn.ckpt_sha8}`;
+      }
+      frameCount++;
+      refreshAllCharts();
+    } else if (msg.type === 'prediction') {
+      const preds = msg.predictions || [];
+      const lastTs = dataBuf.history.length > 0
+        ? dataBuf.history[dataBuf.history.length - 1].ts_ns
+        : Date.now() * 1e6;
+      dataBuf.predictions = preds.slice(0, PRED_FRAMES).map((p, i) => ({
+        ts_ns: lastTs + (i + 1) * 1e9,
+        state_probs: p.state_probs || [0,0,0,0,0,0,0,0],
+        intent_probs: p.intent_probs || [0,0,0],
+        predicted_state: p.predicted_state || 'unknown',
+      }));
+      refreshAllCharts();
+    }
+    // 心跳放在末尾：所有 chart 渲染同步部分跑完才算"真活"
+    _lastMessageTime = Date.now();
+  } catch (err) {
+    console.error('parse/render SSE msg failed:', err, rawData?.slice(0, 200));
+    dlog(`❌ processFrame 异常: ${err.message}`, 'err');
+    // 不更新 _lastMessageTime → 心跳触发重连
   }
-  dlog(`📡 创建 EventSource(${SSE_URL})...`);
-  const es = new EventSource(SSE_URL);
-  _currentES = es;
-  _lastMessageTime = Date.now();
+}
+
+async function connect() {
+  const myGen = ++_connectGen;
   const statusEl = document.getElementById('conn-status');
 
-  es.onopen = () => {
-    statusEl.className = 'status-pill ok';
-    statusEl.textContent = '✅ 已连接';
-    dlog('✅ SSE onopen 触发', 'ok');
-    _lastMessageTime = Date.now();
-  };
+  // 关旧连接（abort 立即释放底层 socket，绕过 TIME_WAIT 6 连接上限）
+  if (_currentAbortCtrl) {
+    try { _currentAbortCtrl.abort(); } catch(e) {}
+  }
+  const ctrl = new AbortController();
+  _currentAbortCtrl = ctrl;
+  _lastMessageTime = Date.now();
 
+  dlog(`📡 fetch SSE stream (gen=${myGen}) ${SSE_URL}...`);
+  statusEl.className = 'status-pill';
+  statusEl.textContent = '🔄 连接中...';
+
+  let resp;
+  try {
+    resp = await fetch(SSE_URL, {
+      method: 'GET',
+      headers: { 'Accept': 'text/event-stream', 'Cache-Control': 'no-cache' },
+      signal: ctrl.signal,
+      // 关键：禁掉浏览器 keepalive 复用池，强制新 TCP 连接（避开 6 上限假死）
+      cache: 'no-store',
+    });
+  } catch (err) {
+    if (myGen !== _connectGen) return;  // 已被新 connect() 取代
+    statusEl.className = 'status-pill err';
+    statusEl.textContent = '❌ fetch 失败';
+    dlog(`❌ fetch 失败 (gen=${myGen}): ${err.message}`, 'err');
+    return;
+  }
+
+  if (!resp.ok) {
+    statusEl.className = 'status-pill err';
+    statusEl.textContent = `❌ HTTP ${resp.status}`;
+    dlog(`❌ HTTP ${resp.status} ${resp.statusText}`, 'err');
+    return;
+  }
+
+  statusEl.className = 'status-pill ok';
+  statusEl.textContent = '✅ 已连接 (fetch v2)';
+  dlog(`✅ SSE stream opened (gen=${myGen})`, 'ok');
+  _lastMessageTime = Date.now();
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
   let msgCount = 0;
-  es.onmessage = (e) => {
-    msgCount++;
-    if (msgCount <= 3) dlog(`📨 收到 #${msgCount} msg (${e.data.length}B)`, 'ok');
-    if (msgCount === 5) dlog('（之后不再 log 单帧，看 fps pill）', 'info');
-    try {
-      const msg = JSON.parse(e.data);
-      if (!msg || !msg.type) return;
 
-      if (msg.type === 'frame') {
-        const lnn = msg.lnn || {};
-        // codex 钦定根因 3：坏包校验，防静默污染时间轴
-        if (!Number.isFinite(msg.ts_ns)) {
-          dlog(`⚠️ frame.ts_ns 非法（${msg.ts_ns}），丢弃`, 'warn');
-          return;
-        }
-        if (!Array.isArray(lnn.state_probs) || lnn.state_probs.length !== 8) {
-          // 不丢，给默认（warmup 期间 state_probs 可能 null）
-          lnn.state_probs = [0,0,0,0,0,0,0,0];
-        }
-        dataBuf.history.push({
-          ts_ns: msg.ts_ns,
-          state_probs: lnn.state_probs,
-          intent_probs: lnn.intent_probs || [0,0,0],
-          predicted_state: lnn.predicted_state || 'unknown',
-        });
-        if (dataBuf.history.length > HISTORY_FRAMES) dataBuf.history.shift();
-
-        // 顶部 status
-        document.getElementById('frame-pill').textContent = `frame: ${msg.frame_id || '-'}`;
-        if (lnn.ckpt_sha8) {
-          document.getElementById('ckpt-pill').textContent = `ckpt: ${lnn.ckpt_sha8}`;
-        }
-        frameCount++;
-        refreshAllCharts();
-      } else if (msg.type === 'prediction') {
-        const preds = msg.predictions || [];
-        const lastTs = dataBuf.history.length > 0
-          ? dataBuf.history[dataBuf.history.length - 1].ts_ns
-          : Date.now() * 1e6;
-        dataBuf.predictions = preds.slice(0, PRED_FRAMES).map((p, i) => ({
-          ts_ns: lastTs + (i + 1) * 1e9,
-          state_probs: p.state_probs || [0,0,0,0,0,0,0,0],
-          intent_probs: p.intent_probs || [0,0,0],
-          predicted_state: p.predicted_state || 'unknown',
-        }));
-        refreshAllCharts();
+  try {
+    while (myGen === _connectGen) {
+      const { value, done } = await reader.read();
+      if (done) {
+        dlog(`⚠️ stream done (gen=${myGen})，5s 后重连`, 'warn');
+        break;
       }
-      // gemini 钦定根因 2 修复：心跳必须在 chart 更新成功之后才更新
-      // 之前在顶部更新，任何后续抛错都让心跳"假活"永不重连
-      _lastMessageTime = Date.now();
-    } catch (err) {
-      // 这里不更新 _lastMessageTime → 10s 后心跳触发重连
-      console.error('parse/render SSE msg failed:', err, e.data?.slice(0, 200));
-      dlog(`❌ onmessage 异常: ${err.message}`, 'err');
+      buffer += decoder.decode(value, { stream: true });
+      // SSE 帧分隔符：\n\n（或 \r\n\r\n）
+      let sepIdx;
+      while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+        const rawEvent = buffer.slice(0, sepIdx);
+        buffer = buffer.slice(sepIdx + 2);
+        // rawEvent 可能是多行（"data: xxx\ndata: yyy"），但 daemon 单行 → 取 "data: "
+        const lines = rawEvent.split('\n');
+        let dataPayload = '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) dataPayload += line.slice(6);
+          else if (line.startsWith('data:')) dataPayload += line.slice(5);
+          // 注释行（": heartbeat"）忽略；只更心跳时间
+        }
+        if (rawEvent.startsWith(':')) {
+          _lastMessageTime = Date.now();  // server 心跳
+          continue;
+        }
+        if (!dataPayload) continue;
+        msgCount++;
+        if (msgCount <= 3) dlog(`📨 收到 #${msgCount} (${dataPayload.length}B)`, 'ok');
+        if (msgCount === 5) dlog('（之后不再 log 单帧，看 fps pill）', 'info');
+        processFrame(dataPayload);
+      }
     }
-  };
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      dlog(`🔌 stream aborted (gen=${myGen})`, 'info');
+      return;
+    }
+    statusEl.className = 'status-pill err';
+    statusEl.textContent = '❌ stream error';
+    dlog(`❌ reader 异常 (gen=${myGen}): ${err.message}`, 'err');
+  } finally {
+    try { reader.releaseLock(); } catch(e) {}
+  }
 
-  es.onerror = (err) => {
+  // 自动重连（如果还是当前 gen）
+  if (myGen === _connectGen) {
     statusEl.className = 'status-pill err';
     statusEl.textContent = '❌ 断开重连中...';
-    dlog(`❌ SSE onerror (readyState=${es.readyState})`, 'err');
-    // EventSource 自动重连
-  };
+    setTimeout(() => { if (myGen === _connectGen) connect(); }, 1000);
+  }
 }
 
-dlog('🚀 调用 connect()...');
-try {
-  connect();
-  dlog('✅ connect() 返回，等 onopen', 'ok');
-} catch (e) {
-  dlog(`❌ connect() 异常: ${e.message}`, 'err');
-}
+dlog('🚀 调用 connect() [fetch v2]...');
+connect().catch(e => dlog(`❌ connect() 顶层 reject: ${e.message}`, 'err'));
 
-// 心跳监控：每 5s 检查最后收到数据时间，> 10s 没数据 → 自动重连
+// 心跳监控：5s 一次，> 10s 没数据 → abort + 重连
 setInterval(() => {
   const age = Date.now() - _lastMessageTime;
-  if (age > STALE_THRESHOLD_MS && _currentES) {
-    dlog(`⚠️ SSE 僵死 ${(age/1000).toFixed(0)}s 没数据，强制重连`, 'warn');
-    try { _currentES.close(); } catch(e) {}
-    connect();
+  if (age > STALE_THRESHOLD_MS) {
+    dlog(`⚠️ SSE 僵死 ${(age/1000).toFixed(0)}s 没数据，abort 重连`, 'warn');
+    try { _currentAbortCtrl?.abort(); } catch(e) {}
+    connect().catch(e => dlog(`重连失败: ${e.message}`, 'err'));
   }
 }, 5000);
+
+// 主动健康探针：每 30s ping /health，验证 daemon 真活（独立 SSE 链路之外）
+setInterval(async () => {
+  try {
+    const r = await fetch('/health', { cache: 'no-store' });
+    if (!r.ok) dlog(`⚠️ /health HTTP ${r.status}`, 'warn');
+  } catch (err) {
+    dlog(`⚠️ /health 探针失败: ${err.message}（daemon 可能挂了）`, 'warn');
+  }
+}, HEALTH_PROBE_INTERVAL_MS);
 
 // 页面可见性变化：从后台回前台时立即检查 + 重连
 document.addEventListener('visibilitychange', () => {
@@ -596,10 +682,25 @@ document.addEventListener('visibilitychange', () => {
     const age = Date.now() - _lastMessageTime;
     dlog(`👁 页面回到前台（${(age/1000).toFixed(0)}s 没数据）`, 'info');
     if (age > 3000) {
-      try { _currentES?.close(); } catch(e) {}
-      connect();
+      try { _currentAbortCtrl?.abort(); } catch(e) {}
+      connect().catch(e => dlog(`回前台重连失败: ${e.message}`, 'err'));
     }
   }
+});
+
+// canvas context lost 监听（gemini 钦定根因 3：高 CPU 下 OS 回收显存让画图变 no-op）
+['intent-chart','emotion-chart','attention-chart'].forEach(id => {
+  const cvs = document.getElementById(id);
+  if (!cvs) return;
+  cvs.addEventListener('webglcontextlost', (e) => {
+    dlog(`🚨 canvas ${id} contextlost！自动 reload 页面`, 'err');
+    e.preventDefault();
+    setTimeout(() => location.reload(), 500);
+  });
+  cvs.addEventListener('contextlost', (e) => {
+    dlog(`🚨 canvas ${id} 2D contextlost！自动 reload`, 'err');
+    setTimeout(() => location.reload(), 500);
+  });
 });
 </script>
 
