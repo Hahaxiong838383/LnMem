@@ -21,9 +21,12 @@ LNN-FIRST P-1 合规：本文件只编排已有 `fit_step` 调用，不引入新
 from __future__ import annotations
 
 import hashlib
+import json
+import logging
 import os
 import tempfile
-from dataclasses import dataclass, field
+import uuid
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -32,6 +35,13 @@ import torch
 
 from poc.src.lnn.feedback_dataset import count_by_label, load_events
 from poc.src.lnn.feedback_to_batch import build_training_batch, fill_match_labels_with_argmax
+from poc.src.lnn.ledger import (
+    DeltaSummaryRecord,
+    EventAttributionRecord,
+    FitRunRecord,
+    LedgerWriter,
+    SQLiteLedgerWriter,
+)
 from poc.src.lnn.model import DefaultLNNFactory
 from poc.src.lnn.online_adapter import OnlineLoRAAdapter
 from poc.src.lnn.online_contracts import (
@@ -41,6 +51,7 @@ from poc.src.lnn.online_contracts import (
 )
 from poc.src.lnn.online_trainer import fit_step, trigger_if_ready
 
+_LOG = logging.getLogger(__name__)
 
 _REASON_FIRED = "fired"
 _REASON_BELOW_THRESHOLD = "below_threshold"
@@ -82,6 +93,67 @@ def _empty_counts() -> dict[str, int]:
     return {"match": 0, "mismatch": 0, "skip": 0, "input": 0, "total": 0}
 
 
+def _to_jsonable(value: Any) -> Any:
+    """Convert nested Paths/tuples into JSON-safe primitives."""
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(k): _to_jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_to_jsonable(v) for v in value]
+    return value
+
+
+def _json_compact(value: Any) -> str:
+    """Serialize stable JSON for ledger snapshots."""
+    return json.dumps(_to_jsonable(value), ensure_ascii=False, sort_keys=True)
+
+
+def _event_uuid_list_hash(event_uuids: tuple[str, ...]) -> str:
+    """Hash sorted event UUIDs into the contract's 16-char lineage digest."""
+    joined = "\n".join(sorted(event_uuids))
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:16]
+
+
+def _topk_dim_summary(
+    prev_tau_drift: torch.Tensor,
+    next_tau_drift: torch.Tensor,
+    *,
+    topk: int = 5,
+) -> tuple[float, str, str]:
+    """Build delta_l2_total, per-persona L2 JSON, and top-k signed deltas JSON."""
+    delta = (next_tau_drift - prev_tau_drift).detach().cpu()
+    delta_l2_total = float(delta.norm(p=2).item())
+    per_persona = {
+        str(idx): float(value)
+        for idx, value in enumerate(delta.norm(p=2, dim=1).tolist())
+    }
+    flat = delta.reshape(-1)
+    if flat.numel() == 0:
+        return delta_l2_total, _json_compact(per_persona), "[]"
+    topk_count = min(topk, int(flat.numel()))
+    values, indices = torch.topk(flat.abs(), k=topk_count)
+    hidden_dim = int(delta.shape[1]) if delta.ndim == 2 else int(flat.numel())
+    topk_entries: list[dict[str, float | int]] = []
+    for raw_index, magnitude in zip(indices.tolist(), values.tolist()):
+        persona = int(raw_index // hidden_dim) if delta.ndim == 2 else 0
+        dim_idx = int(raw_index % hidden_dim)
+        signed = float(flat[raw_index].item())
+        topk_entries.append(
+            {
+                "persona_idx": persona,
+                "dim_idx": dim_idx,
+                "abs_delta": float(magnitude),
+                "signed_delta": signed,
+            }
+        )
+    return (
+        delta_l2_total,
+        _json_compact(per_persona),
+        _json_compact(topk_entries),
+    )
+
+
 def _gather_counts(feedback_dir: Path, *, min_event_ts: str | None = None) -> dict[str, int]:
     """fail-soft 计数 feedback events（无 events 返零计数）。
 
@@ -108,6 +180,7 @@ def try_fit_step(
     force: bool = False,
     alignment_window_s: float = 5.0,
     min_event_ts: str | None = None,
+    ledger_writer: LedgerWriter | None = None,
 ) -> FitRunResult:
     """一站式入口：阈值检查 → load_ckpt → build_batch → fit_step → save_ckpt。
 
@@ -208,6 +281,17 @@ def try_fit_step(
             error=f"OnlineLoRAAdapter init: {e}",
             ckpt_in_sha8=ckpt_in_sha,
         )
+    prev_online_tau_drift = online_adapter.tau_drift.detach().cpu().clone()
+    if ckpt.get("online_adapter_schema") == _CKPT_SCHEMA_VERSION and "online_tau_drift" in ckpt:
+        try:
+            online_adapter.load_drift_state_dict({"tau_drift": ckpt["online_tau_drift"]})
+            prev_online_tau_drift = online_adapter.tau_drift.detach().cpu().clone()
+        except OnlineAdapterError as e:
+            return FitRunResult(
+                triggered=False, counts=counts, reason=_REASON_ADAPTER_MISMATCH,
+                error=f"load_drift_state_dict: {e}",
+                ckpt_in_sha8=ckpt_in_sha,
+            )
     # 关键：替换 state_model 的 personalization，使 fit_step 反传命中 online_adapter
     state_model.personalization = online_adapter
 
@@ -360,16 +444,71 @@ def try_fit_step(
             metrics=metrics, ckpt_in_sha8=ckpt_in_sha,
         )
 
+    ckpt_out_sha = _ckpt_sha8(ckpt_out_path)
+    metrics_out = dict(metrics)
+    metadata_out: dict[str, Any] = {
+        "batch_size": int(batch.x.shape[0]),
+        "schema_version": _CKPT_SCHEMA_VERSION,
+        "signal_path": _signal_path,
+        "adr_label": f"post-ADR-005 (signal_path={_signal_path})",
+        "ledger_write_failed": False,
+    }
+    try:
+        active_writer = ledger_writer if ledger_writer is not None else SQLiteLedgerWriter()
+        fit_run_id = str(uuid.uuid4())
+        config_snapshot_json = _json_compact(asdict(online_config))
+        delta_l2_total, delta_l2_by_persona_json, topk_dims_json = _topk_dim_summary(
+            prev_online_tau_drift,
+            online_tau_drift,
+        )
+        fit_run_record = FitRunRecord(
+            fit_run_id=fit_run_id,
+            ckpt_in_sha8=ckpt_in_sha,
+            ckpt_out_sha8=ckpt_out_sha,
+            fired_at_utc=fired_at,
+            persona_idx=persona_idx,
+            event_uuid_list_hash=_event_uuid_list_hash(batch.event_uuids),
+            batch_size=int(batch.x.shape[0]),
+            config_snapshot_json=config_snapshot_json,
+            success_flag=True,
+        )
+        event_records = [
+            EventAttributionRecord(
+                fit_run_id=fit_run_id,
+                event_uuid=batch.event_uuids[index],
+                event_order=index,
+                reward=float(batch.rewards[index].item()),
+                label_source=batch.label_sources[index],
+                window_frame_ids=_json_compact(batch.window_frame_ids[index]),
+                contribution_mode="membership_only",
+            )
+            for index in range(len(batch.event_uuids))
+        ]
+        delta_record = DeltaSummaryRecord(
+            fit_run_id=fit_run_id,
+            delta_l2_total=delta_l2_total,
+            delta_l2_by_persona_json=delta_l2_by_persona_json,
+            topk_dims_json=topk_dims_json,
+        )
+        active_writer.write_fit_run(fit_run_record, event_records, delta_record)
+        metadata_out["ledger_fit_run_id"] = fit_run_id
+    except Exception as exc:  # noqa: BLE001
+        metrics_out["ledger_write_failed"] = 1.0
+        metadata_out["ledger_write_failed"] = True
+        metadata_out["ledger_error"] = f"{type(exc).__name__}: {exc}"
+        _LOG.warning(
+            "Ledger write failed after ckpt commit ckpt_out=%s sha8=%s: %s",
+            ckpt_out_path,
+            ckpt_out_sha,
+            exc,
+        )
+    else:
+        metrics_out["ledger_write_failed"] = 0.0
+
     return FitRunResult(
         triggered=True, counts=counts, reason=_REASON_FIRED,
-        metrics=metrics, ckpt_out_path=ckpt_out_path, ckpt_in_sha8=ckpt_in_sha,
-        metadata={
-            "batch_size": int(batch.x.shape[0]),
-            "schema_version": _CKPT_SCHEMA_VERSION,
-            # F-09 fix (codex v0.3 二审): A/B 归因锚点（cron history 透传）
-            "signal_path": _signal_path,
-            "adr_label": f"post-ADR-005 (signal_path={_signal_path})",
-        },
+        metrics=metrics_out, ckpt_out_path=ckpt_out_path, ckpt_in_sha8=ckpt_in_sha,
+        metadata=metadata_out,
     )
 
 

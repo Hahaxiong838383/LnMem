@@ -13,19 +13,31 @@ ADR-038 v1.1 决策权: schema 决策权归 codex (5.4 high), cc 实施集成.
 """
 
 from poc.src.lnn.ledger.contracts import (
+    ConsistencyReport,
     FitRunRecord,
     EventAttributionRecord,
     DeltaSummaryRecord,
     LedgerWriter,
     LedgerReader,
     LedgerSchemaVersion,
+    LedgerReadError,
+    LedgerSchemaMismatchError,
+    LedgerWriteError,
 )
+from poc.src.lnn.ledger.sqlite_reader import SQLiteLedgerReader
+from poc.src.lnn.ledger.sqlite_writer import SQLiteLedgerWriter
 
 __all__ = [
+    "ConsistencyReport",
     "FitRunRecord",
     "EventAttributionRecord",
     "DeltaSummaryRecord",
     "LedgerWriter",
     "LedgerReader",
     "LedgerSchemaVersion",
+    "LedgerReadError",
+    "LedgerSchemaMismatchError",
+    "LedgerWriteError",
+    "SQLiteLedgerReader",
+    "SQLiteLedgerWriter",
 ]

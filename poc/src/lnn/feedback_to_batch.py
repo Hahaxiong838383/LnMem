@@ -94,6 +94,8 @@ class TrainingBatch:
     frame_ids: tuple[int, ...]
     label_sources: tuple[str, ...]  # "mismatch_true_state" / "match_argmax_pending" / etc
     skipped_count: int
+    event_uuids: tuple[str, ...] = ()
+    window_frame_ids: tuple[tuple[int, ...], ...] = ()
 
 
 def _normalize_true_state(raw: str | None) -> str | None:
@@ -153,8 +155,8 @@ def _slice_window(
     target_session_id: str | None,
     target_frame_id: int,
     window_size: int,
-) -> Tensor | None:
-    """取 [target - window+1, target] 共 window_size 帧的 (T, 18) 张量；不足返 None.
+) -> tuple[Tensor, tuple[int, ...]] | None:
+    """取窗口张量和 frame_id 序列；不足窗口时返回 None.
 
     F1-01 修复：用 (session_id, frame_id) 复合键，跨天/跨 session 不再 silent
     overwrite。
@@ -216,7 +218,10 @@ def _slice_window(
             RuntimeWarning,
         )
     rows = [list(f.vector) for f in window_frames]
-    return torch.tensor(rows, dtype=torch.float32)
+    return (
+        torch.tensor(rows, dtype=torch.float32),
+        tuple(int(frame.frame_id) for frame in window_frames),
+    )
 
 
 def build_training_batch(
@@ -282,6 +287,8 @@ def build_training_batch(
     rewards_list: list[float] = []
     frame_ids: list[int] = []
     sources: list[str] = []
+    event_uuids: list[str] = []
+    window_frame_ids: list[tuple[int, ...]] = []
     skipped = 0
 
     for ev in usable_events:
@@ -308,13 +315,13 @@ def build_training_batch(
         label_idx, source = label_pair
 
         # F1-01: window 切片用 (event.session_id, frame_id) 复合键
-        x_window = _slice_window(
+        window = _slice_window(
             signals, session_frame_index,
             target_session_id=ev.session_id,
             target_frame_id=ev.frame_id,
             window_size=window_size,
         )
-        if x_window is None:
+        if window is None:
             warnings.warn(
                 f"feedback_to_batch: frame_id={ev.frame_id} not enough signals "
                 f"window (need {window_size}), skipping",
@@ -325,11 +332,14 @@ def build_training_batch(
             skipped += 1
             continue
 
+        x_window, window_fids = window
         xs.append(x_window)
         labels.append(label_idx)
         rewards_list.append(ev.reward())
         frame_ids.append(ev.frame_id)
         sources.append(source)
+        event_uuids.append(ev.event_uuid or f"frame-{ev.frame_id}")
+        window_frame_ids.append(window_fids)
         if is_user_triggered:
             increment_user_triggered_metric("assembled")
 
@@ -356,6 +366,8 @@ def build_training_batch(
         frame_ids=tuple(frame_ids),
         label_sources=tuple(sources),
         skipped_count=skipped,
+        event_uuids=tuple(event_uuids),
+        window_frame_ids=tuple(window_frame_ids),
     )
 
 
@@ -420,6 +432,8 @@ def fill_match_labels_with_argmax(
         frame_ids=batch.frame_ids,
         label_sources=batch.label_sources,
         skipped_count=batch.skipped_count,
+        event_uuids=batch.event_uuids,
+        window_frame_ids=batch.window_frame_ids,
     )
 
 
