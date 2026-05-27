@@ -160,9 +160,11 @@
     <li><b>状态 pills (header)</b>：连接/FPS/帧号/redraws/ckpt 各项实时显示，redraws 不动 = chart 没更新 (异常信号)。</li>
   </ol>
   <p style="margin:12px 0 0 0;color:#94a3b8;font-size:13px;">
-    ⚠️ <b>诚实声明</b>：当前 ckpt τ 分布近似单 τ (std=0.013, 详见
-    <a href="/dev/null#" onclick="event.preventDefault();alert('文档路径: docs/realtime/tau-spectrum-audit.md');" style="color:#60a5fa;">τ audit</a>)，
-    站 1 demo 不主张"多时间尺度已实现"，只主张 LTC ODE 架构本身能承载分化。
+    📍 <b>Stage-1 基础物理常数锁定状态 (Baseline Locked State)</b>：
+    当前 ckpt 处于工程上分步解耦的 Stage-1 (τ 锁定 + FiLM/intent head 优先收敛)，τ 分布 std=0.013 是
+    <b>训练阶段约束</b>而非<b>架构能力上限</b>。Stage-2 (F2 Matched Baseline) + Stage-3 (KL 多样性微调)
+    将在 6/24 后启动，目标 τ 跨数量级覆盖 [0.1, 10.0]。详见
+    <a href="/dev/null#" onclick="event.preventDefault();alert('文档路径: docs/realtime/tau-spectrum-audit.md');" style="color:#60a5fa;">τ audit</a> §4 + §6 答辩底牌。
   </p>
 </details>
 

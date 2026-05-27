@@ -99,3 +99,24 @@ delta_l2_total: 0.0123
 - 动作：优先视为崩溃残留或人工注入测试数据，按 `fit_run_id` 用 `inspect` 定位
 
 **Why**：Phase A 允许 dirty 被发现和解释，不允许“看起来没报错”就当账本健康。
+
+---
+
+## Rollback + Schema 升级注意事项（gemini 二审漏洞 B 钦定）
+
+> 5/27 第零道门 gemini 3.5 high 审挖出：git tag `before-adr-038` 回滚代码不会回滚已升级的 SQLite db。当前首次创建无影响，但**未来 schema 升级时必备 migration**。
+
+### 当前状态（ledger_v1）
+
+- DB 路径：`~/.lnmem/ledger/ledger.sqlite`（用户家目录，**不在 git 仓库**）
+- 表：fit_runs / event_attribution / delta_summary + schema_meta(version=ledger_v1)
+- 首次创建：`SQLiteLedgerWriter.ensure_schema()` 幂等
+- 回滚代码到 `before-adr-038`：ledger 表不存在等价于 ADR-038 前状态，**无冲突**
+
+### 未来 schema 升级时必做（写新 ADR 时强制 checklist）
+
+1. **schema_meta 升版本**：v1 → v2，写 migration SQL
+2. **向后兼容窗口**：保持读旧 schema 能力 ≥ 1 个版本
+3. **migration 单测**：`tests/test_ledger_migration_v1_to_v2.py` 跑真实 v1 db → v2 验证数据不丢
+4. **rollback 配套脚本**：`bin/ledger-reset.sh` 提供"删 db 重建"的 nuclear option
+5. **ADR**：每次 schema 变更必有独立 ADR，标注 breaking 与否
