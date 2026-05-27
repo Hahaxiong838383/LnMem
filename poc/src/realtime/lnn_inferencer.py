@@ -467,7 +467,7 @@ class RealtimeLNNInferencer:
                 signal_path_used=self._signal_path,
             )
 
-    def predict_future(self, steps: int) -> list[dict[str, Any]]:
+    def predict_future(self, steps: int, time_warp: float = 1.0) -> list[dict[str, Any]]:
         """Project future frames with LTC/CfC ODE + A+B 混合 input 外推。
 
         ADR-036 (2026-05-26)：放弃 ADR-033 的纯 persistence assumption（input 常数），
@@ -482,6 +482,15 @@ class RealtimeLNNInferencer:
         修复 cc 实测发现：persistence 让 LTC 第 2 步就收敛到吸引子，10 步 state_probs
         变化 < 0.4%（gemini 3.5 钦定根因 1：ODE 自治系统在常数输入下趋向稳态）。
         现在 input 有动态变化 → hidden 也有动态变化 → 预测曲线不再是直线。
+
+        ADR-038 v1.1 §F4 (2026-05-27)：加 time_warp 参数支持"时间曲率旋钮"。
+        - time_warp=1.0：默认，每步 dt=1 (∼1s)
+        - time_warp=10.0：每步 dt=10 (∼10s)，模拟 10× 时间流速
+        - time_warp=100.0：每步 dt=100 (∼100s 即 1.7min)，模拟"几分钟相处"
+        - 实现：timespans_warped = timespans * time_warp（LTC ODE 公式
+          dh/dt = -h/τ + f(input)，timespans 物理上是每步时间间隔，等价 dt）
+        - 上限 100.0（不取 1000.0 防 KG 写入打爆，gemini 二审钦定）
+        - 调用方 (daemon) 负责在 ≥10.0 时暂停 RL 反馈窗口采集（防 cognitive 污染）
         """
         if not self._enabled or self._state_model is None:
             return [{"error": "disabled"}]
@@ -489,6 +498,8 @@ class RealtimeLNNInferencer:
             return [{"error": "steps must be >= 0"}]
         if not self._history:
             return [{"error": "no_recent_input"}]
+        # ADR-038 §F4: 时间曲率上限
+        time_warp = max(1.0, min(100.0, float(time_warp)))
 
         # A+B 混合外推系数（ADR-036 §决策）
         AUTOREG_ALPHA = 0.5         # trend 保持
@@ -525,6 +536,11 @@ class RealtimeLNNInferencer:
                 gamma = gamma.to(hidden.device, hidden.dtype)
                 beta = beta.to(hidden.device, hidden.dtype)
                 timespans = sm._timespans_from_tau(tau_bias)
+                # ADR-038 §F4: 时间曲率乘到 timespans 上
+                # LTC ODE dh/dt = -h/τ + f(input)，timespans 物理 = 每步 dt
+                # timespans *= time_warp 等价 dt 拉长 → 模拟更长时间流逝
+                if time_warp != 1.0:
+                    timespans = timespans * time_warp
 
                 predictions: list[dict[str, Any]] = []
                 # ADR-037: state 投影对齐 ——
@@ -605,6 +621,12 @@ class RealtimeLNNInferencer:
                             "intent_confidence": intent_confidence,
                         }
                     )
+            # ADR-038 §F4: 暴露 sim_seconds + time_warp 给 UI 双时间轴
+            if time_warp != 1.0:
+                for p in predictions:
+                    if isinstance(p, dict) and "step" in p:
+                        p["sim_seconds"] = float(p["step"]) * time_warp
+                        p["time_warp"] = time_warp
             return predictions
         except Exception as exc:  # noqa: BLE001
             self._record_fail()

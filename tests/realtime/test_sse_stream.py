@@ -41,7 +41,8 @@ class _FakeStorage:
 class _FakeInferencer:
     ckpt_sha8 = "abc12345"
 
-    def predict_future(self, steps: int) -> list[dict[str, Any]]:
+    def predict_future(self, steps: int, time_warp: float = 1.0) -> list[dict[str, Any]]:
+        # ADR-038 §F4: time_warp kwarg 兼容
         return [{"step": idx, "state_probs": [1.0]} for idx in range(steps)]
 
 

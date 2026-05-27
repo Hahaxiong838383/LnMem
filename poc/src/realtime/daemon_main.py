@@ -82,6 +82,10 @@ class DaemonApp:
         self._pipeline: SignalPipelineWorker | SignalPipelinePool | None = None
         # M0 W3 Phase 4.2 (2026-05-16 ADR-005/008): 实时 LNN inferencer（fail-soft）
         self._lnn_inferencer = self._build_lnn_inferencer()
+        # ADR-038 §F4: 时间曲率全局状态 (dashboard POST /control/time_warp 可改)
+        # 1.0 = 默认实时；10.0 / 100.0 模拟更长时间流逝
+        # ≥10.0 时 RL 反馈窗口暂停（防 cognitive.md §3 反馈采集污染）
+        self._sse_time_warp: float = float(os.environ.get("LNMEM_DEMO_TIME_WARP", "1.0"))
         # ADR-028 v0.1 方案 B（5/23 cc）：pyfeat_workers > 1 用 multiprocessing 真并行
         if self._config.pipeline.pyfeat_workers > 1:
             self._mp_pool = PyfeatMpPool(self._config.pipeline.pyfeat_workers)
@@ -251,16 +255,37 @@ class DaemonApp:
         }
 
     def build_sse_prediction_event(self) -> dict[str, Any]:
+        # ADR-038 §F4: SSE prediction 应用全局 time_warp 状态
+        # getattr 兜底避免 mock 测试绕过 __init__ 时 AttributeError
+        warp = max(1.0, min(100.0, float(getattr(self, "_sse_time_warp", 1.0))))
         predictions = (
-            self._lnn_inferencer.predict_future(10)
+            self._lnn_inferencer.predict_future(10, time_warp=warp)
             if self._lnn_inferencer is not None
             else [{"error": "inferencer_unavailable"}]
         )
         return {
             "type": "prediction",
             "ts_ns": time.time_ns(),
+            "time_warp": warp,
+            "feedback_paused": warp >= 10.0,
             "predictions": predictions,
         }
+
+    def handle_set_time_warp(self, time_warp: float) -> tuple[int, dict[str, Any]]:
+        """ADR-038 §F4: 设置全局时间曲率 (dashboard POST /control/time_warp)."""
+        bounded = max(1.0, min(100.0, float(time_warp)))
+        old = self._sse_time_warp
+        self._sse_time_warp = bounded
+        return 200, {
+            "ok": True,
+            "old_time_warp": old,
+            "new_time_warp": bounded,
+            "feedback_paused": bounded >= 10.0,
+        }
+
+    def feedback_capture_paused(self) -> bool:
+        """ADR-038 §F4: time_warp ≥ 10 时 RL 反馈窗口暂停 (防 cognitive 反馈污染)."""
+        return self._sse_time_warp >= 10.0
 
     def dashboard_response(self) -> tuple[int, bytes, str]:
         if not _DASHBOARD_PATH.exists():
@@ -271,18 +296,30 @@ class DaemonApp:
             return 404, body, "application/json; charset=utf-8"
         return 200, _DASHBOARD_PATH.read_bytes(), "text/html; charset=utf-8"
 
-    def handle_predict_future(self, steps: int) -> tuple[int, dict[str, Any]]:
-        """Return LTC ODE persistence future predictions for HTTP/UI consumers."""
+    def handle_predict_future(
+        self, steps: int, time_warp: float = 1.0
+    ) -> tuple[int, dict[str, Any]]:
+        """Return LTC ODE persistence future predictions for HTTP/UI consumers.
+
+        ADR-038 v1.1 §F4: 加 time_warp 时间曲率参数。
+        - 1.0 = 默认实时（每步 dt≈1s）
+        - 10.0 = 10× 时间流速
+        - 100.0 = 100× 时间流速（上限）
+        - ≥10.0 时返回 paused_feedback=True，daemon 自动跳过 RL 反馈窗口采集
+        """
         if os.environ.get("LNMEM_DISABLE_PREDICT_FUTURE") == "1":
             return 503, {"error": "disabled by env"}
         bounded_steps = max(0, min(60, steps))
+        bounded_warp = max(1.0, min(100.0, float(time_warp)))
         predictions = (
-            self._lnn_inferencer.predict_future(bounded_steps)
+            self._lnn_inferencer.predict_future(bounded_steps, time_warp=bounded_warp)
             if self._lnn_inferencer is not None
             else [{"error": "inferencer_unavailable"}]
         )
         return 200, {
             "steps": bounded_steps,
+            "time_warp": bounded_warp,
+            "feedback_paused": bounded_warp >= 10.0,
             "predictions": predictions,
             "ts_ns": time.time_ns(),
             "ckpt_sha8": (
@@ -711,13 +748,20 @@ class DaemonApp:
                     self._write_json(200, app.recent_signals(seconds))
                     return
                 if parsed.path == "/predict_future":
-                    raw_steps = parse_qs(parsed.query).get("steps", ["10"])[0]
+                    qs = parse_qs(parsed.query)
+                    raw_steps = qs.get("steps", ["10"])[0]
+                    raw_warp = qs.get("time_warp", ["1.0"])[0]
                     try:
                         steps = int(raw_steps)
                     except ValueError:
                         self._write_json(400, {"error": "invalid_steps"})
                         return
-                    code, payload = app.handle_predict_future(steps)
+                    try:
+                        time_warp = float(raw_warp)
+                    except ValueError:
+                        self._write_json(400, {"error": "invalid_time_warp"})
+                        return
+                    code, payload = app.handle_predict_future(steps, time_warp=time_warp)
                     self._write_json(code, payload)
                     return
                 if parsed.path == "/signals/stream":
@@ -732,6 +776,19 @@ class DaemonApp:
                 if self.path == "/control/stop":
                     threading.Thread(target=app.stop, name="lnmem-stop", daemon=True).start()
                     self._write_json(202, {"status": "stopping"})
+                    return
+                if self.path == "/control/time_warp":
+                    # ADR-038 §F4: dashboard 时间曲率切换
+                    length = int(self.headers.get("Content-Length", "0"))
+                    raw = self.rfile.read(length).decode("utf-8") if length else "{}"
+                    try:
+                        body = json.loads(raw) if raw else {}
+                        warp = float(body.get("time_warp", 1.0))
+                    except (json.JSONDecodeError, ValueError, TypeError):
+                        self._write_json(400, {"error": "invalid_body"})
+                        return
+                    code, payload = app.handle_set_time_warp(warp)
+                    self._write_json(code, payload)
                     return
                 if self.path == "/trigger_mismatch":
                     self._handle_trigger_mismatch()

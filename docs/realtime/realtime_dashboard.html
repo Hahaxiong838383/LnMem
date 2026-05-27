@@ -129,6 +129,21 @@
     <span id="frame-pill" class="status-pill">frame: -</span>
     <span id="chart-updates-pill" class="status-pill">redraws: 0</span>
     <span id="ckpt-pill" class="status-pill">ckpt: -</span>
+    <!-- ADR-038 §F4: 时间曲率旋钮 + 双时间轴 (站 1 demo 用) -->
+    <span class="status-pill" style="background:#fbbf24;color:#000;font-weight:bold;">
+      ⏱ 时间曲率
+      <select id="time-warp-select" style="margin-left:6px;padding:2px 6px;background:#000;color:#fbbf24;border:1px solid #fbbf24;border-radius:4px;">
+        <option value="1">1× 实时</option>
+        <option value="10">10× (~10s/步)</option>
+        <option value="100">100× (~1.7min/步)</option>
+      </select>
+    </span>
+    <span id="warp-state-pill" class="status-pill" style="display:none;background:#f87171;color:#000;font-weight:bold;">
+      ⚠️ RL 反馈窗口已暂停 (cognitive 反馈污染防护)
+    </span>
+    <span id="sim-time-pill" class="status-pill" style="display:none;">
+      模拟时间: <span id="sim-time-val">-</span>
+    </span>
   </div>
 </div>
 
@@ -601,12 +616,31 @@ function processFrame(rawData) {
       const lastTs = dataBuf.history.length > 0
         ? dataBuf.history[dataBuf.history.length - 1].ts_ns
         : Date.now() * 1e6;
+      // ADR-038 §F4: SSE prediction 携带 time_warp + feedback_paused
+      const warp = Number(msg.time_warp || 1.0);
+      const dtNs = 1e9 * warp;  // 模拟时间步长
       dataBuf.predictions = preds.slice(0, PRED_FRAMES).map((p, i) => ({
-        ts_ns: lastTs + (i + 1) * 1e9,
+        ts_ns: lastTs + (i + 1) * dtNs,
         state_probs: p.state_probs || [0,0,0,0,0,0,0,0],
         intent_probs: p.intent_probs || [0,0,0],
         predicted_state: p.predicted_state || 'unknown',
+        sim_seconds: p.sim_seconds || (i + 1) * warp,
       }));
+      // 同步 UI 状态 pills
+      const pausedPill = document.getElementById('warp-state-pill');
+      const simPill = document.getElementById('sim-time-pill');
+      const simVal = document.getElementById('sim-time-val');
+      if (warp >= 10.0) {
+        pausedPill.style.display = '';
+        simPill.style.display = '';
+        const totalSim = PRED_FRAMES * warp;
+        simVal.textContent = totalSim >= 60
+          ? `${(totalSim / 60).toFixed(1)} 分钟`
+          : `${totalSim.toFixed(0)} 秒`;
+      } else {
+        pausedPill.style.display = 'none';
+        simPill.style.display = 'none';
+      }
       scheduleRefresh();  // rAF 节流：多 event 合并到下一帧统一画
     }
     // 心跳放在末尾：onmessage 同步部分跑完即算"真活"（不必等 rAF 渲染）
@@ -722,6 +756,31 @@ async function connect() {
 
 dlog('🚀 调用 connect() [fetch v2]...');
 connect().catch(e => dlog(`❌ connect() 顶层 reject: ${e.message}`, 'err'));
+
+// ADR-038 §F4: 时间曲率 select → POST /control/time_warp
+(function bindTimeWarpControl() {
+  const sel = document.getElementById('time-warp-select');
+  if (!sel) return;
+  sel.addEventListener('change', async () => {
+    const warp = Number(sel.value);
+    dlog(`⏱ 切换时间曲率 → ${warp}× (${warp >= 10 ? 'RL 反馈窗口将暂停' : '实时模式'})`);
+    try {
+      const resp = await fetch('/control/time_warp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ time_warp: warp }),
+      });
+      if (!resp.ok) {
+        dlog(`⚠️ time_warp 切换失败: HTTP ${resp.status}`, 'warn');
+        return;
+      }
+      const data = await resp.json();
+      dlog(`✅ time_warp ${data.old_time_warp || '?'} → ${data.new_time_warp}, paused=${data.feedback_paused}`);
+    } catch (err) {
+      dlog(`❌ time_warp 切换异常: ${err.message}`, 'err');
+    }
+  });
+})();
 
 // 心跳监控：5s 一次，> 10s 没数据 → abort + 重连
 setInterval(() => {
