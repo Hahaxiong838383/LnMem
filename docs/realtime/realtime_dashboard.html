@@ -147,6 +147,25 @@
   </div>
 </div>
 
+<!-- ADR-038 §F4 + dashboard Help expander: 5 步现场观众引导 -->
+<details id="help-expander" style="margin:10px 16px;padding:12px 16px;background:#1e293b;border:1px solid #475569;border-radius:8px;color:#e2e8f0;">
+  <summary style="cursor:pointer;font-weight:bold;font-size:15px;color:#fbbf24;outline:none;">
+    🎯 5 步看懂这张大屏 (点击展开/收起)
+  </summary>
+  <ol style="margin:12px 0 0 24px;padding:0;line-height:1.8;">
+    <li><b>红虚线 = 「现在」</b>：左边是 daemon 实时观测到的过去 60 帧，右边是 LTC ODE 预测的未来 10 步。</li>
+    <li><b>3 张图分别 = 意图 / 情绪 / 注意力</b>：每张图的彩色堆叠区域代表对应概率分布随时间演变。</li>
+    <li><b>⏱ 时间曲率旋钮 (header)</b>：1× = 实时；10× / 100× = 模拟"相处几秒到几分钟"的状态演化。<span style="color:#f87171;">≥10× 自动暂停 RL 反馈采集 (防 cognitive 反馈窗口污染)。</span></li>
+    <li><b>每 1 秒一次完整循环</b>：摄像头 → AU 特征 → LTC 推断 → SSE 推送 → Chart 渲染 (rAF 节流, 最多 60fps)。</li>
+    <li><b>状态 pills (header)</b>：连接/FPS/帧号/redraws/ckpt 各项实时显示，redraws 不动 = chart 没更新 (异常信号)。</li>
+  </ol>
+  <p style="margin:12px 0 0 0;color:#94a3b8;font-size:13px;">
+    ⚠️ <b>诚实声明</b>：当前 ckpt τ 分布近似单 τ (std=0.013, 详见
+    <a href="/dev/null#" onclick="event.preventDefault();alert('文档路径: docs/realtime/tau-spectrum-audit.md');" style="color:#60a5fa;">τ audit</a>)，
+    站 1 demo 不主张"多时间尺度已实现"，只主张 LTC ODE 架构本身能承载分化。
+  </p>
+</details>
+
 <!-- 调试面板：默认显示最近 4 行，警告/错误时自动撑开 -->
 <div id="debug-panel">
   <div style="color:#fcd34d;font-weight:bold;">🔍 调试日志（最近 30 条）：</div>

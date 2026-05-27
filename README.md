@@ -308,6 +308,36 @@ PYTHONPATH=. .venv-poc-fresh/bin/python -m pytest poc/ apps/ contracts/ \
 # 期望: 749 passed / 3 skipped ✅
 ```
 
+### 🧠 实时大屏（站 1 demo 入口，ADR-038 v1.1 §F4）
+
+```bash
+# daemon 启动 (含 SSE + 时间曲率 + ledger 集成)
+PYTHONPATH=. .venv-poc-fresh/bin/python -m poc.src.realtime.daemon_main
+# → 实时大屏: http://localhost:8000/dashboard
+# → SSE 流  : http://localhost:8000/signals/stream
+
+# 时间曲率切换 (站 1 路径 D++ demo 用)
+curl -X POST http://localhost:8000/control/time_warp \
+  -H "Content-Type: application/json" \
+  -d '{"time_warp": 10}'
+# → 切到 10× 模拟时间流速 (≥10× 自动暂停 RL 反馈采集)
+
+# F1 attribution ledger CLI (站 3 roadmap 中间物)
+.venv-poc-fresh/bin/python -m poc.src.lnn.ledger.cli list
+.venv-poc-fresh/bin/python -m poc.src.lnn.ledger.cli lineage <ckpt_sha8>
+.venv-poc-fresh/bin/python -m poc.src.lnn.ledger.cli consistency
+
+# τ 神经元 audit 复现 (站 1 现场答辩证据)
+CKPT=$(ls -t poc/data/checkpoints/m0w2_phase2/checkpoint_phase2_*.pt | head -1)
+CKPT="$CKPT" .venv-poc-fresh/bin/python -c "..."  # 见 docs/realtime/tau-spectrum-audit.md §附录A
+```
+
+**站 1 demo 核心读物**：
+- [`docs/decisions/038-path-d-plus-plus-demo-engineering-foundation.md`](docs/decisions/038-path-d-plus-plus-demo-engineering-foundation.md) — 路径 D++ ADR (v1.1)
+- [`docs/realtime/tau-spectrum-audit.md`](docs/realtime/tau-spectrum-audit.md) — τ 分布诚实数据 + §6 现场答辩底牌
+- [`docs/realtime/ledger-phase-a.md`](docs/realtime/ledger-phase-a.md) — F1 lineage 设计
+- [`docs/handoff/2026-05-27-adr-038-f1-phase-a-handoff.md`](docs/handoff/2026-05-27-adr-038-f1-phase-a-handoff.md) — 5/27 交接
+
 ---
 
 ## 👥 团队配置
