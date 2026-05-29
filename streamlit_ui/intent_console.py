@@ -36,7 +36,7 @@ import streamlit as st
 # ---- 配置 ----
 # 5/25 cc fix: daemon 9876 实际是 HTTP（不是 WebSocket），改用 polling /signals/recent
 DAEMON_HTTP = "http://127.0.0.1:9876"
-SIGNALS_URL = f"{DAEMON_HTTP}/signals/recent?seconds=1"  # ADR-041: daemon 不认 limit, 用 seconds=1 只拿最近 1s 帧
+SIGNALS_URL = f"{DAEMON_HTTP}/signals/recent?seconds=3"  # ADR-041: daemon 不认 limit; seconds=3 兜底 daemon fps 抖动 (实测 ~1.5Hz, 1s 窗易空), 配合 data[-1] 总拿最新
 HEALTH_URL = f"{DAEMON_HTTP}/health"
 FEEDBACK_URL = "http://127.0.0.1:9877/intent_feedback"
 FEEDBACK_WINDOW_SEC = 120  # gemini finding 2-2：反馈有效窗口 ≤ 2min
