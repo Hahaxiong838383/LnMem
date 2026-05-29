@@ -325,6 +325,40 @@ class RealtimeLNNInferencer:
         ]
         return window
 
+    def get_long_context(
+        self, recent_s: int = 10, long_s: int = 120, long_hz: float = 0.1
+    ) -> list[dict[str, Any]]:
+        """ADR-040 Phase1: 返回 [recent_s, long_s] 区间按 long_hz 下采样的稀疏长程帧。
+
+        用途: 积累分钟级上下文, 供 Phase2 信息论互信息 / oracle 验证
+              "intent 任务到底需不需要 >10s 历史"。
+        设计:
+          - 只取比 recent_s 更早、比 long_s 更晚的帧 (recent 部分已由 get_recent_window 覆盖)
+          - 按 long_hz 下采样: 每 (1/long_hz) 秒一个桶, 桶内保留最近一帧
+          - 带 ts_ns 保留真实不等间距 (gemini 二审: 非等间距不能裸拼, 下游须用 Δt)
+        向后兼容: 独立方法, 不改 get_recent_window; intent_feedback_server 写入
+                  独立字段 au_window_long, 不碰现有 au_window。
+        """
+        if not self._recent_temporal or long_s <= recent_s or long_hz <= 0:
+            return []
+        latest_ts = self._recent_temporal[-1][0]
+        recent_cut = latest_ts - int(recent_s * 1_000_000_000)
+        long_cut = latest_ts - int(long_s * 1_000_000_000)
+        bucket_ns = int((1.0 / long_hz) * 1_000_000_000)
+        if bucket_ns <= 0:
+            return []
+        buckets: dict[int, tuple[int, list[float], list[float]]] = {}
+        for ts_ns, hidden, au in self._recent_temporal:
+            if ts_ns < long_cut or ts_ns >= recent_cut:
+                continue
+            b = (ts_ns - long_cut) // bucket_ns
+            if b not in buckets or ts_ns > buckets[b][0]:
+                buckets[b] = (ts_ns, hidden, au)
+        return [
+            {"ts_ns": ts, "h": list(h), "au": list(au)}
+            for ts, h, au in sorted(buckets.values(), key=lambda x: x[0])
+        ]
+
     def reset(self) -> None:
         """清空滑窗（如 daemon session 切换）"""
         self._history.clear()

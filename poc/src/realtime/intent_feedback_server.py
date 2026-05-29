@@ -102,6 +102,9 @@ class IntentFeedbackHandler(BaseHTTPRequestHandler):
                 return
 
             temporal_window = self._collect_temporal_window(seconds=10)
+            # ADR-040 Phase1: 独立采集 10-120s 稀疏长程上下文 (不碰现有 au_window)
+            # 供 Phase2 信息论互信息/oracle 验证 intent 任务是否需要 >10s 历史
+            long_window = self._collect_long_context()
             record = {
                 "ts_ns": ts_ns,
                 "predicted": predicted,
@@ -116,6 +119,16 @@ class IntentFeedbackHandler(BaseHTTPRequestHandler):
                     {"ts_ns": int(item.get("ts_ns", 0)), "au": list(item.get("au", []))}
                     for item in temporal_window
                 ],
+                # ADR-040 Phase1: 新增独立长程字段, 向后兼容 (旧读取忽略即可)
+                "au_window_long": [
+                    {"ts_ns": int(item.get("ts_ns", 0)), "au": list(item.get("au", []))}
+                    for item in long_window
+                ],
+                "hidden_state_window_long": [
+                    {"ts_ns": int(item.get("ts_ns", 0)), "h": list(item.get("h", []))}
+                    for item in long_window
+                ],
+                "long_context_meta": {"recent_s": 10, "long_s": 120, "long_hz": 0.1},
                 "recorded_at": datetime.now().astimezone().isoformat(),
             }
             stored_path = self.store.append(record)
@@ -160,6 +173,34 @@ class IntentFeedbackHandler(BaseHTTPRequestHandler):
                 continue
             normalized.append({"ts_ns": ts_ns, "h": h, "au": au})
         return normalized
+
+    def _collect_long_context(self) -> list[dict[str, Any]]:
+        """ADR-040 Phase1: 收集 10-120s 稀疏长程上下文 (0.1Hz 下采样)。
+
+        inferencer.get_long_context 缓冲不足/方法缺失时 fail-soft 返回 []，
+        不阻塞反馈写入 (向后兼容: 老 inferencer 无此方法时静默降级)。
+        """
+        inferencer = getattr(self, "inferencer", None)
+        if inferencer is None or not hasattr(inferencer, "get_long_context"):
+            return []
+        try:
+            raw = inferencer.get_long_context(recent_s=10, long_s=120, long_hz=0.1)
+        except Exception as exc:  # noqa: BLE001
+            logging.getLogger(__name__).warning("get_long_context failed: %s", exc)
+            return []
+        if not isinstance(raw, list):
+            return []
+        out: list[dict[str, Any]] = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            ts_ns = item.get("ts_ns")
+            h = item.get("h")
+            au = item.get("au")
+            if not isinstance(ts_ns, int) or not isinstance(h, list) or not isinstance(au, list):
+                continue
+            out.append({"ts_ns": ts_ns, "h": h, "au": au})
+        return out
 
     def _read_json(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length", "0"))
