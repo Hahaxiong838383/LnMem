@@ -899,7 +899,7 @@ def main():
     with ctrl2:
         # ADR-041 UX 修复: 用 st.fragment(run_every) 替代 streamlit_autorefresh,
         # 只重绘推断区域, 整页布局不再闪灰 (streamlit 1.33+ 原生)。
-        st.caption("⚡ 推断区自动刷新 (2s, 局部不闪灰)")
+        st.caption("⚡ 推断区自动刷新 (1s, 局部不闪灰)")
     with ctrl3:
         if st.button("🔄 重置历史"):
             st.session_state.history.clear()
@@ -914,7 +914,7 @@ def main():
     _render_inference_block()
 
 
-@st.fragment(run_every=2.0)
+@st.fragment(run_every=1.0)
 def _render_inference_block() -> None:
     """ADR-041 UX 修复: fragment 局部刷新, 整页布局不闪灰。
 
