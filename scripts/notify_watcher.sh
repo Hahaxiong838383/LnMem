@@ -460,6 +460,17 @@ fi
 TRIGGER_COUNT=0
 
 while true; do
+    # FIX (cc 2026-05-29): 跨天日期固化 bug 根治。
+    # 原 DAILY_COUNT_FILE/FEEDBACK_JSONL/QUERY_DECISIONS_JSONL 在脚本顶层 (line 50/72)
+    # 用 $(date) 求值一次后固化。常驻进程跨天后仍读启动当天的计数文件，
+    # 导致 daily_count 卡在旧日期满额值 → 永久"已达上限"不再弹窗。
+    # 实测: PID 5/25 启动 → daily_count_2026-05-25=200 固化 → 4 天 0 弹窗 → increment=0。
+    # 修复: 每轮循环按当天日期重算, 跨天自动切换新计数文件。
+    _today=$(date +%Y-%m-%d)
+    DAILY_COUNT_FILE="${STATE_DIR}/daily_count_${_today}"
+    FEEDBACK_JSONL="${HOME}/.lnmem/data/intent_feedback/${_today}.jsonl"
+    QUERY_DECISIONS_JSONL="${HOME}/.lnmem/data/query_decisions/${_today}.jsonl"
+
     # 日上限检查
     cnt=$(read_ts "$DAILY_COUNT_FILE")
     if [ "$cnt" -ge "$DAILY_MAX" ]; then
