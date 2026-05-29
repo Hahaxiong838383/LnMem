@@ -898,12 +898,12 @@ def main():
         )
     with ctrl2:
         # 5/25 cc: streamlit-autorefresh 用 JavaScript 触发，避免 time.sleep+rerun 闪烁
-        auto_refresh = st.toggle("自动刷新 (5s)", value=True,
-                                  help="勾选后用 streamlit-autorefresh 每 5s 平滑更新（不再 time.sleep）")
+        auto_refresh = st.toggle("自动刷新 (2.5s)", value=True,
+                                  help="勾选后用 streamlit-autorefresh 每 2.5s 平滑更新（提升反馈卡冒出速度）")
         if auto_refresh:
             try:
                 from streamlit_autorefresh import st_autorefresh
-                st_autorefresh(interval=5000, key="main_refresh")
+                st_autorefresh(interval=2500, key="main_refresh")
             except ImportError:
                 st.warning("streamlit-autorefresh 未装，fallback time.sleep 模式")
     with ctrl3:
@@ -911,6 +911,10 @@ def main():
             st.session_state.history.clear()
             st.session_state.last_frame_id = None
             st.rerun()
+
+    # ---- toast 兜底显示 (老 streamlit 无 st.toast 时) ----
+    if "_last_toast" in st.session_state:
+        st.success(st.session_state.pop("_last_toast"))
 
     # ---- 拉取最新推断 ----
     inf = fetch_latest_inference()
@@ -980,27 +984,32 @@ def main():
                         f'{datetime.fromtimestamp(inf.ts_ns / 1e9).strftime("%H:%M:%S")}** '
                         f'({age:.0f}s ago)'
                     )
+                    def _commit(label: str) -> None:
+                        """提交后给视觉反馈 (st.toast 1.27+, 兜底 session_state)。"""
+                        try:
+                            st.toast(f"✅ 已提交 → {label}", icon="✅")
+                        except Exception:
+                            st.session_state["_last_toast"] = f"✅ 已提交 → {label}"
+                        del st.session_state.pending_feedback[ts_ns]
+                        st.rerun()
+
                     bcols = st.columns(4)
                     with bcols[0]:
-                        if st.button("✓ 确认", key=f"conf_{ts_ns}"):
+                        if st.button("✓ 确认", key=f"conf_{ts_ns}", type="primary"):
                             if submit_feedback(inf, inf.intent_pred):
-                                del st.session_state.pending_feedback[ts_ns]
-                                st.rerun()
+                                _commit(f"确认 ({inf.intent_pred})")
                     with bcols[1]:
                         if st.button("→正", key=f"pos_{ts_ns}", disabled=inf.intent_pred == "positive"):
                             if submit_feedback(inf, "positive"):
-                                del st.session_state.pending_feedback[ts_ns]
-                                st.rerun()
+                                _commit("positive")
                     with bcols[2]:
                         if st.button("→负", key=f"neg_{ts_ns}", disabled=inf.intent_pred == "negative"):
                             if submit_feedback(inf, "negative"):
-                                del st.session_state.pending_feedback[ts_ns]
-                                st.rerun()
+                                _commit("negative")
                     with bcols[3]:
                         if st.button("→中性", key=f"none_{ts_ns}", disabled=inf.intent_pred == "none"):
                             if submit_feedback(inf, "none"):
-                                del st.session_state.pending_feedback[ts_ns]
-                                st.rerun()
+                                _commit("none")
             for ts_ns in expired:
                 del st.session_state.pending_feedback[ts_ns]
                 st.session_state.stats["ignored"] += 1
