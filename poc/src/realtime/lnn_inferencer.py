@@ -359,6 +359,78 @@ class RealtimeLNNInferencer:
             for ts, h, au in sorted(buckets.values(), key=lambda x: x[0])
         ]
 
+    def get_window_around_ts(
+        self,
+        anchor_ts_ns: int,
+        recent_s: int = 10,
+        tolerance_s: float = 2.0,
+    ) -> list[dict[str, Any]]:
+        """ADR-041: 以 anchor_ts_ns 为右端切出 recent_s 秒窗口(而非当下时刻)。
+
+        修复 intent_feedback 标注-窗口时间错位:标签 ts_ns 可能比 POST 时刻
+        早数秒甚至数分钟,此前 get_recent_window 锚定 deque[-1].ts(当下)导致
+        训练对 (X, Y) 100% 错位。本方法按 anchor 切窗,锚定到判断时刻。
+
+        切窗区间: [anchor_ts_ns - recent_s*1e9, anchor_ts_ns + tolerance_s*1e9]
+          - tolerance 容忍 streamlit→daemon 网络抖动让 anchor 轻微晚于真实帧 ts
+          - 若与 deque 区间无交集 → 返回 [] (fail-soft, 让上层降级)
+
+        并发安全: 用 list(deque) snapshot, 不与 _append_recent_temporal 竞态。
+        返回格式同 get_recent_window: oldest→newest 排序。
+        """
+        if not isinstance(anchor_ts_ns, int) or anchor_ts_ns <= 0:
+            return []
+        if recent_s <= 0:
+            return []
+        snapshot = list(self._recent_temporal)
+        if not snapshot:
+            return []
+        lo = anchor_ts_ns - int(recent_s * 1_000_000_000)
+        hi = anchor_ts_ns + int(tolerance_s * 1_000_000_000)
+        return [
+            {"ts_ns": ts_ns, "h": list(hidden), "au": list(au)}
+            for ts_ns, hidden, au in snapshot
+            if lo <= ts_ns <= hi
+        ]
+
+    def get_long_context_around_ts(
+        self,
+        anchor_ts_ns: int,
+        recent_s: int = 10,
+        long_s: int = 120,
+        long_hz: float = 0.1,
+        tolerance_s: float = 2.0,
+    ) -> list[dict[str, Any]]:
+        """ADR-041: 以 anchor_ts_ns 为右端取 [recent_s, long_s] 稀疏长程窗。
+
+        与 get_long_context 唯一区别:latest_ts 用 anchor_ts_ns 而非 deque[-1].ts,
+        使长程窗也锚定到标签时刻、而非 POST 时刻。下采样桶策略不变。
+        与 get_window_around_ts 在时间上互补不重叠(后者覆盖最近 recent_s)。
+        """
+        if not isinstance(anchor_ts_ns, int) or anchor_ts_ns <= 0:
+            return []
+        if long_s <= recent_s or long_hz <= 0:
+            return []
+        snapshot = list(self._recent_temporal)
+        if not snapshot:
+            return []
+        recent_cut = anchor_ts_ns - int(recent_s * 1_000_000_000)
+        long_cut = anchor_ts_ns - int(long_s * 1_000_000_000)
+        bucket_ns = int((1.0 / long_hz) * 1_000_000_000)
+        if bucket_ns <= 0:
+            return []
+        buckets: dict[int, tuple[int, list[float], list[float]]] = {}
+        for ts_ns, hidden, au in snapshot:
+            if ts_ns < long_cut or ts_ns >= recent_cut:
+                continue
+            b = (ts_ns - long_cut) // bucket_ns
+            if b not in buckets or ts_ns > buckets[b][0]:
+                buckets[b] = (ts_ns, hidden, au)
+        return [
+            {"ts_ns": ts, "h": list(h), "au": list(au)}
+            for ts, h, au in sorted(buckets.values(), key=lambda x: x[0])
+        ]
+
     def reset(self) -> None:
         """清空滑窗（如 daemon session 切换）"""
         self._history.clear()

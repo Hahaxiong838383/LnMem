@@ -223,3 +223,127 @@ def test_admin_trigger_training_endpoint_returns_marker(tmp_path: Path) -> None:
     assert status == 200
     assert body["triggered"] is True
     assert isinstance(body["marker_at"], str)
+
+
+# ---------- ADR-041: anchor_ts_ns 切窗 + anchor_mode 标记 ----------
+
+
+NS = 1_000_000_000
+
+
+class _AnchorWindowProvider:
+    """Mock 同时实现 get_recent_window(降级) 和 get_window_around_ts(锚定)。"""
+
+    def __init__(
+        self,
+        recent_window: list[dict[str, object]] | None = None,
+        anchored_lookup: dict[int, list[dict[str, object]]] | None = None,
+    ) -> None:
+        self._recent = recent_window or []
+        # anchor_ts_ns → 该 anchor 应返回的窗口(空表示越界降级)
+        self._lookup = anchored_lookup or {}
+
+    def get_recent_window(self, seconds: int = 10) -> list[dict[str, object]]:
+        _ = seconds
+        return list(self._recent)
+
+    def get_window_around_ts(
+        self, anchor_ts_ns: int, recent_s: int = 10, tolerance_s: float = 2.0
+    ) -> list[dict[str, object]]:
+        _ = recent_s, tolerance_s
+        return list(self._lookup.get(anchor_ts_ns, []))
+
+
+def _frame(ts_ns: int, marker: int = 0) -> dict[str, object]:
+    return {"ts_ns": ts_ns, "h": [0.0] * 64, "au": [float(marker)] + [0.0] * 17}
+
+
+def test_intent_feedback_anchor_hit_records_ts_ns_mode(tmp_path: Path) -> None:
+    """ts_ns 命中锚定切窗 → record anchor_mode='ts_ns', 窗口=锚定结果。"""
+    store = IntentFeedbackStore(tmp_path / "intent_feedback")
+    limiter = SessionTsRateLimiter()
+    label_ts = 1_780_000_000_000_000_000
+    # 当下时刻(降级窗口)用 marker=99, 锚定时刻用 marker=7 区分
+    inferencer = _AnchorWindowProvider(
+        recent_window=[_frame(label_ts + 300 * NS, marker=99)],  # POST 时缓冲(模拟错位)
+        anchored_lookup={label_ts: [_frame(label_ts - NS, marker=7),
+                                     _frame(label_ts, marker=8)]},
+    )
+    status, _body = _run_post(
+        {
+            "ts_ns": label_ts,
+            "predicted": "positive",
+            "corrected": "negative",
+            "ui_session": "session-anchor-hit",
+        },
+        store=store,
+        limiter=limiter,
+        inferencer=inferencer,
+    )
+    assert status == 200
+    files = list((tmp_path / "intent_feedback").glob("*.jsonl"))
+    record = json.loads(files[0].read_text(encoding="utf-8").strip())
+    assert record["anchor_mode"] == "ts_ns"
+    markers = [int(f["au"][0]) for f in record["au_window"]]
+    assert markers == [7, 8], f"应来自锚定窗口而非当下: {markers}"
+    # 关键回归断言: 事件 ts_ns 必须落入 au_window 时间范围
+    win_ts = [f["ts_ns"] for f in record["au_window"]]
+    assert min(win_ts) <= label_ts <= max(win_ts) + 2 * NS, "对齐失败"
+
+
+def test_intent_feedback_anchor_miss_falls_back_to_now(tmp_path: Path) -> None:
+    """anchor 越界(锚定查询返回空) → 降级到 get_recent_window, anchor_mode='fallback_now'。"""
+    store = IntentFeedbackStore(tmp_path / "intent_feedback")
+    limiter = SessionTsRateLimiter()
+    label_ts = 1_780_000_000_000_000_000
+    inferencer = _AnchorWindowProvider(
+        recent_window=[_frame(label_ts + 300 * NS, marker=42)],  # 当下窗口
+        anchored_lookup={},  # 锚定查询永远空 → 越界
+    )
+    status, _body = _run_post(
+        {
+            "ts_ns": label_ts,
+            "predicted": "none",
+            "corrected": "none",
+            "ui_session": "session-anchor-miss",
+        },
+        store=store,
+        limiter=limiter,
+        inferencer=inferencer,
+    )
+    assert status == 200
+    record = json.loads(
+        list((tmp_path / "intent_feedback").glob("*.jsonl"))[0]
+        .read_text(encoding="utf-8")
+        .strip()
+    )
+    assert record["anchor_mode"] == "fallback_now"
+    markers = [int(f["au"][0]) for f in record["au_window"]]
+    assert markers == [42], f"降级时应来自 recent_window: {markers}"
+
+
+def test_intent_feedback_legacy_provider_without_anchor_method(tmp_path: Path) -> None:
+    """老 inferencer 没有 get_window_around_ts → 静默降级 fallback_now(向后兼容)。"""
+    store = IntentFeedbackStore(tmp_path / "intent_feedback")
+    limiter = SessionTsRateLimiter()
+    # 用本文件顶部的 _WindowProvider, 只实现 get_recent_window
+    inferencer = _WindowProvider([_frame(1_780_000_000_000_000_000, marker=11)])
+    status, _body = _run_post(
+        {
+            "ts_ns": 1_780_000_000_000_000_000,
+            "predicted": "positive",
+            "corrected": "positive",
+            "ui_session": "session-legacy",
+        },
+        store=store,
+        limiter=limiter,
+        inferencer=inferencer,
+    )
+    assert status == 200
+    record = json.loads(
+        list((tmp_path / "intent_feedback").glob("*.jsonl"))[0]
+        .read_text(encoding="utf-8")
+        .strip()
+    )
+    assert record["anchor_mode"] == "fallback_now"
+    assert "au_window" in record

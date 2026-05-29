@@ -36,7 +36,7 @@ import streamlit as st
 # ---- 配置 ----
 # 5/25 cc fix: daemon 9876 实际是 HTTP（不是 WebSocket），改用 polling /signals/recent
 DAEMON_HTTP = "http://127.0.0.1:9876"
-SIGNALS_URL = f"{DAEMON_HTTP}/signals/recent?limit=1"
+SIGNALS_URL = f"{DAEMON_HTTP}/signals/recent?seconds=1"  # ADR-041: daemon 不认 limit, 用 seconds=1 只拿最近 1s 帧
 HEALTH_URL = f"{DAEMON_HTTP}/health"
 FEEDBACK_URL = "http://127.0.0.1:9877/intent_feedback"
 FEEDBACK_WINDOW_SEC = 120  # gemini finding 2-2：反馈有效窗口 ≤ 2min
@@ -116,7 +116,7 @@ def fetch_latest_inference() -> Optional[Inference]:
         data = r.json()
         if not isinstance(data, list) or not data:
             return None
-        rec = data[0]
+        rec = data[-1]  # ADR-041: daemon /signals/recent 返回 oldest→newest, 必须取 [-1] 拿最新, 否则 ts_ns 锚到 5min 前最旧帧
         # 同帧去重（同 frame_id 不重复入队）
         fid = rec.get("frame_id")
         if fid is not None and fid == st.session_state.last_frame_id:

@@ -16,7 +16,11 @@ _ONE_SECOND_NS = 1_000_000_000
 
 
 class RecentWindowProvider(Protocol):
-    """Provider interface for inferencer temporal windows."""
+    """Provider interface for inferencer temporal windows.
+
+    ADR-041 新增 get_window_around_ts / get_long_context_around_ts (可选,
+    缺失时 server 静默降级到 get_recent_window / get_long_context)。
+    """
 
     def get_recent_window(self, seconds: int = 10) -> list[dict[str, Any]]:
         """Return temporal snapshots with ts_ns/h/au fields."""
@@ -101,10 +105,12 @@ class IntentFeedbackHandler(BaseHTTPRequestHandler):
                 self._reply(429, {"accepted": False, "error": "rate_limited"})
                 return
 
-            temporal_window = self._collect_temporal_window(seconds=10)
-            # ADR-040 Phase1: 独立采集 10-120s 稀疏长程上下文 (不碰现有 au_window)
-            # 供 Phase2 信息论互信息/oracle 验证 intent 任务是否需要 >10s 历史
-            long_window = self._collect_long_context()
+            # ADR-041: 按 ts_ns 锚定切窗 (修标注-窗口时间错位), 失败降级当下
+            temporal_window, anchor_mode = self._collect_temporal_window(
+                seconds=10, anchor_ts_ns=ts_ns
+            )
+            # ADR-040 Phase1 + ADR-041: 长程窗同样按 ts_ns 锚定 (不碰现有 au_window 旧路径)
+            long_window = self._collect_long_context(anchor_ts_ns=ts_ns)
             record = {
                 "ts_ns": ts_ns,
                 "predicted": predicted,
@@ -129,6 +135,7 @@ class IntentFeedbackHandler(BaseHTTPRequestHandler):
                     for item in long_window
                 ],
                 "long_context_meta": {"recent_s": 10, "long_s": 120, "long_hz": 0.1},
+                "anchor_mode": anchor_mode,  # ADR-041: "ts_ns"=按标签时刻切窗 / "fallback_now"=降级当下
                 "recorded_at": datetime.now().astimezone().isoformat(),
             }
             stored_path = self.store.append(record)
@@ -149,45 +156,72 @@ class IntentFeedbackHandler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
         return
 
-    def _collect_temporal_window(self, seconds: int) -> list[dict[str, Any]]:
+    def _collect_temporal_window(
+        self, seconds: int, anchor_ts_ns: int | None = None
+    ) -> tuple[list[dict[str, Any]], str]:
+        """ADR-041: 若 anchor_ts_ns 给出, 优先按 anchor 切窗(锚定标签时刻);
+        anchor 缺失或与 deque 无交集 → 降级回 get_recent_window(当下)。
+
+        返回 (window, anchor_mode) — anchor_mode ∈ {"ts_ns", "fallback_now"}。
+        """
         inferencer = getattr(self, "inferencer", None)
         if inferencer is None:
-            return []
+            return [], "fallback_now"
+        if anchor_ts_ns is not None and hasattr(inferencer, "get_window_around_ts"):
+            try:
+                anchored = inferencer.get_window_around_ts(
+                    anchor_ts_ns=anchor_ts_ns, recent_s=seconds
+                )
+            except Exception as exc:  # noqa: BLE001
+                logging.getLogger(__name__).warning(
+                    "get_window_around_ts failed: %s", exc
+                )
+                anchored = None
+            normalized = self._normalize_temporal(anchored)
+            if normalized:
+                return normalized, "ts_ns"
         try:
             raw_window = inferencer.get_recent_window(seconds=seconds)
         except Exception as exc:  # noqa: BLE001
             logging.getLogger(__name__).warning("get_recent_window failed: %s", exc)
-            return []
-        if not isinstance(raw_window, list):
-            return []
-        normalized: list[dict[str, Any]] = []
-        for item in raw_window:
-            if not isinstance(item, dict):
-                continue
-            ts_ns = item.get("ts_ns")
-            h = item.get("h")
-            au = item.get("au")
-            if not isinstance(ts_ns, int):
-                continue
-            if not isinstance(h, list) or not isinstance(au, list):
-                continue
-            normalized.append({"ts_ns": ts_ns, "h": h, "au": au})
-        return normalized
+            return [], "fallback_now"
+        return self._normalize_temporal(raw_window), "fallback_now"
 
-    def _collect_long_context(self) -> list[dict[str, Any]]:
-        """ADR-040 Phase1: 收集 10-120s 稀疏长程上下文 (0.1Hz 下采样)。
+    def _collect_long_context(
+        self, anchor_ts_ns: int | None = None
+    ) -> list[dict[str, Any]]:
+        """ADR-040 Phase1 + ADR-041: 收集 10-120s 稀疏长程上下文。
 
-        inferencer.get_long_context 缓冲不足/方法缺失时 fail-soft 返回 []，
-        不阻塞反馈写入 (向后兼容: 老 inferencer 无此方法时静默降级)。
+        若 anchor_ts_ns 给出且 inferencer 提供 get_long_context_around_ts → 锚定切窗;
+        否则降级回 get_long_context(当下)。fail-soft 返回 []。
         """
         inferencer = getattr(self, "inferencer", None)
-        if inferencer is None or not hasattr(inferencer, "get_long_context"):
+        if inferencer is None:
+            return []
+        if anchor_ts_ns is not None and hasattr(inferencer, "get_long_context_around_ts"):
+            try:
+                anchored = inferencer.get_long_context_around_ts(
+                    anchor_ts_ns=anchor_ts_ns, recent_s=10, long_s=120, long_hz=0.1
+                )
+            except Exception as exc:  # noqa: BLE001
+                logging.getLogger(__name__).warning(
+                    "get_long_context_around_ts failed: %s", exc
+                )
+                anchored = None
+            normalized = self._normalize_temporal(anchored)
+            if normalized:
+                return normalized
+        if not hasattr(inferencer, "get_long_context"):
             return []
         try:
             raw = inferencer.get_long_context(recent_s=10, long_s=120, long_hz=0.1)
         except Exception as exc:  # noqa: BLE001
             logging.getLogger(__name__).warning("get_long_context failed: %s", exc)
             return []
+        return self._normalize_temporal(raw)
+
+    def _normalize_temporal(self, raw: Any) -> list[dict[str, Any]]:
+        """共用规整: 过滤格式不合规的帧, 返回 [{ts_ns, h, au}]。"""
         if not isinstance(raw, list):
             return []
         out: list[dict[str, Any]] = []
