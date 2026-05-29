@@ -36,7 +36,7 @@ import streamlit as st
 # ---- 配置 ----
 # 5/25 cc fix: daemon 9876 实际是 HTTP（不是 WebSocket），改用 polling /signals/recent
 DAEMON_HTTP = "http://127.0.0.1:9876"
-SIGNALS_URL = f"{DAEMON_HTTP}/signals/recent?seconds=3"  # ADR-041: daemon 不认 limit; seconds=3 兜底 daemon fps 抖动 (实测 ~1.5Hz, 1s 窗易空), 配合 data[-1] 总拿最新
+SIGNALS_URL = f"{DAEMON_HTTP}/signals/recent?seconds=30"  # ADR-041: daemon 不认 limit; 实测 daemon 帧率抖动大(只在检测到人脸时记帧, 常 idle 10+s), seconds=30 留充足容差; data[-1] 总取最新, ts_ns 锚到该帧时刻 (即使是几秒到几十秒前, 仍精确, 修了原 5min 错位 bug)
 HEALTH_URL = f"{DAEMON_HTTP}/health"
 FEEDBACK_URL = "http://127.0.0.1:9877/intent_feedback"
 FEEDBACK_WINDOW_SEC = 120  # gemini finding 2-2：反馈有效窗口 ≤ 2min
