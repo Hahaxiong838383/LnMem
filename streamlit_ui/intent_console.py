@@ -897,15 +897,9 @@ def main():
             help="开：减少打扰；关：所有推断都弹卡（标注模式）",
         )
     with ctrl2:
-        # 5/25 cc: streamlit-autorefresh 用 JavaScript 触发，避免 time.sleep+rerun 闪烁
-        auto_refresh = st.toggle("自动刷新 (2.5s)", value=True,
-                                  help="勾选后用 streamlit-autorefresh 每 2.5s 平滑更新（提升反馈卡冒出速度）")
-        if auto_refresh:
-            try:
-                from streamlit_autorefresh import st_autorefresh
-                st_autorefresh(interval=2500, key="main_refresh")
-            except ImportError:
-                st.warning("streamlit-autorefresh 未装，fallback time.sleep 模式")
+        # ADR-041 UX 修复: 用 st.fragment(run_every) 替代 streamlit_autorefresh,
+        # 只重绘推断区域, 整页布局不再闪灰 (streamlit 1.33+ 原生)。
+        st.caption("⚡ 推断区自动刷新 (2s, 局部不闪灰)")
     with ctrl3:
         if st.button("🔄 重置历史"):
             st.session_state.history.clear()
@@ -916,6 +910,17 @@ def main():
     if "_last_toast" in st.session_state:
         st.success(st.session_state.pop("_last_toast"))
 
+    # ---- 推断 + 待反馈队列 (fragment 局部刷新) ----
+    _render_inference_block()
+
+
+@st.fragment(run_every=2.0)
+def _render_inference_block() -> None:
+    """ADR-041 UX 修复: fragment 局部刷新, 整页布局不闪灰。
+
+    内含: 拉取最新推断 / 主区当前推断卡 / 右栏待反馈队列。
+    fragment 内 st.rerun() 默认只重跑 fragment, 不重跑整页 (1.36+)。
+    """
     # ---- 拉取最新推断 ----
     inf = fetch_latest_inference()
     if inf is not None:
