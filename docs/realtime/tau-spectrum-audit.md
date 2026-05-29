@@ -54,6 +54,12 @@ hidden_dim: int = 64          # CfC backbone 隐藏维度 = τ 神经元数量
 
 ---
 
+## ⚠️ 2026-05-29 ckpt 路径修正（cc 诚实补注）
+
+本 audit v1.0 计算的是 `poc/data/checkpoints/m0w2_phase2/checkpoint_phase2_20260524T144928Z.pt`（sha8 c163f53a），**但 daemon 实际加载的是 `~/.lnmem/ckpt/lnn_backbone_phase2_latest.pt`（sha8 59cd1d9c, 5/22），由 env `LNMEM_LNN_CKPT` 覆盖默认目录**。cc audit 时假设了 daemon 默认目录，没验 env 覆盖（no-guessing 小瑕疵）。
+
+**但结论不变**：两个 ckpt 同属 personalization.tau_projection 路径，daemon 实际 ckpt（59cd1d9c）实测 τ mean=1.187 std=0.013 min=1.128 max=1.228，与本 audit 数值**几乎完全一致**。单 τ / 半衰期 0.82s / 缺口 36× 全部成立。
+
 ## 2. 实测 τ 分布（latest phase2 ckpt 2026-05-24）
 
 ### 2.1 全局统计（所有 31 personas × 64 神经元 = 1984 个 τ 值）
