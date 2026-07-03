@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  notify_watcher v2 守护：active learning 主动反馈
+  - KeepAlive=true: 崩了 launchd 自动拉起
+  - RunAtLoad=true: 装上立刻起
+  - Throttle 60s: 避免 crash loop（最快 60s 重启一次）
+  - env 写死 v2 触发阈值，重启后保持一致
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lnmem.notify-watcher</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc/scripts/notify_watcher.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc</string>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/rayman.chen/.lnmem/logs/notify_watcher/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/rayman.chen/.lnmem/logs/notify_watcher/launchd.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/rayman.chen</string>
+
+        <!-- v2.1 active learning（5/25 13:18 川哥反馈"太频繁+重复问"后大幅收紧）-->
+        <key>POLL_INTERVAL</key>
+        <string>3</string>
+        <key>GLOBAL_COOLDOWN_S</key>
+        <string>300</string>
+        <key>PER_REASON_COOLDOWN_S</key>
+        <string>1800</string>
+        <key>RECENT_FEEDBACK_DEDUP_S</key>
+        <string>1800</string>
+        <key>DAILY_MAX</key>
+        <string>200</string>
+
+        <!-- v2.2 P-AL.2 online cooldown adaptation 参数（川哥 5/25 13:30 钦定）-->
+        <key>ADAPT_WINDOW_N</key>
+        <string>20</string>
+        <key>ADAPT_LOW_THRESH</key>
+        <string>0.3</string>
+        <key>ADAPT_HIGH_THRESH</key>
+        <string>0.7</string>
+        <key>ADAPT_MIN_COOLDOWN</key>
+        <string>180</string>
+        <key>ADAPT_MAX_COOLDOWN</key>
+        <string>3600</string>
+        <key>ADAPT_EVERY_N</key>
+        <string>5</string>
+        <key>INTENT_TOP2_DIFF_MAX</key>
+        <string>0.10</string>
+        <key>PHASE2_MARGIN_MIN</key>
+        <string>0.30</string>
+        <key>PHASE2_ENTROPY_MAX</key>
+        <string>0.60</string>
+        <key>HIGH_CONF_TOP_PROB</key>
+        <string>0.80</string>
+        <key>PERSIST_FRAMES</key>
+        <string>3</string>
+        <key>COLD_START_WINDOW_S</key>
+        <string>300</string>
+        <key>SPARSE_CLASS_MAX</key>
+        <string>5</string>
+        <key>FLIP_MIN_SAMPLES</key>
+        <string>10</string>
+    </dict>
+</dict>
+</plist>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+LnMem fit_step launchd 模板（M0 W2 P-1，2026-05-16）
+
+闭合 LnMem PoC 持续学习闭环（应对 4 天 daemon 跑下来累积 28 mismatch 但 fit 从未触发的设计 gap）。
+
+Install（川哥从他常用终端执行）：
+  cp scripts/com.lnmem.fit-step.plist ~/Library/LaunchAgents/
+  launchctl load ~/Library/LaunchAgents/com.lnmem.fit-step.plist
+
+Uninstall：
+  launchctl unload ~/Library/LaunchAgents/com.lnmem.fit-step.plist
+  rm ~/Library/LaunchAgents/com.lnmem.fit-step.plist
+
+诊断：
+  launchctl list | grep com.lnmem.fit-step      # 看运行状态
+  tail -f /tmp/lnmem-fit-step.stdout.log         # 看 stdout（结构化 JSON）
+  tail -f /tmp/lnmem-fit-step.stderr.log         # 看 stderr（progress）
+  cat ~/.lnmem/fit_step_history.jsonl | tail -10 # 看历史 audit
+
+设计参数（gemini 调研推荐 + cc 调整）：
+- StartInterval=900       — 15min 轮询一次（fit_step 单次 ~5s，频率/响应平衡）
+- KeepAlive=false (默认)  — fit_step 是一次性 job，不是 daemon，跑完正常退出
+- ThrottleInterval=60     — 失败后 backoff 60s 再触发，防崩溃高频重启
+- RunAtLoad=true          — load plist 时立即跑一次（验证 + 消费累积 mismatch）
+
+注意事项：
+1. 修改 REPO_ROOT 见 cron_fit_step.sh 顶部环境变量（默认 /Users/rayman.chen/mycc/2-Projects/LnMem-poc）
+2. 与 com.lnmem.daemon-supervisor / daemon-watchdog 独立，互不依赖
+3. fit_step 失败不影响 daemon 采集
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lnmem.fit-step</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc/scripts/cron_fit_step.sh</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>900</integer>
+
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>LNMEM_REPO_ROOT</key>
+        <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc</string>
+        <key>LNMEM_VENV_PY</key>
+        <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc/.venv-poc-fresh/bin/python3</string>
+        <key>HISTORY_LOG</key>
+        <string>/Users/rayman.chen/.lnmem/fit_step_history.jsonl</string>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/lnmem-fit-step.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/lnmem-fit-step.stderr.log</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc</string>
+</dict>
+</plist>

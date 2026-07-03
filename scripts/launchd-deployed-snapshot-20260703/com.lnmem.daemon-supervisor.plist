@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+LnMem daemon supervisor launchd 模板（M0 W1 P0-4 第二阶段）
+
+用途：监听 ~/.lnmem/RESTART_NEEDED 标记，自动重启 daemon（用 osascript + Terminal.app 拿 TCC）
+
+Install（川哥从他常用终端执行）：
+  cp scripts/com.lnmem.daemon-supervisor.plist ~/Library/LaunchAgents/
+  launchctl load ~/Library/LaunchAgents/com.lnmem.daemon-supervisor.plist
+
+Uninstall：
+  launchctl unload ~/Library/LaunchAgents/com.lnmem.daemon-supervisor.plist
+  rm ~/Library/LaunchAgents/com.lnmem.daemon-supervisor.plist
+
+首次运行的 Automation 授权：
+- supervisor 第一次 osascript 控制 Terminal.app 时会弹"允许 supervisor 控制 Terminal" 对话框
+- 川哥点"允许"
+- 后续重启无需交互
+- 如未弹（launchd 无 GUI 上下文）：手动到 System Settings → Privacy & Security → Automation
+  找 supervisor 路径或 bash，添加 Terminal.app 控制权限
+
+注意：
+- KeepAlive=true：supervisor 自身崩溃时 launchd 自动重启
+- 不要把 STALE_SECONDS / RSS_KILL_GB 等放进 supervisor — 那是 watchdog 的职责
+- supervisor 仅响应 RESTART_NEEDED flag，不自己判断 daemon 是否健康
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lnmem.daemon-supervisor</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc/scripts/daemon_supervisor.sh</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>SUPERVISOR_INTERVAL</key>
+        <string>30</string>
+        <key>RESTART_COOLDOWN_S</key>
+        <string>300</string>
+        <key>DAEMON_WARMUP_S</key>
+        <string>60</string>
+        <key>HEALTH_URL</key>
+        <string>http://127.0.0.1:9876/health</string>
+        <key>START_DAEMON_SCRIPT</key>
+        <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc/scripts/start-daemon.sh</string>
+        <key>RESTART_FLAG</key>
+        <string>/Users/rayman.chen/.lnmem/RESTART_NEEDED</string>
+        <key>SUPERVISOR_LOG</key>
+        <string>/Users/rayman.chen/.lnmem/supervisor.log</string>
+        <key>SUPERVISOR_ERROR_FLAG</key>
+        <string>/Users/rayman.chen/.lnmem/SUPERVISOR_ERROR</string>
+        <key>DAEMON_NAME</key>
+        <string>poc.src.realtime.daemon_main</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <!-- 响应 codex F7：防 crash-loop thrashing（supervisor 异常退出时 launchd 至少等 30s 再重启） -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/rayman.chen/.lnmem/supervisor.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/rayman.chen/.lnmem/supervisor.stderr.log</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc</string>
+</dict>
+</plist>

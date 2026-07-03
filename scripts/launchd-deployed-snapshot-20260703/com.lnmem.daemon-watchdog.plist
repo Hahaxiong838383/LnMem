@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+LnMem daemon watchdog launchd 模板（M0 W1 P0-4）
+
+Install（川哥从他常用终端执行）：
+  cp scripts/com.lnmem.daemon-watchdog.plist ~/Library/LaunchAgents/
+  launchctl load ~/Library/LaunchAgents/com.lnmem.daemon-watchdog.plist
+
+Uninstall：
+  launchctl unload ~/Library/LaunchAgents/com.lnmem.daemon-watchdog.plist
+
+注意事项：
+1. 需替换 /Users/rayman.chen 为川哥实际 $HOME（例 /Users/Rayman.Chen）
+2. 替换 /Users/rayman.chen/mycc/2-Projects/LnMem-poc 为 LnMem 仓库实际路径（例 /Users/Rayman.Chen/projects/LnMem）
+3. watchdog 不直接重启 daemon（TCC 限制），仅写 ~/.lnmem/RESTART_NEEDED 标记
+   川哥需配 supervisor 脚本（M0 W1 后续任务）检测此标记并重启 daemon
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lnmem.daemon-watchdog</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc/scripts/daemon_watchdog.sh</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>DAEMON_NAME</key>
+        <string>poc.src.realtime.daemon_main</string>
+        <key>HEALTH_URL</key>
+        <string>http://127.0.0.1:9876/health</string>
+        <key>INTERVAL</key>
+        <string>60</string>
+        <key>RSS_WARN_GB</key>
+        <string>2.0</string>
+        <key>RSS_KILL_GB</key>
+        <string>3.0</string>
+        <key>STALE_SECONDS</key>
+        <string>300</string>
+        <key>LOG_ROTATE_MB</key>
+        <string>500</string>
+        <key>WATCHDOG_LOG</key>
+        <string>/Users/rayman.chen/.lnmem/watchdog.log</string>
+        <key>RESTART_FLAG</key>
+        <string>/Users/rayman.chen/.lnmem/RESTART_NEEDED</string>
+        <key>SIGNALS_DIR</key>
+        <string>/Users/rayman.chen/.lnmem/data</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/rayman.chen/.lnmem/watchdog.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/rayman.chen/.lnmem/watchdog.stderr.log</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/rayman.chen/mycc/2-Projects/LnMem-poc</string>
+</dict>
+</plist>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lnmem.pull-ckpt-from-studio</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>cd /Users/rayman.chen/mycc/2-Projects/LnMem-poc &amp;&amp; ./scripts/pull_ckpt_from_studio.sh</string>
+    </array>
+
+    <!-- 每 10 分钟拉一次（ADR-029 Q2=A，Air 主动 pull） -->
+    <key>StartInterval</key>
+    <integer>600</integer>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/rayman.chen/.lnmem/logs/ckpt_pull/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/rayman.chen/.lnmem/logs/ckpt_pull/launchd.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/rayman.chen</string>
+    </dict>
+</dict>
+</plist>

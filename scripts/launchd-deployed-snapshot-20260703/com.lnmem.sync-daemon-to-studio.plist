@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lnmem.sync-daemon-to-studio</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>cd /Users/rayman.chen/mycc/2-Projects/LnMem-poc &amp;&amp; ./scripts/sync_daemon_to_studio.sh</string>
+    </array>
+
+    <!-- 每小时跑一次（ADR-029 Q1=A） -->
+    <key>StartInterval</key>
+    <integer>3600</integer>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/rayman.chen/.lnmem/logs/sync/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/rayman.chen/.lnmem/logs/sync/launchd.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/rayman.chen</string>
+    </dict>
+</dict>
+</plist>
